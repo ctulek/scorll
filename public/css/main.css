@@ -1,0 +1,63 @@
+body {
+	margin: 0px;
+}
+
+img#background-image {
+	left: 0px;
+	position: fixed;
+	top: 0px;
+	width: 100%;
+}
+
+div#topbar {
+	background-image: -webkit-gradient(
+			linear,
+			left bottom,
+			left top,
+			color-stop(0.01, rgb(70,70,70)),
+			color-stop(0.1, rgb(100,100,100)),
+			color-stop(1, rgb(150,150,150))
+	);
+	background-image: -moz-linear-gradient(
+			center bottom,
+			rgb(50,50,50) 10%,
+			rgb(150,150,150) 100%
+	);
+	border: 0px;
+	border-radius: 0px 0px 0px 30px;
+	color: #ccc;
+	height: 30px;
+	padding-left: 40px;
+	padding-top: 5px;
+	position: absolute;
+	right: 0px;
+	top: 0px;
+	width: 170px;
+}
+
+div#toolbar {
+	background-image: -webkit-gradient(
+			linear,
+			left bottom,
+			left top,
+			color-stop(0.01, rgb(70,70,70)),
+			color-stop(0.1, rgb(100,100,100)),
+			color-stop(1, rgb(150,150,150))
+	);
+	background-image: -moz-linear-gradient(
+			center bottom,
+			rgb(70,70,70) 1%,
+			rgb(100,100,100) 10%,
+			rgb(150,150,150) 100%
+	);
+	border-radius: 4px 0px 0px 0px;
+	border-top: 1px solid rgb(200,200,200);
+	border-left: 1px solid rgb(200,200,200);
+	bottom: 0px;
+	height: 30px;
+	padding-left: 20px;
+	padding-top: 5px;
+	position: fixed;
+	right: 0px;
+	width: 300px;
+}

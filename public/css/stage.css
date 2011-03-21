@@ -1,0 +1,35 @@
+div#title {
+	margin-left: 10px;
+}
+
+div#stage-container {
+	margin-left: 20px;
+	padding-bottom: 100px;
+	position: absolute;
+	top: 30px;
+}
+
+div#stage {
+	width: 720px;
+}
+
+div#stage > div {
+	margin: 10px 10px;
+	z-index: 2;
+}
+
+div#notes {
+	background-color: yellow;
+	padding-bottom: 100px;
+	position: absolute;
+	top: 60px;
+	left: 730px;
+}
+
+div#notes-hint {
+	border: 2px dashed silver;
+	color: silver;
+	margin: 30px;
+	padding: 10px;
+	position: absolute;
+}

@@ -1,0 +1,19 @@
+if(!dojo._hasResource["scorll.asset.TextForm"]){
+dojo._hasResource["scorll.asset.TextForm"]=true;
+dojo.provide("scorll.asset.TextForm");
+
+dojo.require("scorll.asset.AssetForm");
+dojo.require("dijit.form.TextBox");
+dojo.require("dijit.form.Textarea");
+dojo.require("dojox.layout.TableContainer");
+
+dojo.declare("scorll.asset.TextForm",[scorll.asset.AssetForm],{
+		templatePath: dojo.moduleUrl("scorll.asset","Text.Editor.html"),
+		add: function() {
+			console.log(this.titleText.attr('value'));
+			console.log(this.bodyText.attr('value'));
+		},
+		cancel: function() {
+		}
+	});
+}

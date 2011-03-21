@@ -1,0 +1,4 @@
+<div>
+	<h2 dojoAttachPoint="titleText"></h2>
+	<p dojoAttachPoint="bodyText"></p>
+	<div dojoType="dijit.form.Button">Test</div>
