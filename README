@@ -1,1 +1,5 @@
-Scorll is a learning content creation and publishing tool
+Scorll is a free and opensource Learning Content Management System (LCMS).
+
+The project is in its very early stage. Initial attempt is to finish the basics of frontend architecture. You can find the code in public/scorll for frontend modules.
+
+TODO: Describe the project architecture
