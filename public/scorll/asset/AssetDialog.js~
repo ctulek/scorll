@@ -1,9 +1,0 @@
-if(!dojo._hasResource["scorll.asset.AssetDialog"]){
-dojo._hasResource["scorll.asset.AssetDialog"]=true;
-dojo.provide("scorll.asset.AssetDialog");
-
-dojo.require("dijit._Widget");
-dojo.require("dijit._Templated");
-
-dojo.declare("scorll.asset.AssetDialog",[dijit._Widget, dijit._Templated],{});
-}

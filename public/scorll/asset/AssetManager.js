@@ -23,6 +23,11 @@ dojo.declare("scorll.asset.AssetManager",null,{
 			label: "YouTube Video",
 			renderer: "scorll.asset.YouTube",
 			form: "scorll.asset.YouTubeForm"
+		},
+		"slideshare": {
+			label: "SlideShare Presentation",
+			renderer: "scorll.asset.SlideShare",
+			form: "scorll.asset.SlideShareForm"
 		}
   },
 	getAssetRenderer: function(item) {
