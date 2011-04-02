@@ -73,7 +73,7 @@ dojo.declare("scorll.stage.Stage",null,{
 	render: function() {
 		var stage = this;
 		var assetManager = new scorll.asset.AssetManager();
-		if(!this.content) {
+		if(!stage.content) {
 			console.warn("No content");
 			return;
 		}

@@ -33,7 +33,7 @@
 					dialog.show();
 					dojo.connect(form,"onSubmit",function(item) {
 						dialog.destroy();
-						content.add(item);
+						stage.content.add(item);
 					});
 					dojo.connect(form,"onCancel",function() {
 						dialog.destroy();
