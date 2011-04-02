@@ -28,17 +28,12 @@ dojo.declare("scorll.stage.Stage",null,{
         var client = stage.client = new scorll.net.Client();
         client.connect();
         dojo.connect(client, "onConnect", function() {
-            console.log("We say 'Hi'");
-            console.log("We get: ");
-            client.send("Hi", function(message) {
-                console.log(message);
-                console.log('Cool...');
-            });
-            var content = stage.content = new scorll.content.Content();
-            stage.observer = new dojo.store.Observable(stage.content.store);
-            stage.render();
+            stage.content.load(1);
         });
         // CONTENT
+        var content = stage.content = new scorll.content.Content();
+        content.client = stage.client;
+        stage.observe();
         // MENU
 		var menu = stage.menu = new scorll.stage.Menu();
 		stage.menu = menu;
@@ -70,13 +65,10 @@ dojo.declare("scorll.stage.Stage",null,{
 			stage.content.remove(widget.item);
 		});
 	},
-	render: function() {
+	observe: function() {
 		var stage = this;
+        stage.observer = new dojo.store.Observable(stage.content.store);
 		var assetManager = new scorll.asset.AssetManager();
-		if(!stage.content) {
-			console.warn("No content");
-			return;
-		}
 		var result = this.observer.query();
 		result.forEach(function(item) {
 			var widget = assetManager.getAssetRenderer(stage, item);
