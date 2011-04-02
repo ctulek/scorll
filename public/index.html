@@ -17,22 +17,9 @@
 	dojo.require("scorll.content.Content");
 	dojo.require("scorll.stage.Stage");
 	dojo.require("scorll.asset.AssetManager");
-    dojo.require("scorll.net.Server");
 	dojo.addOnLoad(
 		function() {
-		    var server = new scorll.net.Server();
-            server.connect();
-            dojo.connect(server, "onConnect", function() {
-                console.log("We say 'Hi'");
-                console.log("We get: ");
-                server.send("Hi", function(message) {
-                    console.log(message);
-                    console.log('Cool...');
-                });
-            });
-			content = new scorll.content.Content();
-			var stage = new scorll.stage.Stage({content: content});
-			stage.render();
+			var stage = new scorll.stage.Stage();
 			var assetManager = new scorll.asset.AssetManager();
 			for(var type in assetManager.assets) {
 				var button = new dijit.form.Button();

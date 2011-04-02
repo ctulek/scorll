@@ -30,6 +30,8 @@ socket.on('connection', function(client) {
             this.send({callbackId:message.callbackId,
                 data: "Hi, how are you?"
             });
+        } else if(message.componentType == "asset") {
+            asset.handle(this, message);
         }
 	});
 	client.on('disconnect', function() {
@@ -38,3 +40,16 @@ socket.on('connection', function(client) {
 });
 
 console.log("Ready to serve requests on port " + port + ". Enjoy...");
+
+
+var Asset = function() {
+}
+
+Asset.prototype.handle = function(client, message) {
+    if(message.action == "call") {
+        console.log("CALL");
+        client.send(message);
+    }
+}
+
+var asset = new Asset();

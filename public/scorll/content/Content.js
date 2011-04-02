@@ -3,6 +3,7 @@ dojo._hasResource["scorll.content.Content"]=true;
 dojo.provide("scorll.content.Content");
 dojo.require("dojo.store.Memory");
 dojo.declare("scorll.content.Content",null,{
+    id: null,
 	constructor: function(/* Object */ args) {
 		var content = this;
 		for(var k in args) {
@@ -22,7 +23,6 @@ data: {
 		{id: "test3", type: "text", data: {
 			text: "Lorem ipsum"}}
 		];
-		items = [];
 		content.store = new dojo.store.Memory({data: items});
 	},
 	query: function() {

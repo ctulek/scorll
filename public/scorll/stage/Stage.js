@@ -5,11 +5,14 @@ dojo.provide("scorll.stage.Stage");
 dojo.require("dojo.store.Observable");
 dojo.require("dijit.form.Button");
 
+dojo.require("scorll.net.Client");
 dojo.require("scorll.stage.Menu");
 dojo.require("scorll.asset.AssetManager");
 
 dojo.declare("scorll.stage.Stage",null,{
 	mode: "author",
+    user: null,
+    client: null,
 	content: null,
 	observer: null,
 	menu: null,
@@ -18,6 +21,25 @@ dojo.declare("scorll.stage.Stage",null,{
 		for(var k in args) {
 			stage[k] = args[k];
 		}
+        // USER
+        var user = stage.user = {};
+        user.id = "USERID";
+        // CLIENT
+        var client = stage.client = new scorll.net.Client();
+        client.connect();
+        dojo.connect(client, "onConnect", function() {
+            console.log("We say 'Hi'");
+            console.log("We get: ");
+            client.send("Hi", function(message) {
+                console.log(message);
+                console.log('Cool...');
+            });
+            var content = stage.content = new scorll.content.Content();
+            stage.observer = new dojo.store.Observable(stage.content.store);
+            stage.render();
+        });
+        // CONTENT
+        // MENU
 		var menu = stage.menu = new scorll.stage.Menu();
 		stage.menu = menu;
 		menu.placeAt(dojo.body());
@@ -35,14 +57,9 @@ dojo.declare("scorll.stage.Stage",null,{
 			dojo.connect(form,"onSubmit",function(item) {
 				dialog.hide();
 				stage.content.update(item);
-				var newwidget = assetManager.getAssetRenderer(item);
+				var newwidget = assetManager.getAssetRenderer(stage, item);
 				dojo.place(newwidget.domNode, widget.domNode, "replace");
-				dojo.connect(newwidget,"onMouseOver", function() {
-					stage.menu.show(this.domNode);
-				});
-				dojo.connect(newwidget,"onMouseOut", function() {
-					stage.menu.hide();
-				});
+                stage.register(newwidget);
 			});
 			dojo.connect(form,"onCancel",function() {
 				dialog.hide();
@@ -52,7 +69,6 @@ dojo.declare("scorll.stage.Stage",null,{
 			menu.hide(true);
 			stage.content.remove(widget.item);
 		});
-		this.observer = new dojo.store.Observable(stage.content.store);
 	},
 	render: function() {
 		var stage = this;
@@ -63,14 +79,9 @@ dojo.declare("scorll.stage.Stage",null,{
 		}
 		var result = this.observer.query();
 		result.forEach(function(item) {
-			var widget = assetManager.getAssetRenderer(item);
+			var widget = assetManager.getAssetRenderer(stage, item);
 			dojo.place(widget.domNode, "stage");
-			dojo.connect(widget,"onMouseOver", function() {
-				stage.menu.show(this.domNode);
-			});
-			dojo.connect(widget,"onMouseOut", function() {
-					stage.menu.hide();
-			});
+            stage.register(widget);
 		});
 		result.observe(function(item, removedFrom, insertedInto) {
 			if(removedFrom > -1){ // existing object removed
@@ -81,16 +92,20 @@ dojo.declare("scorll.stage.Stage",null,{
 				}
 			}
 			if(insertedInto > -1){ // new or updated object inserted
-				var widget = assetManager.getAssetRenderer(item);
+				var widget = assetManager.getAssetRenderer(stage, item);
 				dojo.place(widget.domNode, "stage", insertedInto + 1);
-				dojo.connect(widget,"onMouseOver", function() {
-					stage.menu.show(this.domNode);
-				});
-				dojo.connect(widget,"onMouseOut", function() {
-						stage.menu.hide();
-				});
+                stage.register(widget);
 			}
 		});
-	}
+	},
+    register: function(widget) {
+        var stage = this;
+        dojo.connect(widget,"onMouseOver", function() {
+            stage.menu.show(this.domNode);
+        });
+        dojo.connect(widget,"onMouseOut", function() {
+                stage.menu.hide();
+        });
+    }
 });
 }

@@ -30,7 +30,7 @@ dojo.declare("scorll.asset.AssetManager",null,{
 			form: "scorll.asset.SlideShareForm"
 		}
   },
-	getAssetRenderer: function(item) {
+	getAssetRenderer: function(stage, item) {
 		if(!this.assets[item.type]) {
 			console.error("Undefined asset type: " + item.type);
 			return null;
@@ -43,7 +43,14 @@ dojo.declare("scorll.asset.AssetManager",null,{
 			return null;
 		}
 		var ctor = dojo.getObject(className, true);
-		return new ctor({item: item});
+        var args = {};
+        args.item = item;
+        args.user = stage.user;
+        args.client = stage.client;
+        args.content = stage.content;
+		var asset = new ctor(args);
+        stage.client.register("asset-" + asset.item.id, asset);
+        return asset;
 	},
 	getAssetForm: function(item) {
 		if(!this.assets[item.type]) {
