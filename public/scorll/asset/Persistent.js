@@ -12,9 +12,17 @@ dojo.declare("scorll.asset.Persistent",null,{
             }
         });
     },
-    track: function(trackData, callback) {
+    save: function(objects, callback) {
         this.asset.send({module:"persistent",
-            action:"track", data: trackData});
-    }
+            action:"save", data: objects}, callback);
+    },
+    search: function(conditions, callback) {
+        this.asset.send({module:"persistent",
+            action:"search", data: conditions}, callback);
+    },
+    del: function(objects, callback) {
+        this.asset.send({module:"persistent",
+            action:"delete", data: objects}, callback);
+    },
 });
 }

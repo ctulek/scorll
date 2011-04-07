@@ -15,7 +15,7 @@ dojo.declare("scorll.content.Content",null,{
 		}
 		content.store = new dojo.store.Memory();
 	},
-    receive: function(message) {
+    receive: function(err, message) {
     },
     onLoad: function() {
     },
@@ -25,7 +25,11 @@ dojo.declare("scorll.content.Content",null,{
         args.componentType = "content";
         args.action = "load";
         args.data = {id: id};
-        content.client.send(args, function(message) {
+        content.client.send(args, function(err, message) {
+           if(err) {
+            console.error(err);
+            return;
+           }
            var data = message.data;
            content.id = data.id;
            content.title = data.title; 

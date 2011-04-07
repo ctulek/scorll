@@ -36,20 +36,21 @@ dojo.declare("scorll.net.Client",null,{
         this._components[componentId] = component;
     },
     message: function(message) {
+        var err = message.status != 'ok' ?
+                message.errorMessage : undefined;
         if(message.callbackId) {
             var callback = this._callbacks[message.callbackId];
             if(callback) {
-                callback(message);
+                callback(err, message);
                 this._callbacks[message.callbackId] = undefined;
             }
         } else if (message.componentId) {
             var component = this._components[message.componentId];
             if(component) {
-                component.receive(message);
+                component.receive(err, message);
             }
         } else {
-            console.log("Unhandled message:");
-            console.log(message);
+            console.warn("Unhandled message:", message);
         }
     },
     send: function(message, callback) {

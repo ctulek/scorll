@@ -25,7 +25,11 @@ dojo.declare("scorll.asset.Asset",[dijit._Widget, dijit._Templated],{
     },
     onMessage: function(message) {
     },
-    receive: function(message) {
+    receive: function(err, message) {
+        if(err) {
+            console.error(err);
+            return;
+        }
         this.onMessage(message);
     },
     send: function(message, callback) {

@@ -1,7 +1,15 @@
 exports.handle = function(client, message) {
     if(message.action == "load") {
+        var callbackId = message.callbackId;
         load(message.data, function(err, data) {
-            message = {callbackId: message.callbackId};
+            var message = {};
+            if(err) {
+                message.status = 'error';
+                message.errorMessage = err;
+            } else {
+                message.status = 'ok';
+            }
+            message.callbackId = callbackId;
             message.data = data;
             client.send(message);
         });
