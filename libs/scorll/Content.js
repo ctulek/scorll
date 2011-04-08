@@ -1,7 +1,9 @@
+var groups = require('libs/scorll/Groups.js');
+
 exports.handle = function(client, message) {
     if(message.action == "load") {
         var callbackId = message.callbackId;
-        load(message.data, function(err, data) {
+        load(client, message.data, function(err, data) {
             var message = {};
             if(err) {
                 message.status = 'error';
@@ -16,7 +18,8 @@ exports.handle = function(client, message) {
     }
 }
 
-var load = function(data, callback) {
+var load = function(client, data, callback) {
+    groups.add(data.id, client);
     callback(undefined, {id: "1", title: "Lorem Lorem Lorem", items: tempData});
 }
 
