@@ -53,9 +53,6 @@ dojo.declare("scorll.stage.Stage",null,{
 			dojo.connect(form,"onSubmit",function(item) {
 				dialog.hide();
 				stage.content.update(item);
-				var newwidget = assetManager.getAssetRenderer(stage, item);
-				dojo.place(newwidget.domNode, widget.domNode, "replace");
-                stage.register(newwidget);
 			});
 			dojo.connect(form,"onCancel",function() {
 				dialog.hide();
@@ -89,7 +86,7 @@ dojo.declare("scorll.stage.Stage",null,{
 				dojo.place(widget.domNode, "stage", insertedInto + 1);
                 stage.register(widget);
 			}
-		});
+		}, true);
 	},
     register: function(widget) {
         var stage = this;

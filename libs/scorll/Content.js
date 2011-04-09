@@ -15,7 +15,64 @@ exports.handle = function(client, message) {
             message.data = data;
             client.send(message);
         });
+    } else if(message.action == "add") {
+        add(client, message);
+    } else if(message.action == "update") {
+        update(client, message);
+    } else if(message.action == "remove") {
+        remove(client, message);
     }
+}
+
+var add = function(client, message) {
+   message.data.item.id = Date.now();
+   tempData.push(message.data.item); 
+   message.status = 'ok';
+   groups.each(groups.id(client), function(client) {
+        client.send(message);
+   });
+}
+
+var update = function(client, message) {
+    var id = message.data.item.id;
+    var updated = false;
+    for(var i in tempData) {
+        if(tempData[i].id == id) {
+            tempData[i] = message.data.item;
+            updated = true;
+            break;
+        }
+    }
+    if(updated) {
+       message.status = "ok";
+    } else {
+       message.status = "error";
+       message.errorMessage = "Undefined id: " + id;
+    }
+   groups.each(groups.id(client), function(client) {
+        client.send(message);
+   });
+}
+
+var remove = function(client, message) {
+    var id = message.data.item.id;
+    var removed = false;
+    for(var i in tempData) {
+        if(tempData[i].id == id) {
+            delete(tempData[i]);
+            removed = true;
+            break;
+        }
+    }
+    if(removed) {
+       message.status = "ok";
+    } else {
+       message.status = "error";
+       message.errorMessage = "Undefined id: " + id;
+    }
+   groups.each(groups.id(client), function(client) {
+        client.send(message);
+   });
 }
 
 var load = function(client, data, callback) {
