@@ -28,7 +28,13 @@ dojo.declare("scorll.asset.AssetManager",null,{
 			label: "SlideShare Presentation",
 			renderer: "scorll.asset.SlideShare",
 			form: "scorll.asset.SlideShareForm"
+		},
+		"scribd": {
+			label: "Scribd Document",
+			renderer: "scorll.asset.Scribd",
+			form: "scorll.asset.ScribdForm"
 		}
+
   },
 	getAssetRenderer: function(stage, item) {
 		if(!this.assets[item.type]) {
