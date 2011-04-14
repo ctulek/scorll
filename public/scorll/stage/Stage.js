@@ -75,15 +75,14 @@ dojo.declare("scorll.stage.Stage",null,{
 		});
 		result.observe(function(item, removedFrom, insertedInto) {
 			if(removedFrom > -1){ // existing object removed
-				removedFrom++;
-				var node = dojo.query("> :nth-child(" + removedFrom + ")", dojo.byId('stage'));
-				if(node.length > 0) {
-					dojo.destroy(node[0]);
+				var node = dijit.byId("asset-" + item.id);
+				if(node) {
+                    node.destroyRecursive();
 				}
 			}
 			if(insertedInto > -1){ // new or updated object inserted
 				var widget = assetManager.getAssetRenderer(stage, item);
-				dojo.place(widget.domNode, "stage", insertedInto + 1);
+				dojo.place(widget.domNode, "stage", insertedInto);
                 stage.register(widget);
 			}
 		}, true);

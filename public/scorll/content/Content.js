@@ -70,7 +70,7 @@ dojo.declare("scorll.content.Content",null,{
 		if(item.id == undefined) {
 			item.id = Date.now();
 		}
-		this.store.add(item);
+		this.store.put(item);
     },
 	update: function(item) {
         var message = {};
@@ -81,7 +81,7 @@ dojo.declare("scorll.content.Content",null,{
         this.client.send(message);
 	},
     _update: function(item) {
-		this.store.put(item, item.id);
+		this.store.put(item);
     },
 	remove: function(item) {
         var message = {};
