@@ -32,7 +32,7 @@ dojo.declare("scorll.stage.Stage",null,{
         });
         // CONTENT
         var content = stage.content = new scorll.content.Content();
-        client.register("content", content);
+        client.register(content);
         content.client = stage.client;
         stage.observe();
         // MENU
@@ -89,7 +89,7 @@ dojo.declare("scorll.stage.Stage",null,{
 	},
     register: function(widget) {
         var stage = this;
-        stage.client.register("asset-" + widget.item.id, widget);
+        stage.client.register(widget);
         dojo.connect(widget,"onMouseOver", function() {
             stage.menu.show(this.domNode);
         });

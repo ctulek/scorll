@@ -8,8 +8,11 @@ dojo.require("dijit._Templated");
 dojo.require("scorll.asset.Shared");
 dojo.require("scorll.asset.Tracking");
 dojo.require("scorll.asset.Persistent");
+dojo.require("scorll.net.ClientComponent");
 
-dojo.declare("scorll.asset.Asset",[dijit._Widget, dijit._Templated],{
+dojo.declare("scorll.asset.Asset",
+    [dijit._Widget, dijit._Templated,
+     scorll.net.ClientComponent],{
     user: null,
     client: null,
     content: null,
@@ -25,19 +28,22 @@ dojo.declare("scorll.asset.Asset",[dijit._Widget, dijit._Templated],{
     },
     onMessage: function(message) {
     },
+    send: function(message, callback) {
+        this.client.send(this, message, callback);
+    },
+    // scorll.net.ClientComponent functions
+    getComponentType: function() {
+        return "asset";
+    },
+    getComponentId: function() {
+        return "asset-" + this.item.id;
+    },
     receive: function(err, message) {
         if(err) {
             console.error(err);
             return;
         }
         this.onMessage(message);
-    },
-    send: function(message, callback) {
-        message.componentType = "asset";
-        message.componentId = "asset-" + this.item.id;
-        message.userId = this.user.id;
-        message.contentId = this.content.id;
-        this.client.send(message, callback);
     }
 });
 }

@@ -32,10 +32,10 @@ dojo.declare("scorll.net.Client",null,{
             this.socket.connect();
         }
     },
-    register: function(componentId, component) {
-        this._components[componentId] = component;
+    register: function(/* scorll.net.ClientComponent */ component) {
+        this._components[component.getComponentId()] = component;
     },
-    message: function(message) {
+    message: function(/* Object */ message) {
         var err = message.status != 'ok' ?
                 message.errorMessage : undefined;
         if(message.callbackId) {
@@ -53,7 +53,11 @@ dojo.declare("scorll.net.Client",null,{
             console.warn("Unhandled message:", message);
         }
     },
-    send: function(message, callback) {
+    send: function(/* scorll.net.ClientComponent */ component,
+                   /* Object */ message,
+                   /* Function */ callback) {
+        message.componentType = component.getComponentType();
+        message.componentId = component.getComponentId();
         if(this.connected && this.socket) {
             if(callback) {
                 var callbackId = this._callbackIdCounter++;

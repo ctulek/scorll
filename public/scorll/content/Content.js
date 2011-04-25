@@ -4,7 +4,9 @@ dojo.provide("scorll.content.Content");
 
 dojo.require("dojo.store.Memory");
 
-dojo.declare("scorll.content.Content",null,{
+dojo.require("scorll.net.ClientComponent");
+
+dojo.declare("scorll.content.Content",[scorll.net.ClientComponent],{
     id: null,
     title: null,
     client: null,
@@ -15,6 +17,12 @@ dojo.declare("scorll.content.Content",null,{
 		}
 		content.store = new dojo.store.Memory();
 	},
+    getComponentType: function() {
+        return "content";
+    },
+    getComponentId: function() {
+        return "content";
+    },
     receive: function(err, message) {
         if(err) {
             console.error(err);
@@ -33,10 +41,9 @@ dojo.declare("scorll.content.Content",null,{
     load: function(id) {
         var content = this;
         var message = {};
-        message.componentType = "content";
         message.action = "load";
         message.data = {id: id};
-        content.client.send(message, function(err, message) {
+        content.client.send(this, message, function(err, message) {
            if(err) {
             console.error(err);
             return;
@@ -60,11 +67,9 @@ dojo.declare("scorll.content.Content",null,{
 	},
 	add: function(item) {
         var message = {};
-        message.componentId = "content";
-        message.componentType = "content";
         message.action = "add";
         message.data = {item: item};
-        this.client.send(message);
+        this.client.send(this, message);
 	},
     _add: function(item) {
 		if(item.id == undefined) {
@@ -74,22 +79,18 @@ dojo.declare("scorll.content.Content",null,{
     },
 	update: function(item) {
         var message = {};
-        message.componentId = "content";
-        message.componentType = "content";
         message.action = "update";
         message.data = {item: item};
-        this.client.send(message);
+        this.client.send(this, message);
 	},
     _update: function(item) {
 		this.store.put(item);
     },
 	remove: function(item) {
         var message = {};
-        message.componentId = "content";
-        message.componentType = "content";
         message.action = "remove";
         message.data = {item: item};
-        this.client.send(message);
+        this.client.send(this, message);
 	},
     _remove: function(item) {
 		this.store.remove(item.id);

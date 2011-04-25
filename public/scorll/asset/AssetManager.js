@@ -61,7 +61,6 @@ dojo.declare("scorll.asset.AssetManager",null,{
         args.content = stage.content;
         args.id = "asset-" + item.id;
 		var asset = new ctor(args);
-        stage.client.register("asset-" + asset.item.id, asset);
         return asset;
 	},
 	getAssetForm: function(item) {
