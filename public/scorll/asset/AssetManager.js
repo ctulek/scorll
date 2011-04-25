@@ -33,6 +33,11 @@ dojo.declare("scorll.asset.AssetManager",null,{
 			label: "Scribd Document",
 			renderer: "scorll.asset.Scribd",
 			form: "scorll.asset.ScribdForm"
+		},
+		"vimeo": {
+			label: "Vimeo Video",
+			renderer: "scorll.asset.Vimeo",
+			form: "scorll.asset.VimeoForm"
 		}
 
   },
