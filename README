@@ -1,4 +1,4 @@
-Scorll is a free and opensource Learning Content Management System (LCMS).
+Scorll is a free and opensource Learning Content Management System (LCMS) implemented with Nodejs. It uses Express + Socket.IO on serverside and Dojo 1.6 on clientside.
 
 The project is in its very early stage. Initial attempt is to finish the basics of frontend architecture. You can find the code in public/scorll for frontend modules.
 
