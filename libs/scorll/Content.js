@@ -92,6 +92,5 @@ data: {
 						question: "Where is the capital of US?",
 											answers: ["Washington","New York", "San Francisco", "Boston"]}},
 		{id: "video1", type: "youtube", data: {video: "NDfew0YcDTo"}},
-		{id: "test3", type: "text", data: {
-			text: "Lorem ipsum"}}
+		{id: "video2", type: "vimeo", data: {video: "22721995"}}
 		];
