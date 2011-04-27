@@ -1,8 +1,7 @@
 var groups = require('libs/scorll/Groups.js');
 
-exports.handle = function(client, message) {
-    if(message.action == "load") {
-        var callbackId = message.callbackId;
+exports.handle = function(client, message, callback) {
+    if(message.action == "load" && callback) {
         load(client, message.data, function(err, data) {
             var message = {};
             if(err) {
@@ -11,9 +10,8 @@ exports.handle = function(client, message) {
             } else {
                 message.status = 'ok';
             }
-            message.callbackId = callbackId;
             message.data = data;
-            client.send(message);
+            callback(err, message);
         });
     } else if(message.action == "add") {
         add(client, message);
