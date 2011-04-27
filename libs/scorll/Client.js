@@ -1,4 +1,3 @@
-var user = require('libs/scorll/User.js');
 var content = require('libs/scorll/Content.js');
 var asset = require('libs/scorll/Asset.js');
 
@@ -17,9 +16,7 @@ exports.add = function(client) {
             }
         }
         
-        if(message.componentType == "user") {
-            user.handle(this, message, callback);
-        } else if(message.componentType == "content") {
+        if(message.componentType == "content") {
             content.handle(this, message, callback);
         } else if(message.componentType == "asset") {
             asset.handle(this, message, callback);
