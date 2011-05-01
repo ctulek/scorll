@@ -16,7 +16,7 @@ dojo.declare("scorll.asset.Text",[scorll.asset.Asset], {
         } else {
             dojo.destroy(this.titleText);
         }
-        this.shared.call("test","Test Message From My Self");
+        this.call("test","Test Message From My Self");
     },
     test: function(message) {
         console.log("Message to Test: " + message);

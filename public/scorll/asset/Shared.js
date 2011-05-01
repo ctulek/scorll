@@ -3,32 +3,16 @@ dojo._hasResource["scorll.asset.Shared"]=true;
 dojo.provide("scorll.asset.Shared");
 
 dojo.declare("scorll.asset.Shared",null,{
-    asset: null,
-    constructor: function(asset) {
-        var shared = this;
-        shared.asset = asset;
-        dojo.connect(asset,"onMessage", function(message) {
-            if(message.module == "shared") {
-               if(message.action == "call") {
-                shared._call(message);
-               }
-            }
-        });
+    call: function(methodName) {
+        var args = Array.prototype.slice.call(arguments);  
+        var params = [this, "call", this.getComponentId()].concat(args);
+        this.client.call.apply(this.client, params);
     },
-    call: function(funcName) {
-        var args = [];
-        for(var i in arguments) {
-            args.push(arguments[i]);
-        }
-        args = args.slice(1);
-        this.asset.send({module: "shared",
-            action:"call", data: {funcName: funcName, args: args}});
-    },
-    _call: function(message) {
-        var funcName = message.data.funcName;
-        var args = message.data.args;
-        if(this.asset[funcName] && typeof(this.asset[funcName]) == "function") {
-            this.asset[funcName].apply(this.asset, args);
+    receive: function(methodName) {
+        if(typeof(this[methodName]) == "function") {
+            var args = Array.prototype.slice.call(arguments);  
+            var params = args.slice(1);
+            this[methodName].apply(this, params);
         }
     }
 });

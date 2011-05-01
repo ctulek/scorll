@@ -23,7 +23,7 @@ dojo.declare("scorll.net.Client",null,{
                 console.log("Disconnected from server");
             }); 
             client.socket.on('message', function(message) {
-                client.message(message);
+                client._message(message);
             });
         }
     },
@@ -35,29 +35,52 @@ dojo.declare("scorll.net.Client",null,{
     register: function(/* scorll.net.ClientComponent */ component) {
         this._components[component.getComponentId()] = component;
     },
-    message: function(/* Object */ message) {
-        var err = message.status != 'ok' ?
-                message.errorMessage : undefined;
-        if(message.callbackId) {
-            var callback = this._callbacks[message.callbackId];
-            if(callback) {
-                callback(err, message);
-                this._callbacks[message.callbackId] = undefined;
+    _message: function(/* Object */ message) {
+        var client = this;
+        if (message.componentId) {
+            var callbackId = message.callbackId;
+            var callback = function(err) {
+                if(callbackId) {
+                    var message = {};
+                    message.callbackId = callbackId;
+                    message.params = Array.prototype.slice.call(arguments);
+                    client.socket.send(message);
+                }
             }
-        } else if (message.componentId) {
-            var component = this._components[message.componentId];
+            var component = client._components[message.componentId];
             if(component) {
-                component.receive(err, message);
+                var params = message.params || [];
+                params.push(callback);
+                var method = component[message.method] || null;
+                method && method.apply(component, message.params);
+            } else {
+                console.error("Undefined component id");
+            }
+        } else if(message.callbackId) {
+            var callback = client._callbacks[message.callbackId];
+            if(callback) {
+                callback.apply(null, message.params);
+                delete client._callbacks[message.callbackId];
+            } else {
+                console.error("Undefined callback id");
             }
         } else {
-            console.warn("Unhandled message:", message);
+            console.error("Invalid message:", message);
         }
     },
-    send: function(/* scorll.net.ClientComponent */ component,
-                   /* Object */ message,
-                   /* Function */ callback) {
-        message.componentType = component.getComponentType();
-        message.componentId = component.getComponentId();
+    call: function(/* scorll.net.ClientComponent */ component,
+                   /* String */ method) {
+        var args = Array.prototype.slice.call(arguments);  
+        var params = args.slice(2);
+        var callback = params.pop();
+        if(typeof callback != "function") {
+            params.push(callback);
+            callback = null;
+        }
+        var message = {};
+        message.component = component.getComponentType();
+        message.method = method;
+        message.params = params;
         if(this.connected && this.socket) {
             if(callback) {
                 var callbackId = this._callbackIdCounter++;

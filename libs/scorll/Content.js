@@ -1,59 +1,44 @@
 var groups = require('libs/scorll/Groups.js');
+var client = require('libs/scorll/Client.js');
 
-exports.handle = function(client, message, callback) {
-    if(message.action == "load" && callback) {
-        load(client, message.data, function(err, data) {
-            var message = {};
-            if(err) {
-                message.status = 'error';
-                message.errorMessage = err;
-            } else {
-                message.status = 'ok';
-            }
-            message.data = data;
-            callback(err, message);
-        });
-    } else if(message.action == "add") {
-        add(client, message);
-    } else if(message.action == "update") {
-        update(client, message);
-    } else if(message.action == "remove") {
-        remove(client, message);
-    }
+var call = function(ioclient, method) {
+    var args = Array.prototype.slice.call(arguments);  
+    var params = args.slice(2);
+    params = [ioclient, 'content', method].concat(params);
+    client.call.apply(client, params);
 }
 
-var add = function(client, message) {
-   message.data.item.id = Date.now();
-   tempData.push(message.data.item); 
-   message.status = 'ok';
+exports.add = function(client, item, callback) {
+   item.id = Date.now();
+   tempData.push(item); 
    groups.each(groups.id(client), function(client) {
-        client.send(message);
+       call(client, '_add', item);
    });
 }
 
-var update = function(client, message) {
-    var id = message.data.item.id;
+exports.update = function(client, item, callback) {
+    console.log(item);
+    var id = item.id;
     var updated = false;
     for(var i in tempData) {
         if(tempData[i].id == id) {
-            tempData[i] = message.data.item;
+            tempData[i] = item;
             updated = true;
             break;
         }
     }
     if(updated) {
-       message.status = "ok";
+        groups.each(groups.id(client), function(client) {
+           call(client, '_update', item);
+        });
+        callback();
     } else {
-       message.status = "error";
-       message.errorMessage = "Undefined id: " + id;
+        callback("Undefined id: " + id);
     }
-   groups.each(groups.id(client), function(client) {
-        client.send(message);
-   });
 }
 
-var remove = function(client, message) {
-    var id = message.data.item.id;
+exports.remove = function(client, item, callback) {
+    var id = item.id;
     var removed = false;
     for(var i in tempData) {
         if(tempData[i].id == id) {
@@ -63,19 +48,19 @@ var remove = function(client, message) {
         }
     }
     if(removed) {
-       message.status = "ok";
+        groups.each(groups.id(client), function(client) {
+           call(client, '_remove', item);
+        });
+        callback();
     } else {
-       message.status = "error";
-       message.errorMessage = "Undefined id: " + id;
+        callback("Undefined id: " + id);
     }
-   groups.each(groups.id(client), function(client) {
-        client.send(message);
-   });
 }
 
-var load = function(client, data, callback) {
-    groups.add(data.id, client);
-    callback(undefined, {id: "1", title: "Lorem Lorem Lorem", items: tempData});
+exports.load = function(client, contentId, callback) {
+    groups.add(contentId, client);
+    var content = {id: contentId, title: "Lorem Lorem Lorem", items: tempData};
+    callback(null, content);
 }
 
 
