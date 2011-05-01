@@ -1,5 +1,4 @@
 var groups = {};
-var index = {};
 
 exports.add = function(groupId, client) {
     if(groups[groupId] == undefined) {
@@ -7,15 +6,14 @@ exports.add = function(groupId, client) {
     }
     var group = groups[groupId];
     group[client.sessionId] = client;
-    index[client.sessionId] = groupId;
+    client.groupId = groupId;
     client.on('disconnect', function() {
         delete(group[this.sessionId]);
-        delete(index[this.sessionId]);
     });
 }
 
 exports.id = function(client) {
-    return index[client.sessionId];
+    return client.groupId;
 }
 
 exports.each = function(groupId, callback) {
