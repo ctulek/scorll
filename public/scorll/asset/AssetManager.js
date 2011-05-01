@@ -59,6 +59,7 @@ dojo.declare("scorll.asset.AssetManager",null,{
         args.user = stage.user;
         args.client = stage.client;
         args.content = stage.content;
+        args.id = "asset-" + item.id; // Used by the Memory Store
 		var asset = new ctor(args);
         return asset;
 	},
