@@ -17,7 +17,6 @@ exports.add = function(client, item, callback) {
 }
 
 exports.update = function(client, item, callback) {
-    console.log(item);
     var id = item.id;
     var updated = false;
     for(var i in tempData) {

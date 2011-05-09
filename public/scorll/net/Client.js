@@ -34,6 +34,7 @@ dojo.declare("scorll.net.Client",null,{
     },
     register: function(/* scorll.net.ClientComponent */ component) {
         this._components[component.getComponentId()] = component;
+        component.client = this;
     },
     _message: function(/* Object */ message) {
         var client = this;

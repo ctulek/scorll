@@ -9,20 +9,27 @@ exports.auth = function(params, callback) {
         callback("Cookie expired");
         delete store[cookie];
     } else {
-        callback(null, record.user);
+        callback(null, record.userid);
     }
 }
 
-exports.link = function(user, params, callback) {
-    var cookie = params.cookie;
+exports.link = function(userid, params, callback) {
+    var cookie = params.cookie || createCookie();
     var timeout = params.timeout || DEFAULT_TIMEOUT;
     timeout *= 1000;
+    timeout += Date.now();
     if(store[cookie]) {
         callback("Duplicate cookie");
     } else {
-        store[username] = {expireAt: Date.now() + timeout, user: user};
-        callback(null);
+        store[cookie] = {expiresAt: timeout, userid: userid};
+        var expiresAt = (new Date(timeout)).toUTCString();
+        callback(null, {cookie: cookie, expiresAt: expiresAt});
     }
 }
 
 var store = {};
+
+
+var createCookie = function() {
+    return "COOKIE" + Date.now();
+}

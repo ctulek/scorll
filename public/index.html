@@ -14,12 +14,21 @@
 	dojo.require("dojo.dnd.Source");
 	dojo.require("dijit.form.Button");
 	dojo.require("dijit.Dialog");
+
 	dojo.require("scorll.content.Content");
+    dojo.require("scorll.net.Client");
+    dojo.require("scorll.net.User");
 	dojo.require("scorll.stage.Stage");
 	dojo.require("scorll.asset.AssetManager");
 	dojo.addOnLoad(
 		function() {
-			var stage = new scorll.stage.Stage();
+            var args = {
+                client: new scorll.net.Client(),
+                user: new scorll.net.User(),
+                content: new scorll.content.Content(),
+                requireLogin: true
+            };
+			var stage = new scorll.stage.Stage(args);
 			var assetManager = new scorll.asset.AssetManager();
 			for(var type in assetManager.assets) {
 				var button = new dijit.form.Button();

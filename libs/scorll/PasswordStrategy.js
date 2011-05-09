@@ -7,7 +7,7 @@ exports.auth = function(params, callback) {
     } else if(record.password != password) {
         callback("Username or password is invalid");
     } else {
-        callback(null, record.user);
+        callback(null, record.userid);
     }
 }
 
