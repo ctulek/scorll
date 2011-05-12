@@ -79,7 +79,7 @@ dojo.declare("scorll.stage.Stage",null,{
 		result.forEach(function(item) {
 			var widget = assetManager.getAssetRenderer(stage, item);
 			dojo.place(widget.domNode, "stage");
-            stage.register(widget);
+            stage.registerAsset(widget);
 		});
 		result.observe(function(item, removedFrom, insertedInto) {
 			if(removedFrom > -1){ // existing object removed
@@ -91,13 +91,15 @@ dojo.declare("scorll.stage.Stage",null,{
 			if(insertedInto > -1){ // new or updated object inserted
 				var widget = assetManager.getAssetRenderer(stage, item);
 				dojo.place(widget.domNode, "stage", insertedInto);
-                stage.register(widget);
+                stage.registerAsset(widget);
 			}
 		}, true);
 	},
-    register: function(widget) {
+    registerAsset: function(widget) {
         var stage = this;
         stage.client.register(widget);
+        widget.user = stage.user;
+        widget.stage = stage;
         dojo.connect(widget,"onMouseOver", function() {
             stage.menu.show(this.domNode);
         });
@@ -105,7 +107,7 @@ dojo.declare("scorll.stage.Stage",null,{
             stage.menu.hide();
         });
     },
-    newUserRegister: function(fromLoginForm) {
+    newUserRegister: function(fromLoginForm, callback) {
         var stage = this;
         var widget = new scorll.stage.Register();
         var dialog = new dijit.Dialog();
@@ -121,7 +123,11 @@ dojo.declare("scorll.stage.Stage",null,{
             stage.user.join(params, function(err) {
                 if(!err) {
                     dialog.hide();
-                    stage.content.load(1);
+                    if(stage.content.loaded == false) {
+                        stage.content.load(1, callback);
+                    } else {
+                        callback && callback();
+                    }
                 } else {
                     widget.showError(err);
                 }
@@ -130,11 +136,11 @@ dojo.declare("scorll.stage.Stage",null,{
         dojo.connect(widget,"onCancel",function() {
             dialog.hide();
             if(fromLoginForm) {
-                stage.userLogin();
+                stage.userLogin(callback);
             }
         });
     },
-    userLogin: function() {
+    userLogin: function(callback) {
         var stage = this;
         var widget = new scorll.stage.Login();
         var dialog = new dijit.Dialog();
@@ -150,18 +156,23 @@ dojo.declare("scorll.stage.Stage",null,{
             stage.user.auth(params, function(err) {
                 if(!err) {
                     dialog.hide();
-                    stage.content.load(1);
+                    if(stage.content.loaded == false) {
+                        stage.content.load(1, callback);
+                    } else {
+                        callback && callback();
+                    }
                 } else {
                     widget.showError(err);
                 }
             });
         });
         dojo.connect(widget,"onCancel",function() {
+            callback("Cancelled");
             dialog.hide();
         });
         dojo.connect(widget,"onRegister",function() {
             dialog.hide();
-            stage.newUserRegister(true);
+            stage.newUserRegister(true, callback);
         });
     }
 });

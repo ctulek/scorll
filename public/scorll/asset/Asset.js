@@ -12,15 +12,16 @@ dojo.require("scorll.net.ClientComponent");
 
 dojo.declare("scorll.asset.Asset",
 [dijit._Widget, dijit._Templated
- , scorll.net.ClientComponent
- , scorll.asset.Shared
- , scorll.asset.Tracking
- , scorll.asset.Persistent
+ ,scorll.net.ClientComponent
+ ,scorll.asset.Shared
+ ,scorll.asset.Tracking
+ ,scorll.asset.Persistent
 ]
 ,{
     user: null,
     client: null,
     content: null,
+    stage: null,
 	item: null,
 
     // scorll.net.ClientComponent functions

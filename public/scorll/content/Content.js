@@ -10,6 +10,7 @@ dojo.declare("scorll.content.Content",[scorll.net.ClientComponent],{
     id: null,
     title: null,
     client: null,
+    loaded: false,
 	constructor: function(/* Object */ args) {
 		var content = this;
 		for(var k in args) {
@@ -25,10 +26,11 @@ dojo.declare("scorll.content.Content",[scorll.net.ClientComponent],{
     },
     onLoad: function() {
     },
-    load: function(id) {
+    load: function(id, callback) {
         var content = this;
         content.client.call(this, "load", id, function(err, data) {
            if(err) {
+            callback && callback(err);
             return;
            }
            content.id = data.id;
@@ -41,7 +43,9 @@ dojo.declare("scorll.content.Content",[scorll.net.ClientComponent],{
                 }
             }
            }
+           content.loaded = true;
            content.onLoad();
+           callback && callback();
         });
     },
 	query: function() {
