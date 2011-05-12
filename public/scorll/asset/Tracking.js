@@ -25,8 +25,6 @@ dojo.declare("scorll.asset.Tracking",null,{
         var history = this.userTrackingDataHistory[userid] || [];
         history.push(params);
         this.userTrackingDataHistory[userid] = history;
-        console.log(this.userTrackingData);
-        console.log(this.userTrackingDataHistory);
     }
     ,TRACKING_TYPE: {
         TRUE_FALSE: "true-false"
