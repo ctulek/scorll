@@ -27,13 +27,11 @@ dojo.declare("scorll.asset.MultipleChoice",[scorll.asset.Asset],{
                     [type, id, name, value]);
                 var input = dojo.place(html, p, "first");
                 dojo.connect(input, "change", function() {
-                    console.log(this.value);
                     var params = {
                         type: asset.TRACKING_TYPE.CHOICE,
                         response: this.value
                     };
                     asset.track(params, function(err) {
-                        console.log(arguments);
                     });
                 });
 

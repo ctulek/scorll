@@ -8,7 +8,7 @@ exports.add = function(groupId, client) {
     group[client.sessionId] = client;
     client.groupId = groupId;
     client.on('disconnect', function() {
-        delete(group[this.sessionId]);
+        delete group[this.sessionId];
     });
 }
 
@@ -17,11 +17,9 @@ exports.id = function(client) {
 }
 
 exports.each = function(groupId, callback) {
-    var group = groups[groupId];
-    if(group) {
-        for(var i in group) {
-            var client = group[i];
-            callback(client);
-        }
+    var group = groups[groupId] || {};
+    for(var i in group) {
+        var client = group[i];
+        callback(client);
     }
 }

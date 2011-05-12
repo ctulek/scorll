@@ -19,6 +19,7 @@ dojo.declare("scorll.net.User",[scorll.net.ClientComponent],{
         var userComponent = this;
         userComponent.client.call(userComponent, "auth", params, function(err, user) {
             if(!err) {
+                userComponent.id = user.id;
                 userComponent.authenticated = true;
                 if(user.cookie) {
                     var expiresAt = params.rememberme ? user.cookieExpiresAt : null; 

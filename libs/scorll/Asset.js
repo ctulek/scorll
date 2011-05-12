@@ -9,6 +9,7 @@ exports.call = function(client, componentId, method) {
     var params = Array.prototype.slice.call(arguments);  
     var callback = params.pop();
     groups.each(groups.id(client), function(client) {
+        params[0] = client;
         call.apply(null, params);
     });
 }
@@ -75,7 +76,7 @@ exports.responsePattern = {
     }
     ,"matching": function (patterns, values) {
         return patterns.some(function(pattern) {
-            pattern = Array.prototype.slice.call(pattern);
+            pattern = Array.prototype.slice(pattern);
             return pattern.every(function(value, key) {
                 return value == values[key];
             });
