@@ -28,7 +28,7 @@ dojo.declare("scorll.content.Content",[scorll.net.ClientComponent],{
     },
     load: function(id, callback) {
         var content = this;
-        content.client.call(this, "load", id, function(err, data) {
+        content.client.call(this, "get", id, function(err, data) {
            if(err) {
             callback && callback(err);
             return;
@@ -52,19 +52,19 @@ dojo.declare("scorll.content.Content",[scorll.net.ClientComponent],{
 		return this.store.query();
 	},
 	add: function(item) {
-        this.client.call(this, "add", item);
+        this.client.call(this, "addAsset", this.id, item);
 	},
     _add: function(item) {
 		this.store.put(item);
     },
 	update: function(item) {
-        this.client.call(this, "update", item);
+        this.client.call(this, "updateAsset", this.id, item);
 	},
     _update: function(item) {
 		this.store.put(item);
     },
 	remove: function(item) {
-        this.client.call(this, "remove", item);
+        this.client.call(this, "deleteAsset", this.id, item);
 	},
     _remove: function(item) {
 		this.store.remove(item.id);

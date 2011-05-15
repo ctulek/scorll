@@ -6,7 +6,7 @@ dojo.declare("scorll.net.Client",null,{
     connected: false,
     _callbacks: {},
     _components: {},
-    _callbackIdCounter: 1,
+    _callbackIdCounter: 2,
     onConnect: function() {
     },
     constructor: function(/* Object */ args) {
@@ -71,6 +71,8 @@ dojo.declare("scorll.net.Client",null,{
     },
     call: function(/* scorll.net.ClientComponent */ component,
                    /* String */ method) {
+        window.hebele = this;
+        var client = this;
         var args = Array.prototype.slice.call(arguments);  
         var params = args.slice(2);
         var callback = params.pop();
@@ -82,13 +84,13 @@ dojo.declare("scorll.net.Client",null,{
         message.component = component.getComponentType();
         message.method = method;
         message.params = params;
-        if(this.connected && this.socket) {
+        if(client.connected && client.socket) {
             if(callback) {
-                var callbackId = this._callbackIdCounter++;
-                this._callbacks[callbackId] = callback;
+                var callbackId = client._callbackIdCounter++;
+                client._callbacks[callbackId] = callback;
                 message.callbackId = callbackId; 
             }
-            this.socket.send(message);
+            client.socket.send(message);
         } else {
             console.error("Client is not connected");
         }

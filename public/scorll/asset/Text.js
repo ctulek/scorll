@@ -17,7 +17,6 @@ dojo.declare("scorll.asset.Text",[scorll.asset.Asset], {
             dojo.destroy(this.titleText);
         }
         var userid = this.user ? this.user.id : "unknown";
-        console.log(this.user);
         this.call("test","Test Message From User " + userid);
     },
     test: function(message) {

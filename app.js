@@ -14,7 +14,10 @@ var app = express.createServer(
 	express.session({secret: 'Test'})
 	);
 
-app.set('view engine', 'jade');
+app.set( "view engine", "html" );
+app.register( ".html", require( "jade" ) );
+
+require('controller/index.js')(app);
 
 var port = 8080;
 app.listen(port);

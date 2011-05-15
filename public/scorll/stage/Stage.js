@@ -15,6 +15,7 @@ dojo.declare("scorll.stage.Stage",null,{
     user: null,
     client: null,
 	content: null,
+    contentId: null,
 	observer: null,
 	menu: null,
     requireLogin: false,
@@ -32,7 +33,7 @@ dojo.declare("scorll.stage.Stage",null,{
                     console.log(err);
                     stage.userLogin();
                 } else {
-                    stage.content.load(1);
+                    stage.content.load(stage.contentId);
                 }
             });
         });
@@ -124,7 +125,7 @@ dojo.declare("scorll.stage.Stage",null,{
                 if(!err) {
                     dialog.hide();
                     if(stage.content.loaded == false) {
-                        stage.content.load(1, callback);
+                        stage.content.load(stage.contentId, callback);
                     } else {
                         callback && callback();
                     }
@@ -157,7 +158,7 @@ dojo.declare("scorll.stage.Stage",null,{
                 if(!err) {
                     dialog.hide();
                     if(stage.content.loaded == false) {
-                        stage.content.load(1, callback);
+                        stage.content.load(stage.contentId, callback);
                     } else {
                         callback && callback();
                     }
