@@ -1,88 +1,148 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.grid.enhanced.plugins.GridSource"]){
-dojo._hasResource["dojox.grid.enhanced.plugins.GridSource"]=true;
 dojo.provide("dojox.grid.enhanced.plugins.GridSource");
+
 dojo.require("dojo.dnd.Source");
 dojo.require("dojox.grid.enhanced.plugins.DnD");
+
 (function(){
-var _1=function(_2){
-var a=_2[0];
-for(var i=1;i<_2.length;++i){
-a=a.concat(_2[i]);
-}
-return a;
+var _joinToArray = function(arrays){
+	var a = arrays[0];
+	for(var i = 1; i < arrays.length; ++i){
+		a = a.concat(arrays[i]);
+	}
+	return a;
 };
-dojo.declare("dojox.grid.enhanced.plugins.GridSource",dojo.dnd.Source,{accept:["grid/cells","grid/rows","grid/cols","text"],insertNodesForGrid:false,markupFactory:function(_3,_4){
-return new dojox.grid.enhanced.plugins.GridSource(_4,_3);
-},checkAcceptance:function(_5,_6){
-if(_5 instanceof dojox.grid.enhanced.plugins.GridDnDSource){
-if(_6[0]){
-var _7=_5.getItem(_6[0].id);
-if(_7&&(dojo.indexOf(_7.type,"grid/rows")>=0||dojo.indexOf(_7.type,"grid/cells")>=0)&&!_5.dndPlugin._allDnDItemsLoaded()){
-return false;
-}
-}
-this.sourcePlugin=_5.dndPlugin;
-}
-return this.inherited(arguments);
-},onDraggingOver:function(){
-if(this.sourcePlugin){
-this.sourcePlugin._isSource=true;
-}
-},onDraggingOut:function(){
-if(this.sourcePlugin){
-this.sourcePlugin._isSource=false;
-}
-},onDropExternal:function(_8,_9,_a){
-if(_8 instanceof dojox.grid.enhanced.plugins.GridDnDSource){
-var _b=dojo.map(_9,function(_c){
-return _8.getItem(_c.id).data;
+dojo.declare("dojox.grid.enhanced.plugins.GridSource", dojo.dnd.Source, {
+	// summary:
+	//		A special source that can accept grid contents.
+	//		Only for non-grid widgets or domNodes.
+	accept: ["grid/cells", "grid/rows", "grid/cols", "text"],
+	
+	// insertNodesForGrid:
+	//		If you'd like to insert some sort of nodes into your dnd source, turn this on,
+	//		and override getCellContent/getRowContent/getColumnContent
+	//		to populate the dnd data in your desired format.
+	insertNodesForGrid: false,
+	
+	markupFactory: function(params, node){
+		return new dojox.grid.enhanced.plugins.GridSource(node, params);
+	},
+	checkAcceptance: function(source, nodes){
+		if(source instanceof dojox.grid.enhanced.plugins.GridDnDSource){
+			if(nodes[0]){
+				var item = source.getItem(nodes[0].id);
+				if(item && (dojo.indexOf(item.type, "grid/rows") >= 0 || dojo.indexOf(item.type, "grid/cells") >= 0) &&
+					!source.dndPlugin._allDnDItemsLoaded()){
+					return false;
+				}
+			}
+			this.sourcePlugin = source.dndPlugin;
+		}
+		return this.inherited(arguments);
+	},
+	onDraggingOver: function(){
+		if(this.sourcePlugin){
+			this.sourcePlugin._isSource = true;
+		}
+	},
+	onDraggingOut: function(){
+		if(this.sourcePlugin){
+			this.sourcePlugin._isSource = false;
+		}
+	},
+	onDropExternal: function(source, nodes, copy){
+		if(source instanceof dojox.grid.enhanced.plugins.GridDnDSource){
+			var ranges = dojo.map(nodes, function(node){
+				return source.getItem(node.id).data;
+			});
+			var item = source.getItem(nodes[0].id);
+			var grid = item.dndPlugin.grid;
+			var type = item.type[0];
+			var range;
+			try{
+				switch(type){
+					case "grid/cells":
+						nodes[0].innerHTML = this.getCellContent(grid, ranges[0].min, ranges[0].max) || "";
+						this.onDropGridCells(grid, ranges[0].min, ranges[0].max);
+						break;
+					case "grid/rows":
+						range = _joinToArray(ranges);
+						nodes[0].innerHTML = this.getRowContent(grid, range) || "";
+						this.onDropGridRows(grid, range);
+						break;
+					case "grid/cols":
+						range = _joinToArray(ranges);
+						nodes[0].innerHTML = this.getColumnContent(grid, range) || "";
+						this.onDropGridColumns(grid, range);
+						break;
+				}
+				if(this.insertNodesForGrid){
+					this.selectNone();
+					this.insertNodes(true, [nodes[0]], this.before, this.current);
+				}
+				item.dndPlugin.onDragOut(!copy);
+			}catch(e){
+				console.warn("GridSource.onDropExternal() error:",e);
+			}
+		}else{
+			this.inherited(arguments);
+		}
+	},
+	getCellContent: function(grid, leftTopCell, rightBottomCell){
+		// summary:
+		//		Fill node innerHTML for dnd grid cells.
+		// sample code:
+		//		var cells = grid.layout.cells;
+		//		var store = grid.store;
+		//		var cache = grid._by_idx;
+		//		var res = "Grid Cells from " + grid.id + ":<br/>";
+		//		for(var r = leftTopCell.row; r <= rightBottomCell.row; ++r){
+		//			for(var c = leftTopCell.col; c <= rightBottomCell.col; ++c){
+		//				res += store.getValue(cache[r].item, cells[c].field) + ", ";
+		//			}
+		//			res = res.substring(0, res.length - 2) + ";<br/>";
+		//		}
+		//		return res;
+	},
+	getRowContent: function(grid, rowIndexes){
+		// summary:
+		//		Fill node innerHTML for dnd grid rows.
+		// sample code:
+		//		var cells = grid.layout.cells;
+		//		var store = grid.store;
+		//		var cache = grid._by_idx;
+		//		var res = "Grid Rows from " + grid.id + ":<br/>";
+		//		for(var i = 0; i < rowIndexes.length; ++i){
+		//			var r = rowIndexes[i];
+		//			res += "Row " + r + ": ";
+		//			for(var j = 0; j < cells.length; ++j){
+		//				if(!cells[j].hidden){
+		//					res += store.getValue(cache[r].item, cells[j].field) + ", ";
+		//				}
+		//			}
+		//			res = res.substring(0, res.length - 2) + ";<br/>";
+		//		}
+		//		return res;
+	},
+	getColumnContent: function(grid, colIndexes){
+		// summary:
+		//		Fill node innerHTML for dnd grid columns.
+		// sample code:
+		//		var cells = grid.layout.cells;
+		//		var res = "Grid Columns from " + grid.id + ":";
+		//		for(var i = 0; i < colIndexes.length; ++i){
+		//			var c = colIndexes[i];
+		//			res += (cells[c].name || cells[c].field) + ", ";
+		//		}
+		//		return res.substring(0, res.length - 2);
+	},
+	onDropGridCells: function(grid, leftTopCell, rightBottomCell){
+		
+	},
+	onDropGridRows: function(grid, rowIndexes){
+		
+	},
+	onDropGridColumns: function(grid, colIndexes){
+		
+	}
 });
-var _d=_8.getItem(_9[0].id);
-var _e=_d.dndPlugin.grid;
-var _f=_d.type[0];
-var _10;
-try{
-switch(_f){
-case "grid/cells":
-_9[0].innerHTML=this.getCellContent(_e,_b[0].min,_b[0].max)||"";
-this.onDropGridCells(_e,_b[0].min,_b[0].max);
-break;
-case "grid/rows":
-_10=_1(_b);
-_9[0].innerHTML=this.getRowContent(_e,_10)||"";
-this.onDropGridRows(_e,_10);
-break;
-case "grid/cols":
-_10=_1(_b);
-_9[0].innerHTML=this.getColumnContent(_e,_10)||"";
-this.onDropGridColumns(_e,_10);
-break;
-}
-if(this.insertNodesForGrid){
-this.selectNone();
-this.insertNodes(true,[_9[0]],this.before,this.current);
-}
-_d.dndPlugin.onDragOut(!_a);
-}
-catch(e){
-console.warn("GridSource.onDropExternal() error:",e);
-}
-}else{
-this.inherited(arguments);
-}
-},getCellContent:function(_11,_12,_13){
-},getRowContent:function(_14,_15){
-},getColumnContent:function(_16,_17){
-},onDropGridCells:function(_18,_19,_1a){
-},onDropGridRows:function(_1b,_1c){
-},onDropGridColumns:function(_1d,_1e){
-}});
 })();
-}

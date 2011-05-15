@@ -1,4 +1,4 @@
-
+/* Minus Button */
 .mblBlueMinusButton {
 	position: relative;
 	width: 22px;
@@ -49,6 +49,8 @@
 	background-color: white;
 	border-top: 1px solid #4A5A71;
 }
+
+/* Plus Button */
 .mblBluePlusButton {
 	position: relative;
 	width: 22px;
@@ -109,6 +111,7 @@
 	font-size: 1px;
 	background-color: white;
 }
+
 .mblCheckOnButton {
 	position: relative;
 	width: 30px;
@@ -148,6 +151,7 @@
 	-webkit-border-radius: 2px;
 	-webkit-transform: rotate(-50deg);
 }
+
 .mblCheckOffButton {
 	position: relative;
 	width: 30px;

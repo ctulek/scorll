@@ -1,1 +1,14 @@
-({"saveLabel":"Opslaan","saveSettingdialogTitle":"Automatisch opslaan","saveSettingdialogButtonOk":"Interval instellen","saveMessageSuccess":"Opgeslagen op ${0}","saveSettingdialogButtonCancel":"Annuleren","saveSettingdialogDescription":"Geef het interval voor Automatisch opslaan op.","saveSettingLabelOn":"Interval voor automatisch opslaan instellen...","saveSettingdialogParamLabel":"min","saveSettingdialogParamName":"Interval voor Automatisch opslaan","saveMessageFail":"Opslaan mislukt op ${0}","saveSettingLabelOff":"Automatisch opslaan uitschakelen"})
+({
+	"saveLabel": "Opslaan",
+	"saveSettingLabelOn": "Interval voor automatisch opslaan instellen...",
+	"saveSettingLabelOff": "Automatisch opslaan uitschakelen",
+	"saveSettingdialogTitle": "Automatisch opslaan",
+	"saveSettingdialogDescription": "Geef het interval voor Automatisch opslaan op.",
+	"saveSettingdialogParamName": "Interval voor Automatisch opslaan",
+	"saveSettingdialogParamLabel": "min",
+	"saveSettingdialogButtonOk": "Interval instellen",
+	"saveSettingdialogButtonCancel": "Annuleren",
+	"saveMessageSuccess": "Opgeslagen op ${0}",
+	"saveMessageFail": "Opslaan mislukt op ${0}"
+})
+

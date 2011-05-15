@@ -1,1 +1,8 @@
-({"set":"設定","insertAnchor":"アンカーの挿入","title":"アンカー・プロパティー","text":"説明:","cancel":"キャンセル","anchor":"名前:"})
+({
+	insertAnchor: "アンカーの挿入",
+	title: "アンカー・プロパティー",
+	anchor: "名前:",
+	text: "説明:",
+	set: "設定",
+	cancel: "キャンセル"
+})

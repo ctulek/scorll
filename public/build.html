@@ -1,0 +1,48 @@
+<html><head><title>Scorll</title><link rel="stylesheet" href="dijit/themes/claro/claro.css"/><link type="text/css" rel="stylesheet" href="/css/main.css"/><link type="text/css" rel="stylesheet" href="/css/stage.css"/></head><body class="claro"><div id="stage-container"><div id="title"><h1>Lorem Lorem Lorem</h1></div><div id="stage"></div><div><div dojoType="dijit.form.Button">Add New Asset<script type="dojo/connect" event="onClick" args="evt">dijit.byId("newAssetDialog").show();
+</script></div></div></div><div id="newAssetDialog" dojoType="dijit.Dialog" title="Add New Asset" style="width: 300px;"></div><script src="/dojo/dojo.js" type="text/javascript" djConfig="parseOnLoad: true"></script><script src="/socket.io/socket.io.js"></script><script type="text/javascript" language="javascript">// <![CDATA[
+dojo.require("dojo.store.Memory");
+dojo.require("dojo.dnd.Source");
+dojo.require("dijit.form.Button");
+dojo.require("dijit.Dialog");
+
+dojo.require("scorll.content.Content");
+dojo.require("scorll.net.Client");
+dojo.require("scorll.net.User");
+dojo.require("scorll.stage.Stage");
+dojo.require("scorll.asset.AssetManager");
+dojo.addOnLoad(
+  function() {  
+    var args = {  
+    client: new scorll.net.Client(),  
+  user: new scorll.net.User(),  
+  content: new scorll.content.Content(),  
+  requireLogin: false,  
+  contentId: '1'  
+  };  
+  var stage = new scorll.stage.Stage(args);  
+  var assetManager = new scorll.asset.AssetManager();  
+  for(var type in assetManager.assets) {  
+    var button = new dijit.form.Button();  
+  var label = assetManager.assets[type].label;  
+  button.attr('label',label);  
+  button.widgetType = type;  
+  dojo.connect(button,"onClick",function() {  
+    var form = assetManager.getAssetForm({type: this.widgetType});  
+  var dialog = new dijit.Dialog();  
+  form.placeAt(dialog.containerNode);  
+  dialog.show();  
+  dojo.connect(form,"onSubmit",function(item) {  
+    dialog.destroy();  
+  stage.content.add(item);  
+  });  
+  dojo.connect(form,"onCancel",function() {  
+    dialog.destroy();  
+  });  
+  dijit.byId("newAssetDialog").hide();  
+  });  
+  button.placeAt(dijit.byId("newAssetDialog").containerNode);  
+  }  
+  }
+);
+// ]]>
+</script></body></html>

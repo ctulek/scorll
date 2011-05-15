@@ -1,1 +1,9 @@
-({"selectContents":"Velg innhold","deleteElement":"Slett element","moveEnd":"Flytt markør til slutt","deleteContents":"Slett innhold","nodeActions":"${nodeName} Handlinger","selectElement":"Velg element","moveStart":"Flytt markør til start"})
+({
+	"nodeActions": "${nodeName} Handlinger",
+	"selectContents": "Velg innhold",
+	"selectElement": "Velg element",
+	"deleteElement": "Slett element",
+	"deleteContents": "Slett innhold",
+	"moveStart": "Flytt markør til start",
+	"moveEnd": "Flytt markør til slutt"
+})

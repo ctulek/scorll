@@ -1,1 +1,12 @@
-({"close":"[жабу]","title":"Тақырып","authors":"Авторлар","summary":"Жиынтық","content":"Мазмұн","contributors":"Таратушылар","updated":"Жаңартылған","displayOptions":"[көрсету параметрлері]","id":"ID коды"})
+({
+	displayOptions: "[көрсету параметрлері]",
+	title: "Тақырып",
+	authors: "Авторлар",
+	contributors: "Таратушылар",
+	id: "ID коды",
+	close: "[жабу]",
+	updated: "Жаңартылған",
+	summary: "Жиынтық",
+	content: "Мазмұн"
+})
+

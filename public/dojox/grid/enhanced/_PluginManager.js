@@ -1,175 +1,264 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.grid.enhanced._PluginManager"]){
-dojo._hasResource["dojox.grid.enhanced._PluginManager"]=true;
 dojo.provide("dojox.grid.enhanced._PluginManager");
+
 dojo.require("dojox.grid.enhanced._Events");
 dojo.require("dojox.grid.enhanced._FocusManager");
-dojo.declare("dojox.grid.enhanced._PluginManager",null,{_options:null,_plugins:null,_connects:null,constructor:function(_1){
-this.grid=_1;
-this._store=_1.store;
-this._options={};
-this._plugins=[];
-this._connects=[];
-this._parseProps(this.grid.plugins);
-_1.connect(_1,"_setStore",dojo.hitch(this,function(_2){
-if(this._store!==_2){
-this.forEach("onSetStore",[_2,this._store]);
-this._store=_2;
-}
-}));
-},startup:function(){
-this.forEach("onStartUp");
-},preInit:function(){
-this.grid.focus.destroy();
-this.grid.focus=new dojox.grid.enhanced._FocusManager(this.grid);
-new dojox.grid.enhanced._Events(this.grid);
-this._init(true);
-this.forEach("onPreInit");
-},postInit:function(){
-this._init(false);
-dojo.forEach(this.grid.views.views,this._initView,this);
-this._connects.push(dojo.connect(this.grid.views,"addView",dojo.hitch(this,this._initView)));
-if(this._plugins.length>0){
-var _3=this.grid.edit;
-if(_3){
-_3.styleRow=function(_4){
-};
-}
-}
-this.forEach("onPostInit");
-},forEach:function(_5,_6){
-dojo.forEach(this._plugins,function(p){
-if(!p||!p[_5]){
-return;
-}
-p[_5].apply(p,_6?_6:[]);
+
+dojo.declare("dojox.grid.enhanced._PluginManager", null, {
+	// summary:
+	//		Singleton plugin manager
+	//
+	// description:
+	//		Plugin manager is responsible for
+	//		1. Loading required plugins
+	//		2. Handling collaboration and dependencies among plugins
+	//
+	//      Some plugin dependencies:
+	//		- "columnReordering" attribute won't work when either DnD or Indirect Selections plugin is on.
+		
+	//_options: Object
+	//		Normalized plugin options
+	_options: null,
+
+	//_plugins: Array
+	//		Plugin list
+	_plugins: null,
+
+	//_connects: Array
+	//		Connection list
+	_connects: null,
+
+	constructor: function(inGrid){
+		this.grid = inGrid;
+		this._store = inGrid.store;
+		this._options = {};
+		this._plugins = [];
+		this._connects = [];
+		this._parseProps(this.grid.plugins);
+		
+		inGrid.connect(inGrid, "_setStore", dojo.hitch(this, function(store){
+			if(this._store !== store){
+				this.forEach('onSetStore', [store, this._store]);
+				this._store = store;
+			}
+		}));
+	},
+	startup: function(){
+		this.forEach('onStartUp');
+	},
+	preInit: function(){
+		// summary:
+		//		Load appropriate plugins before DataGrid.postCreate().
+		//		See EnhancedGrid.postCreate()
+		this.grid.focus.destroy();
+		this.grid.focus = new dojox.grid.enhanced._FocusManager(this.grid);
+		new dojox.grid.enhanced._Events(this.grid);//overwrite some default events of DataGrid
+		this._init(true);
+		this.forEach('onPreInit');
+	},
+	postInit: function(){
+		// summary:
+		//		Load plugins after DataGrid.postCreate() - the default phase when plugins are created
+		//		See EnhancedGrid.postCreate()
+		this._init(false);
+		
+		dojo.forEach(this.grid.views.views, this._initView, this);
+		this._connects.push(dojo.connect(this.grid.views, 'addView', dojo.hitch(this, this._initView)));
+			
+		if(this._plugins.length > 0){
+			var edit = this.grid.edit;
+			if(edit){ edit.styleRow = function(inRow){}; }
+		}
+		this.forEach('onPostInit');
+	},
+	forEach: function(func, args){
+		dojo.forEach(this._plugins, function(p){
+			if(!p || !p[func]){ return; }
+			p[func].apply(p, args ? args : []);
+		});
+	},
+	_parseProps: function(plugins){
+		// summary:
+		//		Parse plugins properties
+		// plugins: Object
+		//		Plugin properties defined by user
+		if(!plugins){ return; }
+		
+		var p, loading = {}, options = this._options, grid = this.grid;
+		var registry = dojox.grid.enhanced._PluginManager.registry;//global plugin registry
+		for(p in plugins){
+			if(plugins[p]){//filter out boolean false e.g. {p:false}
+				this._normalize(p, plugins, registry, loading);
+			}
+		}
+		//"columnReordering" attribute won't work when either DnD or Indirect Selections plugin is used.
+		if(options.dnd || options.indirectSelection){
+			options.columnReordering = false;
+		}
+		
+		//mixin all plugin properties into Grid
+		dojo.mixin(grid, options);
+	},
+	_normalize: function(p, plugins, registry, loading){
+		// summary:
+		//		Normalize plugin properties especially the dependency chain
+		// p: String
+		//		Plugin name
+		// plugins: Object
+		//		Plugin properties set by user
+		// registry: Object
+		//		The global plugin registry
+		// loading: Object
+		//		Map for checking process state
+		if(!registry[p]){ throw new Error('Plugin ' + p + ' is required.');}
+		
+		if(loading[p]){ throw new Error('Recursive cycle dependency is not supported.'); }
+		
+		var options = this._options;
+		if(options[p]){ return options[p]; }
+		
+		loading[p] = true;
+		//TBD - more strict conditions?
+		options[p] = dojo.mixin({}, registry[p], dojo.isObject(plugins[p]) ? plugins[p] : {});
+		
+		var dependencies = options[p]['dependency'];
+		if(dependencies){
+			if(!dojo.isArray(dependencies)){
+				dependencies = options[p]['dependency'] = [dependencies];
+			}
+			dojo.forEach(dependencies, function(dependency){
+				if(!this._normalize(dependency, plugins, registry, loading)){
+					throw new Error('Plugin ' + dependency + ' is required.');
+				}
+			}, this);
+		}
+		delete loading[p];
+		return options[p];
+	},
+	_init: function(pre){
+		// summary:
+		//		Find appropriate plugins and load them
+		// pre: Boolean
+		//		True - preInit | False - postInit(by default)
+		var p, preInit, options = this._options;
+		for(p in options){
+			preInit = options[p]['preInit'];
+			if((pre ? preInit : !preInit) && options[p]['class'] && !this.pluginExisted(p)){
+				this.loadPlugin(p);
+			}
+		}
+	},
+	loadPlugin: function(name){
+		// summary:
+		//		Load required plugin("name")
+		// name: String
+		//		Plugin name
+		// return: Object
+		//		The newly loaded plugin
+		var option = this._options[name];
+		if(!option){ return null; } //return if no plugin option
+		
+		var plugin = this.getPlugin(name);
+		if(plugin){ return plugin; } //return if plugin("name") already existed
+		
+		var dependencies = option['dependency'];
+		dojo.forEach(dependencies, function(dependency){
+			if(!this.loadPlugin(dependency)){
+				throw new Error('Plugin ' + dependency + ' is required.');
+			}
+		}, this);
+		var cls = option['class'];
+		delete option['class'];//remove it for safety
+		plugin = new this.getPluginClazz(cls)(this.grid, option);
+		this._plugins.push(plugin);
+		return plugin;
+	},
+	_initView: function(view){
+		// summary:
+		//		Overwrite several default behavior for each views(including _RowSelector view)
+		if(!view){ return; }
+		//add more events handler - _View
+		dojox.grid.util.funnelEvents(view.contentNode, view, "doContentEvent", ['mouseup', 'mousemove']);
+		dojox.grid.util.funnelEvents(view.headerNode, view, "doHeaderEvent", ['mouseup']);
+	},
+	pluginExisted: function(name){
+		// summary:
+		//		Check if plugin("name") existed
+		// name: String
+		//		Plugin name
+		// return: Boolean
+		//		True - existed | False - not existed
+		return !!this.getPlugin(name);
+	},
+	getPlugin: function(name){
+		// summary:
+		//		Get plugin("name")
+		// name: String
+		//		Plugin name
+		// return: Object
+		//		Plugin instance
+		var plugins = this._plugins;
+		name = name.toLowerCase();
+		for(var i = 0, len = plugins.length; i < len; i++){
+			if(name == plugins[i]['name'].toLowerCase()){
+				return plugins[i];
+			}
+		}
+		return null;
+	},
+	getPluginClazz: function(clazz){
+		// summary:
+		//		Load target plugin which must be already required (dojo.require(..))
+		// clazz: class | String
+		//		Plugin class
+		if(dojo.isFunction(clazz)){
+			return clazz;//return if it's already a clazz
+		}
+		var errorMsg = 'Please make sure Plugin "' + clazz + '" is existed.';
+		try{
+			var cls = dojo.getObject(clazz);
+			if(!cls){ throw new Error(errorMsg); }
+			return cls;
+		}catch(e){
+			throw new Error(errorMsg);
+		}
+	},
+	isFixedCell: function(cell){
+		// summary:
+		//		See if target cell(column) is fixed or not.
+		// cell: Object
+		//		Target cell(column)
+		// return: Boolean
+		//		True - fixed| False - not fixed
+
+		//target cell can use Boolean attributes named "isRowSelector" or "fixedPos" to mark it's a fixed cell(column)
+		return cell && (cell.isRowSelector || cell.fixedPos);
+	},
+	destroy: function(){
+		// summary:
+		//		Destroy all resources
+		dojo.forEach(this._connects, dojo.disconnect);
+		this.forEach('destroy');
+		if(this.grid.unwrap){
+			this.grid.unwrap();
+		}
+		delete this._connects;
+		delete this._plugins;
+		delete this._options;
+	}
 });
-},_parseProps:function(_7){
-if(!_7){
-return;
-}
-var p,_8={},_9=this._options,_a=this.grid;
-var _b=dojox.grid.enhanced._PluginManager.registry;
-for(p in _7){
-if(_7[p]){
-this._normalize(p,_7,_b,_8);
-}
-}
-if(_9.dnd||_9.indirectSelection){
-_9.columnReordering=false;
-}
-dojo.mixin(_a,_9);
-},_normalize:function(p,_c,_d,_e){
-if(!_d[p]){
-throw new Error("Plugin "+p+" is required.");
-}
-if(_e[p]){
-throw new Error("Recursive cycle dependency is not supported.");
-}
-var _f=this._options;
-if(_f[p]){
-return _f[p];
-}
-_e[p]=true;
-_f[p]=dojo.mixin({},_d[p],dojo.isObject(_c[p])?_c[p]:{});
-var _10=_f[p]["dependency"];
-if(_10){
-if(!dojo.isArray(_10)){
-_10=_f[p]["dependency"]=[_10];
-}
-dojo.forEach(_10,function(_11){
-if(!this._normalize(_11,_c,_d,_e)){
-throw new Error("Plugin "+_11+" is required.");
-}
-},this);
-}
-delete _e[p];
-return _f[p];
-},_init:function(pre){
-var p,_12,_13=this._options;
-for(p in _13){
-_12=_13[p]["preInit"];
-if((pre?_12:!_12)&&_13[p]["class"]&&!this.pluginExisted(p)){
-this.loadPlugin(p);
-}
-}
-},loadPlugin:function(_14){
-var _15=this._options[_14];
-if(!_15){
-return null;
-}
-var _16=this.getPlugin(_14);
-if(_16){
-return _16;
-}
-var _17=_15["dependency"];
-dojo.forEach(_17,function(_18){
-if(!this.loadPlugin(_18)){
-throw new Error("Plugin "+_18+" is required.");
-}
-},this);
-var cls=_15["class"];
-delete _15["class"];
-_16=new this.getPluginClazz(cls)(this.grid,_15);
-this._plugins.push(_16);
-return _16;
-},_initView:function(_19){
-if(!_19){
-return;
-}
-dojox.grid.util.funnelEvents(_19.contentNode,_19,"doContentEvent",["mouseup","mousemove"]);
-dojox.grid.util.funnelEvents(_19.headerNode,_19,"doHeaderEvent",["mouseup"]);
-},pluginExisted:function(_1a){
-return !!this.getPlugin(_1a);
-},getPlugin:function(_1b){
-var _1c=this._plugins;
-_1b=_1b.toLowerCase();
-for(var i=0,len=_1c.length;i<len;i++){
-if(_1b==_1c[i]["name"].toLowerCase()){
-return _1c[i];
-}
-}
-return null;
-},getPluginClazz:function(_1d){
-if(dojo.isFunction(_1d)){
-return _1d;
-}
-var _1e="Please make sure Plugin \""+_1d+"\" is existed.";
-try{
-var cls=dojo.getObject(_1d);
-if(!cls){
-throw new Error(_1e);
-}
-return cls;
-}
-catch(e){
-throw new Error(_1e);
-}
-},isFixedCell:function(_1f){
-return _1f&&(_1f.isRowSelector||_1f.fixedPos);
-},destroy:function(){
-dojo.forEach(this._connects,dojo.disconnect);
-this.forEach("destroy");
-if(this.grid.unwrap){
-this.grid.unwrap();
-}
-delete this._connects;
-delete this._plugins;
-delete this._options;
-}});
-dojox.grid.enhanced._PluginManager.registerPlugin=function(_20,_21){
-if(!_20){
-console.warn("Failed to register plugin, class missed!");
-return;
-}
-var cls=dojox.grid.enhanced._PluginManager;
-cls.registry=cls.registry||{};
-cls.registry[_20.prototype.name]=dojo.mixin({"class":_20},(_21?_21:{}));
+
+dojox.grid.enhanced._PluginManager.registerPlugin = function(clazz, props){
+		// summary:
+		//		Register plugins - TODO, a better way rather than global registry?
+		// clazz: String
+		//		Full class name, e.g. "dojox.grid.enhanced.plugins.DnD"
+		// props: Object - Optional
+		//		Plugin properties e.g. {"dependency": ["nestedSorting"], ...}
+	if(!clazz){
+		console.warn("Failed to register plugin, class missed!");
+		return;
+	}
+	var cls = dojox.grid.enhanced._PluginManager;
+	cls.registry = cls.registry || {};
+	cls.registry[clazz.prototype.name]/*plugin name*/ = dojo.mixin({"class": clazz}, (props ? props : {}));
 };
-}

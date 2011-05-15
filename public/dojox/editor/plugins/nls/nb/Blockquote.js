@@ -1,1 +1,3 @@
-({"blockquote":"Blokksitat"})
+({
+	"blockquote": "Blokksitat"
+})

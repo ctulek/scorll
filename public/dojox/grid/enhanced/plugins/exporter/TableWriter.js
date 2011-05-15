@@ -1,81 +1,145 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.grid.enhanced.plugins.exporter.TableWriter"]){
-dojo._hasResource["dojox.grid.enhanced.plugins.exporter.TableWriter"]=true;
 dojo.provide("dojox.grid.enhanced.plugins.exporter.TableWriter");
+
 dojo.require("dojox.grid.enhanced.plugins.exporter._ExportWriter");
-dojox.grid.enhanced.plugins.Exporter.registerWriter("table","dojox.grid.enhanced.plugins.exporter.TableWriter");
-dojo.declare("dojox.grid.enhanced.plugins.exporter.TableWriter",dojox.grid.enhanced.plugins.exporter._ExportWriter,{constructor:function(_1){
-this._viewTables=[];
-this._tableAttrs=_1||{};
-},_getTableAttrs:function(_2){
-var _3=this._tableAttrs[_2]||"";
-if(_3&&_3[0]!=" "){
-_3=" "+_3;
-}
-return _3;
-},_getRowClass:function(_4){
-return _4.isHeader?" grid_header":[" grid_row grid_row_",_4.rowIdx+1,_4.rowIdx%2?" grid_even_row":" grid_odd_row"].join("");
-},_getColumnClass:function(_5){
-var _6=_5.cell.index+_5.colOffset+1;
-return [" grid_column_",_6,_6%2?" grid_odd_column":" grid_even_column"].join("");
-},beforeView:function(_7){
-var _8=_7.viewIdx,_9=this._viewTables[_8],_a,_b,_c=dojo.marginBox(_7.view.contentNode).w;
-if(!_9){
-var _d=0;
-for(var i=0;i<_8;++i){
-_d+=this._viewTables[i]._width;
-}
-_9=this._viewTables[_8]=["<table class=\"grid_view\" style=\"position: absolute; top: 0; left:",_d,"px;\"",this._getTableAttrs("table"),">"];
-}
-_9._width=_c;
-if(_7.isHeader){
-_a="thead";
-_b=dojo.contentBox(_7.view.headerContentNode).h;
-}else{
-_a="tbody";
-var _e=_7.grid.getRowNode(_7.rowIdx);
-if(_e){
-_b=dojo.contentBox(_e).h;
-}else{
-_b=_7.grid.scroller.averageRowHeight;
-}
-}
-_9.push("<",_a," style=\"height:",_b,"px; width:",_c,"px;\""," class=\"",this._getRowClass(_7),"\"",this._getTableAttrs(_a),">");
-return true;
-},afterView:function(_f){
-this._viewTables[_f.viewIdx].push(_f.isHeader?"</thead>":"</tbody>");
-},beforeSubrow:function(_10){
-this._viewTables[_10.viewIdx].push("<tr",this._getTableAttrs("tr"),">");
-return true;
-},afterSubrow:function(_11){
-this._viewTables[_11.viewIdx].push("</tr>");
-},handleCell:function(_12){
-var _13=_12.cell;
-if(_13.hidden||dojo.indexOf(_12.spCols,_13.index)>=0){
-return;
-}
-var _14=_12.isHeader?"th":"td",_15=[_13.colSpan?" colspan=\""+_13.colSpan+"\"":"",_13.rowSpan?" rowspan=\""+_13.rowSpan+"\"":""," style=\"width: ",dojo.contentBox(_13.getHeaderNode()).w,"px;\"",this._getTableAttrs(_14)," class=\"",this._getColumnClass(_12),"\""].join(""),_16=this._viewTables[_12.viewIdx];
-_16.push("<",_14,_15,">");
-if(_12.isHeader){
-_16.push(_13.name||_13.field);
-}else{
-_16.push(this._getExportDataForCell(_12.rowIdx,_12.row,_13,_12.grid));
-}
-_16.push("</",_14,">");
-},afterContent:function(){
-dojo.forEach(this._viewTables,function(_17){
-_17.push("</table>");
+
+dojox.grid.enhanced.plugins.Exporter.registerWriter("table",
+	"dojox.grid.enhanced.plugins.exporter.TableWriter");
+	
+dojo.declare("dojox.grid.enhanced.plugins.exporter.TableWriter",
+	dojox.grid.enhanced.plugins.exporter._ExportWriter, {
+	// summary:
+	//		Export grid to HTML table format. Primarily used by Printer plugin.
+	constructor: function(/* object? */writerArgs){
+		// summary:
+		//		The generated table only defines the col/rowspan, height and width of
+		//		all the cells in the style attribute, no other attributes
+		//		(like border, cellspacing, etc.) are used.
+		//		Users can define these attributes in the writerArgs object, like:
+		//		{table:"border='border'",thead:"cellspacing='3'"}
+		this._viewTables = [];
+		this._tableAttrs = writerArgs || {};
+	},
+	_getTableAttrs: function(/* string */tagName){
+		// summary:
+		//		Get html attribute string for the given kind of tag.
+		// tags:
+		//		private
+		// tagName: string
+		//		An html tag name
+		// returns:
+		//		The well formatted attributes for the given html table.tag
+		var attrs = this._tableAttrs[tagName] || '';
+		//To ensure the attribute list starts with a space
+		if(attrs && attrs[0] != ' '){
+			attrs = ' ' + attrs;
+		}
+		return attrs;	//String
+	},
+	_getRowClass: function(/* object */arg_obj){
+		// summary:
+		//		Get CSS class string for a row
+		// tags:
+		//		private
+		return arg_obj.isHeader ? " grid_header"//String
+				: [" grid_row grid_row_", arg_obj.rowIdx + 1,
+				arg_obj.rowIdx % 2 ? " grid_even_row" : " grid_odd_row"].join('');
+	},
+	_getColumnClass: function(/* object */arg_obj){
+		// summary:
+		//		Get CSS class string for a column
+		// tags:
+		//		private
+		var col_idx = arg_obj.cell.index + arg_obj.colOffset + 1;
+		return [" grid_column_", col_idx,//String
+				col_idx % 2 ? " grid_odd_column" : " grid_even_column"].join('');
+	},
+	beforeView: function(/* object */arg_obj){
+		// summary:
+		//		Overrided from _ExportWriter
+		var viewIdx = arg_obj.viewIdx,
+			table = this._viewTables[viewIdx],
+			tagName, height,
+			width = dojo.marginBox(arg_obj.view.contentNode).w;
+		if(!table){
+			var left = 0;
+			for(var i = 0; i < viewIdx; ++i){
+				left += this._viewTables[i]._width;
+			}
+			table = this._viewTables[viewIdx] = ['<table class="grid_view" style="position: absolute; top: 0; left:', left,
+				'px;"', this._getTableAttrs("table"), '>'];
+		}
+		table._width = width;
+		if(arg_obj.isHeader){
+			tagName = 'thead';
+			height = dojo.contentBox(arg_obj.view.headerContentNode).h;
+		}else{
+			tagName = 'tbody';
+			var rowNode = arg_obj.grid.getRowNode(arg_obj.rowIdx);
+			if(rowNode){
+				height = dojo.contentBox(rowNode).h;
+			}else{
+				//This row has not been loaded from store, so we should estimate it's height.
+				height = arg_obj.grid.scroller.averageRowHeight;
+			}
+		}
+		table.push('<',tagName,
+					' style="height:', height, 'px; width:', width, 'px;"',
+					' class="', this._getRowClass(arg_obj), '"',
+					this._getTableAttrs(tagName), '>');
+		return true;	//Boolean
+	},
+	afterView: function(/* object */arg_obj){
+		// summary:
+		//		Overrided from _ExportWriter
+		this._viewTables[arg_obj.viewIdx].push(arg_obj.isHeader ? '</thead>' : '</tbody>');
+	},
+	beforeSubrow: function(/* object */arg_obj){
+		// summary:
+		//		Overrided from _ExportWriter
+		this._viewTables[arg_obj.viewIdx].push('<tr', this._getTableAttrs('tr'), '>');
+		return true;	//Boolean
+	},
+	afterSubrow: function(/* object */arg_obj){
+		// summary:
+		//		Overrided from _ExportWriter
+		this._viewTables[arg_obj.viewIdx].push('</tr>');
+	},
+	handleCell: function(/* object */arg_obj){
+		// summary:
+		//		Overrided from _ExportWriter
+		var cell = arg_obj.cell;
+		if(cell.hidden || dojo.indexOf(arg_obj.spCols, cell.index) >= 0){
+			//We are not interested in indirect selectors and row indexes.
+			return;
+		}
+		var cellTagName = arg_obj.isHeader ? 'th' : 'td',
+			attrs = [cell.colSpan ? ' colspan="' + cell.colSpan + '"' : '',
+					cell.rowSpan ? ' rowspan="' + cell.rowSpan + '"' : '',
+					' style="width: ', dojo.contentBox(cell.getHeaderNode()).w, 'px;"',
+					this._getTableAttrs(cellTagName),
+					' class="', this._getColumnClass(arg_obj), '"'].join(''),
+			table = this._viewTables[arg_obj.viewIdx];
+		table.push('<', cellTagName, attrs, '>');
+		if(arg_obj.isHeader){
+			table.push(cell.name || cell.field);
+		} else{
+			table.push(this._getExportDataForCell(arg_obj.rowIdx, arg_obj.row, cell, arg_obj.grid));
+		}
+		table.push('</', cellTagName, '>');
+	},
+	afterContent: function(){
+		// summary:
+		//		Overrided from _ExportWriter
+		dojo.forEach(this._viewTables, function(table){
+			table.push('</table>');
+		});
+	},
+	toString: function(){
+		// summary:
+		//		Overrided from _ExportWriter
+		var viewsHTML = dojo.map(this._viewTables, function(table){	//String
+			return table.join('');
+		}).join('');
+		return ['<div style="position: relative;">', viewsHTML, '</div>'].join('');
+	}
 });
-},toString:function(){
-var _18=dojo.map(this._viewTables,function(_19){
-return _19.join("");
-}).join("");
-return ["<div style=\"position: relative;\">",_18,"</div>"].join("");
-}});
-}

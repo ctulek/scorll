@@ -1,1 +1,18 @@
-({"gotoButtonTitle":"Přejít na specifickou stránku","prevTip":"Předchozí strana","pageCountIndication":" (${0} stránek)","pageStepLabelTemplate":"Stránka ${0}","descTemplate":"${2} - ${3} z ${1} ${0}","lastTip":"Poslední strana","nextTip":"Další strana","pageSizeLabelTemplate":"${0} položek na stránce","dialogCancel":"Storno","itemTitle":"položek","dialogConfirm":"Přejít","firstTip":"První strana","allItemsLabelTemplate":"Všechny položky","dialogIndication":"Uveďte číslo stránky","dialogTitle":"Přejít na stránku"})
+({
+	"descTemplate": "${2} - ${3} z ${1} ${0}",
+	"firstTip": "První strana",
+	"lastTip": "Poslední strana",
+	"nextTip": "Další strana",
+	"prevTip": "Předchozí strana",
+	"itemTitle": "položek",
+	"pageStepLabelTemplate": "Stránka ${0}",
+	"pageSizeLabelTemplate": "${0} položek na stránce",
+	"allItemsLabelTemplate": "Všechny položky",
+	"gotoButtonTitle": "Přejít na specifickou stránku",
+	"dialogTitle": "Přejít na stránku",
+	"dialogIndication": "Uveďte číslo stránky",
+	"pageCountIndication": " (${0} stránek)",
+	"dialogConfirm": "Přejít",
+	"dialogCancel": "Storno"
+})
+

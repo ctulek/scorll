@@ -1,1 +1,5 @@
-({"collapse":"Sbalit panel nástrojů editoru","expand":"Rozbalit panel nástrojů editoru"})
+({
+	"collapse": "Sbalit panel nástrojů editoru",
+	"expand": "Rozbalit panel nástrojů editoru"
+})
+

@@ -1,1 +1,3 @@
-({"save":"Lagre"})
+({
+	"save": "Lagre"
+})

@@ -1,1 +1,4 @@
-({"pageBreak":"Sidbrytning"})
+({
+	"pageBreak": "Sidbrytning"
+})
+

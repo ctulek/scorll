@@ -1,1 +1,4 @@
-({"insertEntity":"ادراج رمز"})
+({
+	insertEntity: "ادراج رمز"
+})
+

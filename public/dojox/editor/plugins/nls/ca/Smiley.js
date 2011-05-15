@@ -1,1 +1,22 @@
-({"emoticonLaughing":"rient","emoticonCool":"guai","emoticonTongue":"llengua","emoticonCrying":"plorant","emoticonOops":"ep","emoticonFrown":"espantat","emoticonAngry":"enfadat","emoticonShy":"avergonyit","emoticonNo":"no","emoticonAngel":"àngel","smiley":"Insereix emoticona","emoticonIdea":"idea","emoticonEyebrow":"cella","emoticonSmile":"somriure","emoticonWink":"ullet","emoticonYes":"sí","emoticonGrin":"gran somriure","emoticonGoofy":"babau","emoticonHalf":"meitat"})
+({
+	smiley: "Insereix emoticona",
+	emoticonSmile: "somriure",
+	emoticonLaughing: "rient",
+	emoticonWink: "ullet",
+	emoticonGrin: "gran somriure",
+	emoticonCool: "guai",
+	emoticonAngry: "enfadat",
+	emoticonHalf: "meitat",
+	emoticonEyebrow: "cella",
+	emoticonFrown: "espantat",
+	emoticonShy: "avergonyit",
+	emoticonGoofy: "babau",
+	emoticonOops: "ep",
+	emoticonTongue: "llengua",
+	emoticonIdea: "idea",
+	emoticonYes: "sí",
+	emoticonNo: "no",
+	emoticonAngel: "àngel",
+	emoticonCrying: "plorant"
+})
+

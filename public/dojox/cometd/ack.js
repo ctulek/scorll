@@ -1,46 +1,50 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.cometd.ack"]){
-dojo._hasResource["dojox.cometd.ack"]=true;
 dojo.provide("dojox.cometd.ack");
 dojo.require("dojox.cometd._base");
-dojox.cometd._ack=new function(){
-var _1=false;
-var _2=-1;
-this._in=function(_3){
-if(_3.channel=="/meta/handshake"){
-_1=_3.ext&&_3.ext.ack;
-}else{
-if(_1&&_3.channel=="/meta/connect"&&_3.ext&&_3.ext.ack&&_3.successful){
-var _4=parseInt(_3.ext.ack);
-_2=_4;
-}
-}
-return _3;
+
+/*
+ * This file provides the dojox cometd ack extension which
+ * acknowledges the messages received in /meta/connect responses.
+ * Each meta/connect is sent with the id of the last successful meta/connect
+ * received.  The server uses this information to manage a queue of unacknowleged
+ * messages.
+ *
+ * To use, add dojo.require("dojox.cometd.ack"); and if the handshake will be sent
+ * with ext:{ack:true}.  If the server supports the same extension, then the
+ * mechanism will be initialized.  The dojox.cometd.ackEnabled field may also be
+ * used to optionally enable/disable the extension before init of cometd.
+ *
+ */
+dojox.cometd._ack = new function(){
+	var supportAcks = false;
+	var lastAck = -1;
+	
+	this._in = function(msg){
+		if (msg.channel == "/meta/handshake") {
+			supportAcks = msg.ext && msg.ext.ack;
+		} else if (supportAcks && msg.channel == "/meta/connect" && msg.ext && msg.ext.ack && msg.successful) {
+			var ackId = parseInt(msg.ext.ack);
+			lastAck = ackId;
+		}
+		return msg;
+	}
+	
+	this._out = function(msg){
+	
+		if (msg.channel == "/meta/handshake") {
+			if (!msg.ext)
+				msg.ext = {};
+			msg.ext.ack = dojox.cometd.ackEnabled;
+			lastAck = -1;
+		}
+		if (supportAcks && msg.channel == "/meta/connect") {
+			if (!msg.ext)
+				msg.ext = {};
+			msg.ext.ack = lastAck;
+		}
+		return msg;
+	}
 };
-this._out=function(_5){
-if(_5.channel=="/meta/handshake"){
-if(!_5.ext){
-_5.ext={};
-}
-_5.ext.ack=dojox.cometd.ackEnabled;
-_2=-1;
-}
-if(_1&&_5.channel=="/meta/connect"){
-if(!_5.ext){
-_5.ext={};
-}
-_5.ext.ack=_2;
-}
-return _5;
-};
-};
-dojox.cometd._extendInList.push(dojo.hitch(dojox.cometd._ack,"_in"));
-dojox.cometd._extendOutList.push(dojo.hitch(dojox.cometd._ack,"_out"));
-dojox.cometd.ackEnabled=true;
-}
+
+dojox.cometd._extendInList.push(dojo.hitch(dojox.cometd._ack, "_in"));
+dojox.cometd._extendOutList.push(dojo.hitch(dojox.cometd._ack, "_out"));
+dojox.cometd.ackEnabled = true;

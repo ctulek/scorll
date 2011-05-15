@@ -1,1 +1,4 @@
-({"collapse":"Komprimer verktøylinje for redigeringsprogram","expand":"Utvid verktøylinje for redigeringsprogram"})
+({
+	"collapse": "Komprimer verktøylinje for redigeringsprogram",
+	"expand": "Utvid verktøylinje for redigeringsprogram"
+})

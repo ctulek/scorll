@@ -1,1 +1,18 @@
-({"gotoButtonTitle":"Gå til en bestemt side","prevTip":"Forrige side","pageCountIndication":" (${0} sider)","pageStepLabelTemplate":"Side ${0}","descTemplate":"${2} - ${3} av ${1} ${0}","lastTip":"Siste side","nextTip":"Neste side","pageSizeLabelTemplate":"${0} elementer per side","dialogCancel":"Avbryt","itemTitle":"elementer","dialogConfirm":"Utfør","firstTip":"Første side","allItemsLabelTemplate":"Alle elementer","dialogIndication":"Oppgi sidetallet","dialogTitle":"Gå til side"})
+({
+	"descTemplate": "${2} - ${3} av ${1} ${0}",
+	"firstTip": "Første side",
+	"lastTip": "Siste side",
+	"nextTip": "Neste side",
+	"prevTip": "Forrige side",
+	"itemTitle": "elementer",
+	"pageStepLabelTemplate": "Side ${0}",
+	"pageSizeLabelTemplate": "${0} elementer per side",
+	"allItemsLabelTemplate": "Alle elementer",
+	"gotoButtonTitle": "Gå til en bestemt side",
+	"dialogTitle": "Gå til side",
+	"dialogIndication": "Oppgi sidetallet",
+	"pageCountIndication": " (${0} sider)",
+	"dialogConfirm": "Utfør",
+	"dialogCancel": "Avbryt"
+})
+

@@ -1,187 +1,276 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+// AMD module id = dojo/lib/backCompat
+//
+// This module defines those dojo properties/methods that are defined by
+// dojo/_base/_loader/loader and are still needed when loading with and
+// AMD loader (when loading with an AMD loader, dojo/_base/_loader/loader
+// is never loaded).
+//
+// note: this module is relevant only when loading dojo with an AMD loader;
+// it is never evaluated otherwise.
 
+define(["require", "dojo/_base/_loader/bootstrap"], function(require, dojo){
+	// the following dojo properties do not exist in the AMD-loaded version of dojo 1.x:
+	var names= [
+		"_moduleHasPrefix",
+		"_loadPath",
+		"_loadUri",
+		"_loadUriAndCheck",
+		"loaded",
+		"_callLoaded",
+		"_getModuleSymbols",
+		"_loadModule",
+		"require",
+		"provide",
+		"platformRequire",
+		"requireIf",
+		"requireAfterIf",
+		"registerModulePath"
+	], i, name;
+	for(i = 0; i<names.length;){
+		name = names[i++];
+		dojo[name] = (function(name) {
+			return function(){
+				console.warn("dojo." + name + " not available when using an AMD loader.");
+			};
+		})(name);
+	}
 
-define(["require","dojo/_base/_loader/bootstrap"],function(_1,_2){
-var _3=["_moduleHasPrefix","_loadPath","_loadUri","_loadUriAndCheck","loaded","_callLoaded","_getModuleSymbols","_loadModule","require","provide","platformRequire","requireIf","requireAfterIf","registerModulePath"],i,_4;
-for(i=0;i<_3.length;){
-_4=_3[i++];
-_2[_4]=(function(_5){
-return function(){
-console.warn("dojo."+_5+" not available when using an AMD loader.");
-};
-})(_4);
-}
-var _6=function(_7){
-var _8=[],i;
-for(i=0;i<_7.length;){
-_8.push(_7[i++]);
-}
-return _8;
-},_9=function(_a,_b){
-if(_b){
-return (typeof _b=="string")?function(){
-_a[_b]();
-}:function(){
-_b.call(_a);
-};
-}else{
-return _a;
-}
-};
-_2.ready=_2.addOnLoad=function(_c,_d){
-_1.ready(_d?_9(_c,_d):_c);
-};
-_2.addOnLoad(function(){
-_2.postLoad=_2.config.afterOnLoad=true;
-});
-var _e=_2.config.addOnLoad;
-if(_e){
-_2.addOnLoad[(_e instanceof Array?"apply":"call")](_2,_e);
-}
-var _f=_2._loaders=[],_10=function(){
-var _11=_f.slice(0);
-Array.prototype.splice.apply(_f,[0,_f.length]);
-while(_11.length){
-_11.shift().call();
-}
-};
-_f.unshift=function(){
-Array.prototype.unshift.apply(_f,_6(arguments));
-_1.ready(_10);
-};
-_f.splice=function(){
-Array.prototype.splice.apply(_f,_6(arguments));
-_1.ready(_10);
-};
-var _12=_2._unloaders=[];
-_2.unloaded=function(){
-while(_12.length){
-_12.pop().call();
-}
-};
-_2._onto=function(arr,obj,fn){
-arr.push(fn?_9(obj,fn):obj);
-};
-_2._modulesLoaded=function(){
-};
-_2.loadInit=function(_13){
-_13();
-};
-var _14=function(_15){
-return _15.replace(/\./g,"/");
-};
-_2.getL10nName=function(_16,_17,_18){
-_18=_18?_18.toLowerCase():_2.locale;
-_16="i18n!"+_14(_16);
-return (/root/i.test(_18))?(_16+"/nls/"+_17):(_16+"/nls/"+_18+"/"+_17);
-};
-_2.requireLocalization=function(_19,_1a,_1b){
-if(_1.vendor!="altoviso.com"){
-_1b=!_1b||_1b.toLowerCase()===_2.locale?"root":_1b;
-}
-return _1(_2.getL10nName(_19,_1a,_1b));
-};
-_2.i18n={getLocalization:_2.requireLocalization,normalizeLocale:function(_1c){
-var _1d=_1c?_1c.toLowerCase():_2.locale;
-if(_1d=="root"){
-_1d="ROOT";
-}
-return _1d;
-}};
-var ore=new RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?$"),ire=new RegExp("^((([^\\[:]+):)?([^@]+)@)?(\\[([^\\]]+)\\]|([^\\[:]*))(:([0-9]+))?$");
-_2._Url=function(){
-var n=null,_1e=arguments,uri=[_1e[0]];
-for(var i=1;i<_1e.length;i++){
-if(!_1e[i]){
-continue;
-}
-var _1f=new _2._Url(_1e[i]+""),_20=new _2._Url(uri[0]+"");
-if(_1f.path==""&&!_1f.scheme&&!_1f.authority&&!_1f.query){
-if(_1f.fragment!=n){
-_20.fragment=_1f.fragment;
-}
-_1f=_20;
-}else{
-if(!_1f.scheme){
-_1f.scheme=_20.scheme;
-if(!_1f.authority){
-_1f.authority=_20.authority;
-if(_1f.path.charAt(0)!="/"){
-var _21=_20.path.substring(0,_20.path.lastIndexOf("/")+1)+_1f.path;
-var _22=_21.split("/");
-for(var j=0;j<_22.length;j++){
-if(_22[j]=="."){
-if(j==_22.length-1){
-_22[j]="";
-}else{
-_22.splice(j,1);
-j--;
-}
-}else{
-if(j>0&&!(j==1&&_22[0]=="")&&_22[j]==".."&&_22[j-1]!=".."){
-if(j==(_22.length-1)){
-_22.splice(j,1);
-_22[j-1]="";
-}else{
-_22.splice(j-1,2);
-j-=2;
-}
-}
-}
-}
-_1f.path=_22.join("/");
-}
-}
-}
-}
-uri=[];
-if(_1f.scheme){
-uri.push(_1f.scheme,":");
-}
-if(_1f.authority){
-uri.push("//",_1f.authority);
-}
-uri.push(_1f.path);
-if(_1f.query){
-uri.push("?",_1f.query);
-}
-if(_1f.fragment){
-uri.push("#",_1f.fragment);
-}
-}
-this.uri=uri.join("");
-var r=this.uri.match(ore);
-this.scheme=r[2]||(r[1]?"":n);
-this.authority=r[4]||(r[3]?"":n);
-this.path=r[5];
-this.query=r[7]||(r[6]?"":n);
-this.fragment=r[9]||(r[8]?"":n);
-if(this.authority!=n){
-r=this.authority.match(ire);
-this.user=r[3]||n;
-this.password=r[4]||n;
-this.host=r[6]||r[7];
-this.port=r[9]||n;
-}
-};
-_2._Url.prototype.toString=function(){
-return this.uri;
-};
-_2.moduleUrl=function(_23,url){
-if(!_23){
-return null;
-}
-_23=_14(_23)+(url?("/"+url):"");
-var _24="",_25=_23.match(/(.+)(\.[^\/]*)$/);
-if(_25){
-_23=_25[1];
-_24=_25[2];
-}
-return new _2._Url(_1.nameToUrl(_23,_24));
-};
-return _2;
+	// define dojo.addOnLoad in terms of the DOMContentLoaded detection available from the AMD loaders
+	// (requirejs and bdBuild). Note that the behavior of this feature is slightly different compared to the dojo
+	// v1.x sync loader. There, the onload queue is fired upon detecting both DOMContentLoaded *and* all
+	// demanded modules have arrived. It is impossible to simulate this behavior with requirejs since it does
+	// not publish its internal status (it is possible with bdLoad).
+	// TODO: consider taking ownership of this API back from the loader.
+	// TODO: consider requesting requirejs publish more enough internal state to determine if all demanded
+	// modules have been defined.
+	var
+		argsToArray = function(args) {
+			var result = [], i;
+			for(i = 0; i<args.length;){
+				result.push(args[i++]);
+			}
+			return result;
+		},
+
+		simpleHitch = function(context, callback){
+			if(callback){
+				return (typeof callback=="string") ?
+					function(){context[callback]();} :
+					function(){callback.call(context);};
+			}else{
+				return context;
+			}
+		};
+	dojo.ready = dojo.addOnLoad = function(context, callback){
+		require.ready(callback ? simpleHitch(context, callback) : context);
+	};
+	dojo.addOnLoad(function() {
+		dojo.postLoad = dojo.config.afterOnLoad = true;
+	});
+	var dca = dojo.config.addOnLoad;
+	if(dca){
+		dojo.addOnLoad[(dca instanceof Array ? "apply" : "call")](dojo, dca);
+	}
+
+	// TODO: in the dojo 1.x sync loader the array dojo._loaders holds the queue of callbacks to be executed
+	// upon DOMContentLoaded. This queue is manipulated directly by dojo/uacss, dojo/parser, dijit/_base/wia
+	// and others (at least in dojox). This is also impossible to simulate universally across all AMD loaders.
+	// The following will at least accept client code accessing dojo._loaders , dojo._loaders.unshift, and
+	// dojo._loaders.splice--which is all that exists in the current dojo/dijit code stacks.
+	var
+		loaders = dojo._loaders = [],
+		runLoaders = function(){
+			var temp= loaders.slice(0);
+			Array.prototype.splice.apply(loaders, [0, loaders.length]);
+			while(temp.length){
+				temp.shift().call();
+			};
+		};
+	loaders.unshift = function() {
+		Array.prototype.unshift.apply(loaders, argsToArray(arguments));
+		require.ready(runLoaders);
+	};
+	loaders.splice = function() {
+		Array.prototype.splice.apply(loaders, argsToArray(arguments));
+		require.ready(runLoaders);
+	};
+
+	//TODO: put unload handling in a separate module
+	var unloaders = dojo._unloaders = [];
+	dojo.unloaded = function(){
+		while(unloaders.length){
+			unloaders.pop().call();
+		}
+	};
+
+	//TODO: kill this low-value function when it is exorcised from dojo
+	dojo._onto = function(arr, obj, fn){
+		arr.push(fn ? simpleHitch(obj, fn) : obj);
+	};
+
+	//TODO: kill this when the bootstrap is rewritten to not include DOMContentLoaded detection
+	// (it should probably be just a module) for now, just sink the detection; leverage the
+	// AMD loaders to handle DOMContentLoaded detection
+	dojo._modulesLoaded = function(){};
+
+	//TODO: kill this when we understand its purpose relative to AMD
+	dojo.loadInit = function(init){
+		init();
+	};
+
+	var amdModuleName= function(moduleName){
+		return moduleName.replace(/\./g, "/");
+	};
+
+	dojo.getL10nName = function(moduleName, bundleName, locale){
+		locale = locale ? locale.toLowerCase() : dojo.locale;
+		moduleName = "i18n!" + amdModuleName(moduleName);
+		return (/root/i.test(locale)) ?
+			(moduleName + "/nls/" + bundleName) :
+			(moduleName + "/nls/"	 + locale + "/" + bundleName);
+	};
+
+	dojo.requireLocalization = function(moduleName, bundleName, locale){
+		// NOTE: locales other than the locale specified in dojo.locale need to be specifically
+		// declared as a module dependency when using AMD.
+		if(require.vendor!="altoviso.com"){
+			locale = !locale || locale.toLowerCase() === dojo.locale ? "root" :  locale;
+		}
+		return require(dojo.getL10nName(moduleName, bundleName, locale));
+	};
+
+	dojo.i18n= {
+		getLocalization: dojo.requireLocalization,
+		normalizeLocale: function(locale){
+			var result = locale ? locale.toLowerCase() : dojo.locale;
+			if(result == "root"){
+				result = "ROOT";
+			}
+			return result;
+		}
+	};
+
+	//TODO: dojo._Url seems rarely used and long to be part of the boostrap; consider moving
+	//note: this routine cut and paste from dojo/_base/_loader/loader
+	var
+		ore = new RegExp("^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\\?([^#]*))?(#(.*))?$"),
+		ire = new RegExp("^((([^\\[:]+):)?([^@]+)@)?(\\[([^\\]]+)\\]|([^\\[:]*))(:([0-9]+))?$");
+	dojo._Url = function(){
+		var n = null,
+			_a = arguments,
+			uri = [_a[0]];
+		// resolve uri components relative to each other
+		for(var i = 1; i<_a.length; i++){
+			if(!_a[i]){ continue; }
+
+			// Safari doesn't support this.constructor so we have to be explicit
+			// FIXME: Tracked (and fixed) in Webkit bug 3537.
+			//		http://bugs.webkit.org/show_bug.cgi?id=3537
+			var relobj = new dojo._Url(_a[i]+""),
+				uriobj = new dojo._Url(uri[0]+"");
+
+			if(
+				relobj.path == "" &&
+				!relobj.scheme &&
+				!relobj.authority &&
+				!relobj.query
+			){
+				if(relobj.fragment != n){
+					uriobj.fragment = relobj.fragment;
+				}
+				relobj = uriobj;
+			}else if(!relobj.scheme){
+				relobj.scheme = uriobj.scheme;
+
+				if(!relobj.authority){
+					relobj.authority = uriobj.authority;
+
+					if(relobj.path.charAt(0) != "/"){
+						var path = uriobj.path.substring(0,
+							uriobj.path.lastIndexOf("/") + 1) + relobj.path;
+
+						var segs = path.split("/");
+						for(var j = 0; j < segs.length; j++){
+							if(segs[j] == "."){
+								// flatten "./" references
+								if(j == segs.length - 1){
+									segs[j] = "";
+								}else{
+									segs.splice(j, 1);
+									j--;
+								}
+							}else if(j > 0 && !(j == 1 && segs[0] == "") &&
+								segs[j] == ".." && segs[j-1] != ".."){
+								// flatten "../" references
+								if(j == (segs.length - 1)){
+									segs.splice(j, 1);
+									segs[j - 1] = "";
+								}else{
+									segs.splice(j - 1, 2);
+									j -= 2;
+								}
+							}
+						}
+						relobj.path = segs.join("/");
+					}
+				}
+			}
+
+			uri = [];
+			if(relobj.scheme){
+				uri.push(relobj.scheme, ":");
+			}
+			if(relobj.authority){
+				uri.push("//", relobj.authority);
+			}
+			uri.push(relobj.path);
+			if(relobj.query){
+				uri.push("?", relobj.query);
+			}
+			if(relobj.fragment){
+				uri.push("#", relobj.fragment);
+			}
+		}
+
+		this.uri = uri.join("");
+
+		// break the uri into its main components
+		var r = this.uri.match(ore);
+
+		this.scheme = r[2] || (r[1] ? "" : n);
+		this.authority = r[4] || (r[3] ? "" : n);
+		this.path = r[5]; // can never be undefined
+		this.query = r[7] || (r[6] ? "" : n);
+		this.fragment	 = r[9] || (r[8] ? "" : n);
+
+		if(this.authority != n){
+			// server based naming authority
+			r = this.authority.match(ire);
+
+			this.user = r[3] || n;
+			this.password = r[4] || n;
+			this.host = r[6] || r[7]; // ipv6 || ipv4
+			this.port = r[9] || n;
+		}
+	};
+
+	dojo._Url.prototype.toString = function(){ return this.uri; };
+
+	dojo.moduleUrl = function(module, url){
+		if(!module){
+		 //TODO: don't understand why this would ever be so, but that's the logic in loader
+		 return null;
+		}
+		module = amdModuleName(module) + (url ? ("/" + url) : "");
+		var
+			type= "",
+			match= module.match(/(.+)(\.[^\/]*)$/);
+		if (match) {
+			module= match[1];
+			type= match[2];
+		}
+		return new dojo._Url(require.nameToUrl(module, type)); // dojo._Url
+	};
+
+	return dojo;
 });

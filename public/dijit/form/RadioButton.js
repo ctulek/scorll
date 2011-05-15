@@ -1,12 +1,7 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dijit/form/RadioButton", ["dojo", "dijit", "dijit/form/CheckBox"], function(dojo, dijit) {
+
+// TODO: for 2.0, move the RadioButton code into this file
 
 
-if(!dojo._hasResource["dijit.form.RadioButton"]){
-dojo._hasResource["dijit.form.RadioButton"]=true;
-dojo.provide("dijit.form.RadioButton");
-dojo.require("dijit.form.CheckBox");
-}
+return dijit.form.RadioButton;
+});

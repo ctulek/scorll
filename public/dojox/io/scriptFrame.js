@@ -1,52 +1,85 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.io.scriptFrame"]){
-dojo._hasResource["dojox.io.scriptFrame"]=true;
 dojo.provide("dojox.io.scriptFrame");
+
 dojo.require("dojo.io.script");
 dojo.require("dojo.io.iframe");
+
+//This module extends dojo.io.script to use an iframe for the dojo.io.script.attach calls
+//if the frameDoc argument is passed to dojo.io.script.get(), and if frameDoc is a string (representing
+//the DOM ID of an iframe that should be used for the connection. If frameDoc is not a string, then
+//it is probably a document object, and dojox.io.scriptFrame should not get involved with the request.
+//This is useful in some long-polling comet situations in Firefox and Opera. Those browsers execute scripts
+//in DOM order, not network-receive order, so a long-polling script will block other
+//dynamically appended scripts from running until it completes. By using an iframe
+//for the dojo.io.script requests, this issue can be avoided.
+
+//WARNING: the url argument to dojo.io.script MUST BE relative to the iframe document's location,
+//NOT the parent page location. This iframe document's URL will be (dojo.moduleUrl("dojo", "resources/blank.html")
+//or djConfig.dojoBlankHtmlUrl (for xdomain loading).
+
 (function(){
-var _1=dojo.io.script;
-dojox.io.scriptFrame={_waiters:{},_loadedIds:{},_getWaiters:function(_2){
-return this._waiters[_2]||(this._waiters[_2]=[]);
-},_fixAttachUrl:function(_3){
-},_loaded:function(_4){
-var _5=this._getWaiters(_4);
-this._loadedIds[_4]=true;
-this._waiters[_4]=null;
-for(var i=0;i<_5.length;i++){
-var _6=_5[i];
-_6.frameDoc=dojo.io.iframe.doc(dojo.byId(_4));
-_1.attach(_6.id,_6.url,_6.frameDoc);
-}
-}};
-var _7=_1._canAttach;
-var _8=dojox.io.scriptFrame;
-_1._canAttach=function(_9){
-var _a=_9.args.frameDoc;
-if(_a&&dojo.isString(_a)){
-var _b=dojo.byId(_a);
-var _c=_8._getWaiters(_a);
-if(!_b){
-_c.push(_9);
-dojo.io.iframe.create(_a,dojox._scopeName+".io.scriptFrame._loaded('"+_a+"');");
-}else{
-if(_8._loadedIds[_a]){
-_9.frameDoc=dojo.io.iframe.doc(_b);
-this.attach(_9.id,_9.url,_9.frameDoc);
-}else{
-_c.push(_9);
-}
-}
-return false;
-}else{
-return _7.apply(this,arguments);
-}
-};
+	var ioScript = dojo.io.script;
+	dojox.io.scriptFrame = {
+		_waiters: {},
+		_loadedIds: {},
+
+		_getWaiters: function(/*String*/frameId){
+			return this._waiters[frameId] || (this._waiters[frameId] = []);
+		},
+
+		_fixAttachUrl: function(/*String*/url){
+			//summary: fixes the URL so that
+		},
+
+		_loaded: function(/*String*/frameId){
+			//summary: callback used when waiting for a frame to load (related to the usage of
+			//the frameId argument to dojo.io.script.get().
+			var waiters = this._getWaiters(frameId);
+			this._loadedIds[frameId] = true;
+			this._waiters[frameId] = null;
+
+			for(var i = 0; i < waiters.length; i++){
+				var ioArgs = waiters[i];
+				ioArgs.frameDoc = dojo.io.iframe.doc(dojo.byId(frameId));
+				ioScript.attach(ioArgs.id, ioArgs.url, ioArgs.frameDoc);
+			}
+		}
+	};
+
+	//Hold on to the old _canAttach function.
+	var oldCanAttach = ioScript._canAttach;
+	var scriptFrame = dojox.io.scriptFrame;
+
+	//Define frame-aware _canAttach method on dojo.io.script
+	ioScript._canAttach = function(/*Object*/ioArgs){
+		//summary: provides an override of dojo.io.script._canAttach to check for
+		//the existence of a the args.frameDoc property. If it is there, and it is a string,
+		//not a document, then create the iframe with an ID of frameDoc, and use that for the calls.
+		//If frameDoc is a document, then dojox.io.scriptFrame should not get involved.
+		var fId = ioArgs.args.frameDoc;
+
+		if(fId && dojo.isString(fId)){
+			var frame = dojo.byId(fId);
+			var waiters = scriptFrame._getWaiters(fId);
+			if(!frame){
+				//Need to create frame, but the frame document, which *must* be
+				//on the same domain as the page (set djConfig.dojoBlankHtmlUrl
+				//if using xdomain loading). Loading of the frame document is asynchronous,
+				//so we need to do callback stuff.
+				waiters.push(ioArgs);
+				dojo.io.iframe.create(fId, dojox._scopeName + ".io.scriptFrame._loaded('" + fId + "');");
+			}else{
+				//Frame loading could still be happening. Only call attach if the frame has loaded.
+				if(scriptFrame._loadedIds[fId]){
+					ioArgs.frameDoc = dojo.io.iframe.doc(frame);
+					this.attach(ioArgs.id, ioArgs.url, ioArgs.frameDoc);
+				}else{
+					waiters.push(ioArgs);
+				}
+			}
+			return false;
+		}else{
+			return oldCanAttach.apply(this, arguments);
+		}
+	}
 })();
-}
+

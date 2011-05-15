@@ -1,1 +1,18 @@
-({"gotoButtonTitle":"Μετάβαση σε συγκεκριμένη σελίδα","prevTip":"Προηγούμενη σελίδα","pageCountIndication":" (${0} σελίδες)","pageStepLabelTemplate":"Σελίδα ${0}","descTemplate":"${2} - ${3} από ${1} ${0}","lastTip":"Τελευταία σελίδα","nextTip":"Επόμενη σελίδα","pageSizeLabelTemplate":"${0} στοιχεία ανά σελίδα","dialogCancel":"Ακύρωση","itemTitle":"στοιχεία","dialogConfirm":"Μετάβαση","firstTip":"Πρώτη σελίδα","allItemsLabelTemplate":"Όλα τα στοιχεία","dialogIndication":"Καθορίστε τον αριθμό της σελίδας","dialogTitle":"Μετάβαση σε σελίδα"})
+({
+	"descTemplate": "${2} - ${3} από ${1} ${0}",
+	"firstTip": "Πρώτη σελίδα",
+	"lastTip": "Τελευταία σελίδα",
+	"nextTip": "Επόμενη σελίδα",
+	"prevTip": "Προηγούμενη σελίδα",
+	"itemTitle": "στοιχεία",
+	"pageStepLabelTemplate": "Σελίδα ${0}",
+	"pageSizeLabelTemplate": "${0} στοιχεία ανά σελίδα",
+	"allItemsLabelTemplate": "Όλα τα στοιχεία",
+	"gotoButtonTitle": "Μετάβαση σε συγκεκριμένη σελίδα",
+	"dialogTitle": "Μετάβαση σε σελίδα",
+	"dialogIndication": "Καθορίστε τον αριθμό της σελίδας",
+	"pageCountIndication": " (${0} σελίδες)",
+	"dialogConfirm": "Μετάβαση",
+	"dialogCancel": "Ακύρωση"
+})
+

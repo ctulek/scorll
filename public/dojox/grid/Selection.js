@@ -1,209 +1,260 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+dojo.provide('dojox.grid.Selection');
 
+dojo.declare("dojox.grid.Selection", null, {
+	// summary:
+	//		Manages row selection for grid. Owned by grid and used internally
+	//		for selection. Override to implement custom selection.
 
-if(!dojo._hasResource["dojox.grid.Selection"]){
-dojo._hasResource["dojox.grid.Selection"]=true;
-dojo.provide("dojox.grid.Selection");
-dojo.declare("dojox.grid.Selection",null,{constructor:function(_1){
-this.grid=_1;
-this.selected=[];
-this.setMode(_1.selectionMode);
-},mode:"extended",selected:null,updating:0,selectedIndex:-1,setMode:function(_2){
-if(this.selected.length){
-this.deselectAll();
-}
-if(_2!="extended"&&_2!="multiple"&&_2!="single"&&_2!="none"){
-this.mode="extended";
-}else{
-this.mode=_2;
-}
-},onCanSelect:function(_3){
-return this.grid.onCanSelect(_3);
-},onCanDeselect:function(_4){
-return this.grid.onCanDeselect(_4);
-},onSelected:function(_5){
-},onDeselected:function(_6){
-},onChanging:function(){
-},onChanged:function(){
-},isSelected:function(_7){
-if(this.mode=="none"){
-return false;
-}
-return this.selected[_7];
-},getFirstSelected:function(){
-if(!this.selected.length||this.mode=="none"){
-return -1;
-}
-for(var i=0,l=this.selected.length;i<l;i++){
-if(this.selected[i]){
-return i;
-}
-}
-return -1;
-},getNextSelected:function(_8){
-if(this.mode=="none"){
-return -1;
-}
-for(var i=_8+1,l=this.selected.length;i<l;i++){
-if(this.selected[i]){
-return i;
-}
-}
-return -1;
-},getSelected:function(){
-var _9=[];
-for(var i=0,l=this.selected.length;i<l;i++){
-if(this.selected[i]){
-_9.push(i);
-}
-}
-return _9;
-},getSelectedCount:function(){
-var c=0;
-for(var i=0;i<this.selected.length;i++){
-if(this.selected[i]){
-c++;
-}
-}
-return c;
-},_beginUpdate:function(){
-if(this.updating===0){
-this.onChanging();
-}
-this.updating++;
-},_endUpdate:function(){
-this.updating--;
-if(this.updating===0){
-this.onChanged();
-}
-},select:function(_a){
-if(this.mode=="none"){
-return;
-}
-if(this.mode!="multiple"){
-this.deselectAll(_a);
-this.addToSelection(_a);
-}else{
-this.toggleSelect(_a);
-}
-},addToSelection:function(_b){
-if(this.mode=="none"){
-return;
-}
-if(dojo.isArray(_b)){
-dojo.forEach(_b,this.addToSelection,this);
-return;
-}
-_b=Number(_b);
-if(this.selected[_b]){
-this.selectedIndex=_b;
-}else{
-if(this.onCanSelect(_b)!==false){
-this.selectedIndex=_b;
-var _c=this.grid.getRowNode(_b);
-if(_c){
-dojo.attr(_c,"aria-selected","true");
-}
-this._beginUpdate();
-this.selected[_b]=true;
-this.onSelected(_b);
-this._endUpdate();
-}
-}
-},deselect:function(_d){
-if(this.mode=="none"){
-return;
-}
-if(dojo.isArray(_d)){
-dojo.forEach(_d,this.deselect,this);
-return;
-}
-_d=Number(_d);
-if(this.selectedIndex==_d){
-this.selectedIndex=-1;
-}
-if(this.selected[_d]){
-if(this.onCanDeselect(_d)===false){
-return;
-}
-var _e=this.grid.getRowNode(_d);
-if(_e){
-dojo.attr(_e,"aria-selected","false");
-}
-this._beginUpdate();
-delete this.selected[_d];
-this.onDeselected(_d);
-this._endUpdate();
-}
-},setSelected:function(_f,_10){
-this[(_10?"addToSelection":"deselect")](_f);
-},toggleSelect:function(_11){
-if(dojo.isArray(_11)){
-dojo.forEach(_11,this.toggleSelect,this);
-return;
-}
-this.setSelected(_11,!this.selected[_11]);
-},_range:function(_12,_13,_14){
-var s=(_12>=0?_12:_13),e=_13;
-if(s>e){
-e=s;
-s=_13;
-}
-for(var i=s;i<=e;i++){
-_14(i);
-}
-},selectRange:function(_15,_16){
-this._range(_15,_16,dojo.hitch(this,"addToSelection"));
-},deselectRange:function(_17,_18){
-this._range(_17,_18,dojo.hitch(this,"deselect"));
-},insert:function(_19){
-this.selected.splice(_19,0,false);
-if(this.selectedIndex>=_19){
-this.selectedIndex++;
-}
-},remove:function(_1a){
-this.selected.splice(_1a,1);
-if(this.selectedIndex>=_1a){
-this.selectedIndex--;
-}
-},deselectAll:function(_1b){
-for(var i in this.selected){
-if((i!=_1b)&&(this.selected[i]===true)){
-this.deselect(i);
-}
-}
-},clickSelect:function(_1c,_1d,_1e){
-if(this.mode=="none"){
-return;
-}
-this._beginUpdate();
-if(this.mode!="extended"){
-this.select(_1c);
-}else{
-var _1f=this.selectedIndex;
-if(!_1d){
-this.deselectAll(_1c);
-}
-if(_1e){
-this.selectRange(_1f,_1c);
-}else{
-if(_1d){
-this.toggleSelect(_1c);
-}else{
-this.addToSelection(_1c);
-}
-}
-}
-this._endUpdate();
-},clickSelectEvent:function(e){
-this.clickSelect(e.rowIndex,dojo.isCopyKey(e),e.shiftKey);
-},clear:function(){
-this._beginUpdate();
-this.deselectAll();
-this._endUpdate();
-}});
-}
+	constructor: function(inGrid){
+		this.grid = inGrid;
+		this.selected = [];
+
+		this.setMode(inGrid.selectionMode);
+	},
+
+	mode: 'extended',
+
+	selected: null,
+	updating: 0,
+	selectedIndex: -1,
+
+	setMode: function(mode){
+		if(this.selected.length){
+			this.deselectAll();
+		}
+		if(mode != 'extended' && mode != 'multiple' && mode != 'single' && mode != 'none'){
+			this.mode = 'extended';
+		}else{
+			this.mode = mode;
+		}
+	},
+
+	onCanSelect: function(inIndex){
+		return this.grid.onCanSelect(inIndex);
+	},
+
+	onCanDeselect: function(inIndex){
+		return this.grid.onCanDeselect(inIndex);
+	},
+
+	onSelected: function(inIndex){
+	},
+
+	onDeselected: function(inIndex){
+	},
+
+	//onSetSelected: function(inIndex, inSelect) { };
+	onChanging: function(){
+	},
+
+	onChanged: function(){
+	},
+
+	isSelected: function(inIndex){
+		if(this.mode == 'none'){
+			return false;
+		}
+		return this.selected[inIndex];
+	},
+
+	getFirstSelected: function(){
+		if(!this.selected.length||this.mode == 'none'){ return -1; }
+		for(var i=0, l=this.selected.length; i<l; i++){
+			if(this.selected[i]){
+				return i;
+			}
+		}
+		return -1;
+	},
+
+	getNextSelected: function(inPrev){
+		if(this.mode == 'none'){ return -1; }
+		for(var i=inPrev+1, l=this.selected.length; i<l; i++){
+			if(this.selected[i]){
+				return i;
+			}
+		}
+		return -1;
+	},
+
+	getSelected: function(){
+		var result = [];
+		for(var i=0, l=this.selected.length; i<l; i++){
+			if(this.selected[i]){
+				result.push(i);
+			}
+		}
+		return result;
+	},
+
+	getSelectedCount: function(){
+		var c = 0;
+		for(var i=0; i<this.selected.length; i++){
+			if(this.selected[i]){
+				c++;
+			}
+		}
+		return c;
+	},
+
+	_beginUpdate: function(){
+		if(this.updating === 0){
+			this.onChanging();
+		}
+		this.updating++;
+	},
+
+	_endUpdate: function(){
+		this.updating--;
+		if(this.updating === 0){
+			this.onChanged();
+		}
+	},
+
+	select: function(inIndex){
+		if(this.mode == 'none'){ return; }
+		if(this.mode != 'multiple'){
+			this.deselectAll(inIndex);
+			this.addToSelection(inIndex);
+		}else{
+			this.toggleSelect(inIndex);
+		}
+	},
+
+	addToSelection: function(inIndex){
+		if(this.mode == 'none'){ return; }
+		if(dojo.isArray(inIndex)){
+			dojo.forEach(inIndex, this.addToSelection, this);
+			return;
+		}
+		inIndex = Number(inIndex);
+		if(this.selected[inIndex]){
+			this.selectedIndex = inIndex;
+		}else{
+			if(this.onCanSelect(inIndex) !== false){
+				this.selectedIndex = inIndex;
+				var rowNode = this.grid.getRowNode(inIndex);
+				if(rowNode){
+					dojo.attr(rowNode,"aria-selected","true");
+				}
+				this._beginUpdate();
+				this.selected[inIndex] = true;
+				//this.grid.onSelected(inIndex);
+				this.onSelected(inIndex);
+				//this.onSetSelected(inIndex, true);
+				this._endUpdate();
+			}
+		}
+	},
+
+	deselect: function(inIndex){
+		if(this.mode == 'none'){ return; }
+		if(dojo.isArray(inIndex)){
+			dojo.forEach(inIndex, this.deselect, this);
+			return;
+		}
+		inIndex = Number(inIndex);
+		if(this.selectedIndex == inIndex){
+			this.selectedIndex = -1;
+		}
+		if(this.selected[inIndex]){
+			if(this.onCanDeselect(inIndex) === false){
+				return;
+			}
+			var rowNode = this.grid.getRowNode(inIndex);
+			if(rowNode){
+				dojo.attr(rowNode,"aria-selected","false");
+			}
+			this._beginUpdate();
+			delete this.selected[inIndex];
+			//this.grid.onDeselected(inIndex);
+			this.onDeselected(inIndex);
+			//this.onSetSelected(inIndex, false);
+			this._endUpdate();
+		}
+	},
+
+	setSelected: function(inIndex, inSelect){
+		this[(inSelect ? 'addToSelection' : 'deselect')](inIndex);
+	},
+
+	toggleSelect: function(inIndex){
+		if(dojo.isArray(inIndex)){
+			dojo.forEach(inIndex, this.toggleSelect, this);
+			return;
+		}
+		this.setSelected(inIndex, !this.selected[inIndex]);
+	},
+
+	_range: function(inFrom, inTo, func){
+		var s = (inFrom >= 0 ? inFrom : inTo), e = inTo;
+		if(s > e){
+			e = s;
+			s = inTo;
+		}
+		for(var i=s; i<=e; i++){
+			func(i);
+		}
+	},
+
+	selectRange: function(inFrom, inTo){
+		this._range(inFrom, inTo, dojo.hitch(this, "addToSelection"));
+	},
+
+	deselectRange: function(inFrom, inTo){
+		this._range(inFrom, inTo, dojo.hitch(this, "deselect"));
+	},
+
+	insert: function(inIndex){
+		this.selected.splice(inIndex, 0, false);
+		if(this.selectedIndex >= inIndex){
+			this.selectedIndex++;
+		}
+	},
+
+	remove: function(inIndex){
+		this.selected.splice(inIndex, 1);
+		if(this.selectedIndex >= inIndex){
+			this.selectedIndex--;
+		}
+	},
+
+	deselectAll: function(inExcept){
+		for(var i in this.selected){
+			if((i!=inExcept)&&(this.selected[i]===true)){
+				this.deselect(i);
+			}
+		}
+	},
+
+	clickSelect: function(inIndex, inCtrlKey, inShiftKey){
+		if(this.mode == 'none'){ return; }
+		this._beginUpdate();
+		if(this.mode != 'extended'){
+			this.select(inIndex);
+		}else{
+			var lastSelected = this.selectedIndex;
+			if(!inCtrlKey){
+				this.deselectAll(inIndex);
+			}
+			if(inShiftKey){
+				this.selectRange(lastSelected, inIndex);
+			}else if(inCtrlKey){
+				this.toggleSelect(inIndex);
+			}else{
+				this.addToSelection(inIndex);
+			}
+		}
+		this._endUpdate();
+	},
+
+	clickSelectEvent: function(e){
+		this.clickSelect(e.rowIndex, dojo.isCopyKey(e), e.shiftKey);
+	},
+
+	clear: function(){
+		this._beginUpdate();
+		this.deselectAll();
+		this._endUpdate();
+	}
+});

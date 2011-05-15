@@ -1,550 +1,828 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojox/data/AppStore", ["dojo", "dojox", "dojo/data/util/simpleFetch", "dojo/data/util/filter", "dojox/atom/io/Connection"], function(dojo, dojox) {
 
-
-if(!dojo._hasResource["dojox.data.AppStore"]){
-dojo._hasResource["dojox.data.AppStore"]=true;
-dojo.provide("dojox.data.AppStore");
-dojo.require("dojo.data.util.simpleFetch");
-dojo.require("dojo.data.util.filter");
-dojo.require("dojox.atom.io.Connection");
 dojo.experimental("dojox.data.AppStore");
-dojo.declare("dojox.data.AppStore",null,{url:"",urlPreventCache:false,xmethod:false,_atomIO:null,_feed:null,_requests:null,_processing:null,_updates:null,_adds:null,_deletes:null,constructor:function(_1){
-if(_1&&_1.url){
-this.url=_1.url;
-}
-if(_1&&_1.urlPreventCache){
-this.urlPreventCache=_1.urlPreventCache;
-}
-if(!this.url){
-throw new Error("A URL is required to instantiate an APP Store object");
-}
-},_setFeed:function(_2,_3){
-this._feed=_2;
-var i;
-for(i=0;i<this._feed.entries.length;i++){
-this._feed.entries[i].store=this;
-}
-if(this._requests){
-for(i=0;i<this._requests.length;i++){
-var _4=this._requests[i];
-if(_4.request&&_4.fh&&_4.eh){
-this._finishFetchItems(_4.request,_4.fh,_4.eh);
-}else{
-if(_4.clear){
-this._feed=null;
-}else{
-if(_4.add){
-this._feed.addEntry(_4.add);
-}else{
-if(_4.remove){
-this._feed.removeEntry(_4.remove);
-}
-}
-}
-}
-}
-}
-this._requests=null;
-},_getAllItems:function(){
-var _5=[];
-for(var i=0;i<this._feed.entries.length;i++){
-_5.push(this._feed.entries[i]);
-}
-return _5;
-},_assertIsItem:function(_6){
-if(!this.isItem(_6)){
-throw new Error("This error message is provided when a function is called in the following form: "+"getAttribute(argument, attributeName).  The argument variable represents the member "+"or owner of the object. The error is created when an item that does not belong "+"to this store is specified as an argument.");
-}
-},_assertIsAttribute:function(_7){
-if(typeof _7!=="string"){
-throw new Error("The attribute argument must be a string. The error is created "+"when a different type of variable is specified such as an array or object.");
-}
-for(var _8 in dojox.atom.io.model._actions){
-if(_8==_7){
-return true;
-}
-}
-return false;
-},_addUpdate:function(_9){
-if(!this._updates){
-this._updates=[_9];
-}else{
-this._updates.push(_9);
-}
-},getValue:function(_a,_b,_c){
-var _d=this.getValues(_a,_b);
-return (_d.length>0)?_d[0]:_c;
-},getValues:function(_e,_f){
-this._assertIsItem(_e);
-var _10=this._assertIsAttribute(_f);
-if(_10){
-if((_f==="author"||_f==="contributor"||_f==="link")&&_e[_f+"s"]){
-return _e[_f+"s"];
-}
-if(_f==="category"&&_e.categories){
-return _e.categories;
-}
-if(_e[_f]){
-_e=_e[_f];
-if(_e.declaredClass=="dojox.atom.io.model.Content"){
-return [_e.value];
-}
-return [_e];
-}
-}
-return [];
-},getAttributes:function(_11){
-this._assertIsItem(_11);
-var _12=[];
-for(var key in dojox.atom.io.model._actions){
-if(this.hasAttribute(_11,key)){
-_12.push(key);
-}
-}
-return _12;
-},hasAttribute:function(_13,_14){
-return this.getValues(_13,_14).length>0;
-},containsValue:function(_15,_16,_17){
-var _18=undefined;
-if(typeof _17==="string"){
-_18=dojo.data.util.filter.patternToRegExp(_17,false);
-}
-return this._containsValue(_15,_16,_17,_18);
-},_containsValue:function(_19,_1a,_1b,_1c,_1d){
-var _1e=this.getValues(_19,_1a);
-for(var i=0;i<_1e.length;++i){
-var _1f=_1e[i];
-if(typeof _1f==="string"&&_1c){
-if(_1d){
-_1f=_1f.replace(new RegExp(/^\s+/),"");
-_1f=_1f.replace(new RegExp(/\s+$/),"");
-}
-_1f=_1f.replace(/\r|\n|\r\n/g,"");
-return (_1f.match(_1c)!==null);
-}else{
-if(_1b===_1f){
-return true;
-}
-}
-}
-return false;
-},isItem:function(_20){
-return _20&&_20.store&&_20.store===this;
-},isItemLoaded:function(_21){
-return this.isItem(_21);
-},loadItem:function(_22){
-this._assertIsItem(_22.item);
-},_fetchItems:function(_23,_24,_25){
-if(this._feed){
-this._finishFetchItems(_23,_24,_25);
-}else{
-var _26=false;
-if(!this._requests){
-this._requests=[];
-_26=true;
-}
-this._requests.push({request:_23,fh:_24,eh:_25});
-if(_26){
-this._atomIO=new dojox.atom.io.Connection(false,this.urlPreventCache);
-this._atomIO.getFeed(this.url,this._setFeed,null,this);
-}
-}
-},_finishFetchItems:function(_27,_28,_29){
-var _2a=null;
-var _2b=this._getAllItems();
-if(_27.query){
-var _2c=_27.queryOptions?_27.queryOptions.ignoreCase:false;
-_2a=[];
-var _2d={};
-var key;
-var _2e;
-for(key in _27.query){
-_2e=_27.query[key]+"";
-if(typeof _2e==="string"){
-_2d[key]=dojo.data.util.filter.patternToRegExp(_2e,_2c);
-}
-}
-for(var i=0;i<_2b.length;++i){
-var _2f=true;
-var _30=_2b[i];
-for(key in _27.query){
-_2e=_27.query[key]+"";
-if(!this._containsValue(_30,key,_2e,_2d[key],_27.trim)){
-_2f=false;
-}
-}
-if(_2f){
-_2a.push(_30);
-}
-}
-}else{
-if(_2b.length>0){
-_2a=_2b.slice(0,_2b.length);
-}
-}
-try{
-_28(_2a,_27);
-}
-catch(e){
-_29(e,_27);
-}
-},getFeatures:function(){
-return {"dojo.data.api.Read":true,"dojo.data.api.Write":true,"dojo.data.api.Identity":true};
-},close:function(_31){
-this._feed=null;
-},getLabel:function(_32){
-if(this.isItem(_32)){
-return this.getValue(_32,"title","No Title");
-}
-return undefined;
-},getLabelAttributes:function(_33){
-return ["title"];
-},getIdentity:function(_34){
-this._assertIsItem(_34);
-return this.getValue(_34,"id");
-},getIdentityAttributes:function(_35){
-return ["id"];
-},fetchItemByIdentity:function(_36){
-this._fetchItems({query:{id:_36.identity},onItem:_36.onItem,scope:_36.scope},function(_37,_38){
-var _39=_38.scope;
-if(!_39){
-_39=dojo.global;
-}
-if(_37.length<1){
-_38.onItem.call(_39,null);
-}else{
-_38.onItem.call(_39,_37[0]);
-}
-},_36.onError);
-},newItem:function(_3a){
-var _3b=new dojox.atom.io.model.Entry();
-var _3c=null;
-var _3d=null;
-var i;
-for(var key in _3a){
-if(this._assertIsAttribute(key)){
-_3c=_3a[key];
-switch(key){
-case "link":
-for(i in _3c){
-_3d=_3c[i];
-_3b.addLink(_3d.href,_3d.rel,_3d.hrefLang,_3d.title,_3d.type);
-}
-break;
-case "author":
-for(i in _3c){
-_3d=_3c[i];
-_3b.addAuthor(_3d.name,_3d.email,_3d.uri);
-}
-break;
-case "contributor":
-for(i in _3c){
-_3d=_3c[i];
-_3b.addContributor(_3d.name,_3d.email,_3d.uri);
-}
-break;
-case "category":
-for(i in _3c){
-_3d=_3c[i];
-_3b.addCategory(_3d.scheme,_3d.term,_3d.label);
-}
-break;
-case "icon":
-case "id":
-case "logo":
-case "xmlBase":
-case "rights":
-_3b[key]=_3c;
-break;
-case "updated":
-case "published":
-case "issued":
-case "modified":
-_3b[key]=dojox.atom.io.model.util.createDate(_3c);
-break;
-case "content":
-case "summary":
-case "title":
-case "subtitle":
-_3b[key]=new dojox.atom.io.model.Content(key);
-_3b[key].value=_3c;
-break;
-default:
-_3b[key]=_3c;
-break;
-}
-}
-}
-_3b.store=this;
-_3b.isDirty=true;
-if(!this._adds){
-this._adds=[_3b];
-}else{
-this._adds.push(_3b);
-}
-if(this._feed){
-this._feed.addEntry(_3b);
-}else{
-if(this._requests){
-this._requests.push({add:_3b});
-}else{
-this._requests=[{add:_3b}];
-this._atomIO=new dojox.atom.io.Connection(false,this.urlPreventCache);
-this._atomIO.getFeed(this.url,dojo.hitch(this,this._setFeed));
-}
-}
-return true;
-},deleteItem:function(_3e){
-this._assertIsItem(_3e);
-if(!this._deletes){
-this._deletes=[_3e];
-}else{
-this._deletes.push(_3e);
-}
-if(this._feed){
-this._feed.removeEntry(_3e);
-}else{
-if(this._requests){
-this._requests.push({remove:_3e});
-}else{
-this._requests=[{remove:_3e}];
-this._atomIO=new dojox.atom.io.Connection(false,this.urlPreventCache);
-this._atomIO.getFeed(this.url,dojo.hitch(this,this._setFeed));
-}
-}
-_3e=null;
-return true;
-},setValue:function(_3f,_40,_41){
-this._assertIsItem(_3f);
-var _42={item:_3f};
-if(this._assertIsAttribute(_40)){
-switch(_40){
-case "link":
-_42.links=_3f.links;
-this._addUpdate(_42);
-_3f.links=null;
-_3f.addLink(_41.href,_41.rel,_41.hrefLang,_41.title,_41.type);
-_3f.isDirty=true;
-return true;
-case "author":
-_42.authors=_3f.authors;
-this._addUpdate(_42);
-_3f.authors=null;
-_3f.addAuthor(_41.name,_41.email,_41.uri);
-_3f.isDirty=true;
-return true;
-case "contributor":
-_42.contributors=_3f.contributors;
-this._addUpdate(_42);
-_3f.contributors=null;
-_3f.addContributor(_41.name,_41.email,_41.uri);
-_3f.isDirty=true;
-return true;
-case "category":
-_42.categories=_3f.categories;
-this._addUpdate(_42);
-_3f.categories=null;
-_3f.addCategory(_41.scheme,_41.term,_41.label);
-_3f.isDirty=true;
-return true;
-case "icon":
-case "id":
-case "logo":
-case "xmlBase":
-case "rights":
-_42[_40]=_3f[_40];
-this._addUpdate(_42);
-_3f[_40]=_41;
-_3f.isDirty=true;
-return true;
-case "updated":
-case "published":
-case "issued":
-case "modified":
-_42[_40]=_3f[_40];
-this._addUpdate(_42);
-_3f[_40]=dojox.atom.io.model.util.createDate(_41);
-_3f.isDirty=true;
-return true;
-case "content":
-case "summary":
-case "title":
-case "subtitle":
-_42[_40]=_3f[_40];
-this._addUpdate(_42);
-_3f[_40]=new dojox.atom.io.model.Content(_40);
-_3f[_40].value=_41;
-_3f.isDirty=true;
-return true;
-default:
-_42[_40]=_3f[_40];
-this._addUpdate(_42);
-_3f[_40]=_41;
-_3f.isDirty=true;
-return true;
-}
-}
-return false;
-},setValues:function(_43,_44,_45){
-if(_45.length===0){
-return this.unsetAttribute(_43,_44);
-}
-this._assertIsItem(_43);
-var _46={item:_43};
-var _47;
-var i;
-if(this._assertIsAttribute(_44)){
-switch(_44){
-case "link":
-_46.links=_43.links;
-_43.links=null;
-for(i in _45){
-_47=_45[i];
-_43.addLink(_47.href,_47.rel,_47.hrefLang,_47.title,_47.type);
-}
-_43.isDirty=true;
-return true;
-case "author":
-_46.authors=_43.authors;
-_43.authors=null;
-for(i in _45){
-_47=_45[i];
-_43.addAuthor(_47.name,_47.email,_47.uri);
-}
-_43.isDirty=true;
-return true;
-case "contributor":
-_46.contributors=_43.contributors;
-_43.contributors=null;
-for(i in _45){
-_47=_45[i];
-_43.addContributor(_47.name,_47.email,_47.uri);
-}
-_43.isDirty=true;
-return true;
-case "categories":
-_46.categories=_43.categories;
-_43.categories=null;
-for(i in _45){
-_47=_45[i];
-_43.addCategory(_47.scheme,_47.term,_47.label);
-}
-_43.isDirty=true;
-return true;
-case "icon":
-case "id":
-case "logo":
-case "xmlBase":
-case "rights":
-_46[_44]=_43[_44];
-_43[_44]=_45[0];
-_43.isDirty=true;
-return true;
-case "updated":
-case "published":
-case "issued":
-case "modified":
-_46[_44]=_43[_44];
-_43[_44]=dojox.atom.io.model.util.createDate(_45[0]);
-_43.isDirty=true;
-return true;
-case "content":
-case "summary":
-case "title":
-case "subtitle":
-_46[_44]=_43[_44];
-_43[_44]=new dojox.atom.io.model.Content(_44);
-_43[_44].values[0]=_45[0];
-_43.isDirty=true;
-return true;
-default:
-_46[_44]=_43[_44];
-_43[_44]=_45[0];
-_43.isDirty=true;
-return true;
-}
-}
-this._addUpdate(_46);
-return false;
-},unsetAttribute:function(_48,_49){
-this._assertIsItem(_48);
-if(this._assertIsAttribute(_49)){
-if(_48[_49]!==null){
-var _4a={item:_48};
-switch(_49){
-case "author":
-case "contributor":
-case "link":
-_4a[_49+"s"]=_48[_49+"s"];
-break;
-case "category":
-_4a.categories=_48.categories;
-break;
-default:
-_4a[_49]=_48[_49];
-break;
-}
-_48.isDirty=true;
-_48[_49]=null;
-this._addUpdate(_4a);
-return true;
-}
-}
-return false;
-},save:function(_4b){
-var i;
-for(i in this._adds){
-this._atomIO.addEntry(this._adds[i],null,function(){
-},_4b.onError,false,_4b.scope);
-}
-this._adds=null;
-for(i in this._updates){
-this._atomIO.updateEntry(this._updates[i].item,function(){
-},_4b.onError,false,this.xmethod,_4b.scope);
-}
-this._updates=null;
-for(i in this._deletes){
-this._atomIO.removeEntry(this._deletes[i],function(){
-},_4b.onError,this.xmethod,_4b.scope);
-}
-this._deletes=null;
-this._atomIO.getFeed(this.url,dojo.hitch(this,this._setFeed));
-if(_4b.onComplete){
-var _4c=_4b.scope||dojo.global;
-_4b.onComplete.call(_4c);
-}
-},revert:function(){
-var i;
-for(i in this._adds){
-this._feed.removeEntry(this._adds[i]);
-}
-this._adds=null;
-var _4d,_4e,key;
-for(i in this._updates){
-_4d=this._updates[i];
-_4e=_4d.item;
-for(key in _4d){
-if(key!=="item"){
-_4e[key]=_4d[key];
-}
-}
-}
-this._updates=null;
-for(i in this._deletes){
-this._feed.addEntry(this._deletes[i]);
-}
-this._deletes=null;
-return true;
-},isDirty:function(_4f){
-if(_4f){
-this._assertIsItem(_4f);
-return _4f.isDirty?true:false;
-}
-return (this._adds!==null||this._updates!==null);
-}});
+
+dojo.declare("dojox.data.AppStore",
+	null,{
+
+	// url: [public] string
+	//		So the parser can instantiate the store via markup.
+	url: "",
+	
+	// urlPreventCache: [public] boolean
+	//		Whether or not to pass the preventCache parameter to the connection
+	urlPreventCache: false,
+
+	// xmethod: [public] boolean
+	//		Whether to use X-Method-Override for PUT/DELETE.
+	xmethod: false,
+	
+	_atomIO: null,
+	_feed: null,
+	_requests: null,
+	_processing: null,
+	
+	_updates: null,
+	_adds: null,
+	_deletes: null,
+	
+	constructor: function(/*Object*/args){
+		// summary:
+		//		The APP data store.
+		// description:
+		//		The APP Store is instantiated either in markup or programmatically by supplying a
+		//		url of the Collection to be used.
+		//
+		// args:
+		//		An anonymous object to initialize properties.  It expects the following values:
+		//		url:		The url of the Collection to load.
+		//		urlPreventCache:	Whether or not to append on cache prevention params (as defined by dojo.xhr*)
+		
+		if(args && args.url){
+			this.url = args.url;
+		}
+		if(args && args.urlPreventCache){
+			this.urlPreventCache = args.urlPreventCache;
+		}
+		if(!this.url){
+			throw new Error("A URL is required to instantiate an APP Store object");
+		}
+	},
+	
+	_setFeed: function(feed, data){
+		// summary:
+		//		Sets the internal feed using a dojox.atom.io.model.Feed object.
+		// description:
+		//		Sets the internal feed using a dojox.atom.io.model.Feed object.  Also adds
+		//		a property to the entries to track that they belong to this store. It
+		//		also parses stored requests (since we were waiting on a callback) and
+		//		executes those as well.
+		//
+		// feed: dojox.atom.io.model.Feed object
+		//		The Feed to use for this data store.
+		// data: unused
+		//		Signature for this function is defined by AtomIO.getFeed, since this is a callback.
+		this._feed = feed;
+		var i;
+		for(i=0; i<this._feed.entries.length; i++){
+			this._feed.entries[i].store = this;
+		}
+		if(this._requests){
+			for(i=0; i<this._requests.length; i++){
+				var request = this._requests[i];
+				if(request.request && request.fh && request.eh){
+					this._finishFetchItems(request.request, request.fh, request.eh);
+				}else if(request.clear){
+					this._feed = null;
+				}else if(request.add){
+					this._feed.addEntry(request.add);
+				}else if(request.remove){
+					this._feed.removeEntry(request.remove);
+				}
+			}
+		}
+		this._requests = null;
+	},
+	
+	_getAllItems: function(){
+		// summary:
+		//		Function to return all entries in the Feed as an array of items.
+		// description:
+		//		Function to return all entries in the Feed as an array of items.
+		//
+		// returns:
+		//		Array of all entries in the feed.
+		var items = [];
+		for(var i=0; i<this._feed.entries.length; i++){
+			items.push(this._feed.entries[i]);
+		}
+		return items; //array
+	},
+	
+	_assertIsItem: function(/* item */ item){
+		// summary:
+		//		This function tests whether the item is an item.
+		// description:
+		//		This function tests whether the item passed in is indeed an item
+		//		in the store.
+		//
+		// item:
+		//		The item to test for being contained by the store.
+		if(!this.isItem(item)){
+			throw new Error("This error message is provided when a function is called in the following form: "
+				+ "getAttribute(argument, attributeName).  The argument variable represents the member "
+				+ "or owner of the object. The error is created when an item that does not belong "
+				+ "to this store is specified as an argument.");
+		}
+	},
+
+	_assertIsAttribute: function(/* String */ attribute){
+		// summary:
+		//		This function tests whether the item is an attribute.
+		// description:
+		//		This function tests whether the item passed in is indeed a valid
+		//		'attribute' like type for the store.
+		// attribute:
+		//		The attribute to test for being contained by the store.
+		//
+		// returns:
+		//		Returns a boolean indicating whether this is a valid attribute.
+		if(typeof attribute !== "string"){
+			throw new Error("The attribute argument must be a string. The error is created "
+			+ "when a different type of variable is specified such as an array or object.");
+		}
+
+		for(var key in dojox.atom.io.model._actions){
+			if(key == attribute){
+				return true;
+			}
+		}
+		return false;
+	},
+	
+	_addUpdate: function(/* Object */ update){
+		// summary:
+		//		Internal function to add an updated entry to our updates array
+		// description:
+		//		Internal function to add an updated entry to our updates array
+		//
+		// update: dojox.atom.io.model.Entry object
+		//		The updated Entry we've changed.
+		if(!this._updates){
+			this._updates = [update];
+		}else{
+			this._updates.push(update);
+		}
+	},
+
+/***************************************
+     dojo.data.api.Read API
+***************************************/
+	
+	getValue: function(	/* item */ item,
+						/* attribute-name-string */ attribute,
+						/* value? */ defaultValue){
+		// summary:
+		//      See dojo.data.api.Read.getValue()
+		var values = this.getValues(item, attribute);
+		return (values.length > 0)?values[0]:defaultValue; //Object || int || Boolean
+	},
+
+	getValues: function(/* item */ item,
+						/* attribute-name-string */ attribute){
+		// summary:
+		//		See dojo.data.api.Read.getValues()
+
+		this._assertIsItem(item);
+		var flag = this._assertIsAttribute(attribute);
+
+		if(flag){
+			if((attribute === "author" || attribute === "contributor" || attribute === "link") && item[attribute+"s"]){
+				return item[attribute+"s"];
+			}
+			if(attribute === "category" && item.categories){
+				return item.categories;
+			}
+			if(item[attribute]){
+				item = item[attribute];
+				if(item.declaredClass == "dojox.atom.io.model.Content"){
+					return [item.value];
+				}
+				return [item] ;
+			}
+		}
+		return []; //Array
+	},
+
+	getAttributes: function(/* item */ item){
+		// summary:
+		//		See dojo.data.api.Read.getAttributes()
+		this._assertIsItem(item);
+		var attributes = [];
+		for(var key in dojox.atom.io.model._actions){
+			if(this.hasAttribute(item, key)){
+				attributes.push(key);
+			}
+		}
+		return attributes; //Array
+	},
+
+	hasAttribute: function(	/* item */ item,
+							/* attribute-name-string */ attribute){
+		// summary:
+		//		See dojo.data.api.Read.hasAttribute()
+		return this.getValues(item, attribute).length > 0;
+	},
+
+	containsValue: function(/* item */ item,
+							/* attribute-name-string */ attribute,
+							/* anything */ value){
+		// summary:
+		//		See dojo.data.api.Read.containsValue()
+		var regexp = undefined;
+		if(typeof value === "string"){
+			regexp = dojo.data.util.filter.patternToRegExp(value, false);
+		}
+		return this._containsValue(item, attribute, value, regexp); //boolean.
+	},
+
+	_containsValue: function(	/* item */ item,
+								/* attribute-name-string */ attribute,
+								/* anything */ value,
+								/* RegExp?*/ regexp,
+								/* Boolean?*/ trim){
+		// summary:
+		//		Internal function for looking at the values contained by the item.
+		// description:
+		//		Internal function for looking at the values contained by the item.  This
+		//		function allows for denoting if the comparison should be case sensitive for
+		//		strings or not (for handling filtering cases where string case should not matter)
+		//
+		// item:
+		//		The data item to examine for attribute values.
+		// attribute:
+		//		The attribute to inspect.
+		// value:
+		//		The value to match.
+		// regexp:
+		//		Optional regular expression generated off value if value was of string type to handle wildcarding.
+		//		If present and attribute values are string, then it can be used for comparison instead of 'value'
+		var values = this.getValues(item, attribute);
+		for(var i = 0; i < values.length; ++i){
+			var possibleValue = values[i];
+			if(typeof possibleValue === "string" && regexp){
+				if(trim){
+					possibleValue = possibleValue.replace(new RegExp(/^\s+/),""); // START
+					possibleValue = possibleValue.replace(new RegExp(/\s+$/),""); // END
+				}
+				possibleValue = possibleValue.replace(/\r|\n|\r\n/g, "");
+				return (possibleValue.match(regexp) !== null);
+			}else{
+				//Non-string matching.
+				if(value === possibleValue){
+					return true; // Boolean
+				}
+			}
+		}
+		return false; // Boolean
+	},
+
+	isItem: function(/* anything */ something){
+		// summary:
+		//		See dojo.data.api.Read.isItem()
+		return something && something.store && something.store === this; //boolean
+	},
+
+	isItemLoaded: function(/* anything */ something){
+		// summary:
+		//		See dojo.data.api.Read.isItemLoaded()
+		return this.isItem(something);
+	},
+
+	loadItem: function(/* Object */ keywordArgs){
+		// summary:
+		//		See dojo.data.api.Read.loadItem()
+		this._assertIsItem(keywordArgs.item);
+	},
+	
+	_fetchItems: function(request, fetchHandler, errorHandler){
+		// summary:
+		//		Fetch items (Atom entries) that match to a query
+		// description:
+		//		Fetch items (Atom entries) that match to a query
+		// request:
+		//		A request object
+		// fetchHandler:
+		//		A function to call for fetched items
+		// errorHandler:
+		//		A function to call on error
+		if(this._feed){
+			this._finishFetchItems(request, fetchHandler, errorHandler);
+		}else{
+			var flag = false;
+			if(!this._requests){
+				this._requests = [];
+				flag = true;
+			}
+			this._requests.push({request: request, fh: fetchHandler, eh: errorHandler});
+			if(flag){
+				this._atomIO = new dojox.atom.io.Connection(false, this.urlPreventCache);
+				this._atomIO.getFeed(this.url,this._setFeed, null, this);
+			}
+		}
+	},
+		
+	_finishFetchItems: function(request, fetchHandler, errorHandler){
+		// summary:
+		//		Internal function for finishing a fetch request.
+		// description:
+		//		Internal function for finishing a fetch request.  Needed since the feed
+		//		might not have been loaded, so we finish the fetch in a callback.
+		//
+		// request:
+		//		A request object
+		// fetchHandler:
+		//		A function to call for fetched items
+		// errorHandler:
+		//		A function to call on error
+		var items = null;
+		var arrayOfAllItems = this._getAllItems();
+		if(request.query){
+			var ignoreCase = request.queryOptions ? request.queryOptions.ignoreCase : false;
+			items = [];
+
+			//See if there are any string values that can be regexp parsed first to avoid multiple regexp gens on the
+			//same value for each item examined.  Much more efficient.
+			var regexpList = {};
+			var key;
+			var value;
+			for(key in request.query){
+				value = request.query[key]+'';
+				if(typeof value === "string"){
+					regexpList[key] = dojo.data.util.filter.patternToRegExp(value, ignoreCase);
+				}
+			}
+
+			for(var i = 0; i < arrayOfAllItems.length; ++i){
+				var match = true;
+				var candidateItem = arrayOfAllItems[i];
+				for(key in request.query){
+					value = request.query[key]+'';
+					if(!this._containsValue(candidateItem, key, value, regexpList[key], request.trim)){
+						match = false;
+					}
+				}
+				if(match){
+					items.push(candidateItem);
+				}
+			}
+		}else{
+			// We want a copy to pass back in case the parent wishes to sort the array.  We shouldn't allow resort
+			// of the internal list so that multiple callers can get listsand sort without affecting each other.
+			if(arrayOfAllItems.length> 0){
+				items = arrayOfAllItems.slice(0,arrayOfAllItems.length);
+			}
+		}
+		try{
+			fetchHandler(items, request);
+		}catch(e){
+			errorHandler(e, request);
+		}
+	},
+
+	getFeatures: function(){
+		// summary:
+		//		See dojo.data.api.Read.getFeatures()
+		return {
+			'dojo.data.api.Read': true,
+			'dojo.data.api.Write': true,
+			'dojo.data.api.Identity': true
+		};
+	},
+	
+	close: function(/*dojo.data.api.Request || keywordArgs || null */ request){
+		// summary:
+		//		See dojo.data.api.Read.close()
+		// nothing to do here!
+		this._feed = null;
+	},
+
+	getLabel: function(/* item */ item){
+		// summary:
+		//		See dojo.data.api.Read.getLabel()
+		if(this.isItem(item)){
+			return this.getValue(item, "title", "No Title");
+		}
+		return undefined;
+	},
+
+	getLabelAttributes: function(/* item */ item){
+		// summary:
+		//		See dojo.data.api.Read.getLabelAttributes()
+		return ["title"];
+	},
+
+/***************************************
+     dojo.data.api.Identity API
+***************************************/
+
+	getIdentity: function(/* item */ item){
+		// summary:
+		//		See dojo.data.api.Identity.getIdentity()
+		this._assertIsItem(item);
+		return this.getValue(item, "id");
+	},
+
+	getIdentityAttributes: function(/* item */ item){
+		 //	summary:
+		 //		See dojo.data.api.Identity.getIdentityAttributes()
+		 return ["id"];
+	},
+
+	fetchItemByIdentity: function(keywordArgs){
+		// summary:
+		//		See dojo.data.api.Identity.fetchItemByIdentity()
+
+		this._fetchItems({query:{id:keywordArgs.identity}, onItem: keywordArgs.onItem, scope: keywordArgs.scope},
+			function(items, request){
+				var scope = request.scope;
+				if(!scope){
+					scope = dojo.global;
+				}
+				if(items.length < 1){
+					request.onItem.call(scope, null);
+				}else{
+					request.onItem.call(scope, items[0]);
+				}
+		}, keywordArgs.onError);
+	},
+
+/***************************************
+     dojo.data.api.Identity API
+***************************************/
+
+	newItem: function(/* Object? */ keywordArgs){
+		// summary:
+		//		See dojo.data.api.Write.newItem()
+		var entry = new dojox.atom.io.model.Entry();
+		var value = null;
+		var temp = null;
+		var i;
+		for(var key in keywordArgs){
+			if(this._assertIsAttribute(key)){
+				value = keywordArgs[key];
+				switch(key){
+					case "link":
+						for(i in value){
+							temp = value[i];
+							entry.addLink(temp.href,temp.rel,temp.hrefLang,temp.title,temp.type);
+						}
+						break;
+					case "author":
+						for(i in value){
+							temp = value[i];
+							entry.addAuthor(temp.name, temp.email, temp.uri);
+						}
+						break;
+					case "contributor":
+						for(i in value){
+							temp = value[i];
+							entry.addContributor(temp.name, temp.email, temp.uri);
+						}
+						break;
+					case "category":
+						for(i in value){
+							temp = value[i];
+							entry.addCategory(temp.scheme, temp.term, temp.label);
+						}
+						break;
+					case "icon":
+					case "id":
+					case "logo":
+					case "xmlBase":
+					case "rights":
+						entry[key] = value;
+						break;
+					case "updated":
+					case "published":
+					case "issued":
+					case "modified":
+						entry[key] = dojox.atom.io.model.util.createDate(value);
+						break;
+					case "content":
+					case "summary":
+					case "title":
+					case "subtitle":
+						entry[key] = new dojox.atom.io.model.Content(key);
+						entry[key].value = value;
+						break;
+					default:
+						entry[key] = value;
+						break;
+				}
+			}
+		}
+		entry.store = this;
+		entry.isDirty = true;
+
+		if(!this._adds){
+			this._adds = [entry];
+		}else{
+			this._adds.push(entry);
+		}
+
+		if(this._feed){
+			this._feed.addEntry(entry);
+		}else{
+			if(this._requests){
+				this._requests.push({add:entry});
+			}else{
+				this._requests = [{add:entry}];
+				this._atomIO = new dojox.atom.io.Connection(false, this.urlPreventCache);
+				this._atomIO.getFeed(this.url,dojo.hitch(this,this._setFeed));
+			}
+		}
+		return true;
+	},
+
+	deleteItem: function(/* item */ item){
+		// summary:
+		//		See dojo.data.api.Write.deleteItem()
+		this._assertIsItem(item);
+
+		if(!this._deletes){
+			this._deletes = [item];
+		}else{
+			this._deletes.push(item);
+		}
+
+		if(this._feed){
+			this._feed.removeEntry(item);
+		}else{
+			if(this._requests){
+				this._requests.push({remove:item});
+			}else{
+				this._requests = [{remove:item}];
+				this._atomIO = new dojox.atom.io.Connection(false, this.urlPreventCache);
+				this._atomIO.getFeed(this.url,dojo.hitch(this,this._setFeed));
+			}
+		}
+		item = null;
+		return true;
+	},
+
+	setValue: function(	/* item */ item,
+						/* string */ attribute,
+						/* almost anything */ value){
+		// summary:
+		//		See dojo.data.api.Write.setValue()
+		this._assertIsItem(item);
+		
+		var update = {item: item};
+		if(this._assertIsAttribute(attribute)){
+			switch(attribute){
+				case "link":
+					update.links = item.links;
+					this._addUpdate(update);
+					item.links = null;
+					item.addLink(value.href,value.rel,value.hrefLang,value.title,value.type);
+					item.isDirty = true;
+					return true;
+				case "author":
+					update.authors = item.authors;
+					this._addUpdate(update);
+					item.authors = null;
+					item.addAuthor(value.name, value.email, value.uri);
+					item.isDirty = true;
+					return true;
+				case "contributor":
+					update.contributors = item.contributors;
+					this._addUpdate(update);
+					item.contributors = null;
+					item.addContributor(value.name, value.email, value.uri);
+					item.isDirty = true;
+					return true;
+				case "category":
+					update.categories = item.categories;
+					this._addUpdate(update);
+					item.categories = null;
+					item.addCategory(value.scheme, value.term, value.label);
+					item.isDirty = true;
+					return true;
+				case "icon":
+				case "id":
+				case "logo":
+				case "xmlBase":
+				case "rights":
+					update[attribute] = item[attribute];
+					this._addUpdate(update);
+					item[attribute] = value;
+					item.isDirty = true;
+					return true;
+				case "updated":
+				case "published":
+				case "issued":
+				case "modified":
+					update[attribute] = item[attribute];
+					this._addUpdate(update);
+					item[attribute] = dojox.atom.io.model.util.createDate(value);
+					item.isDirty = true;
+					return true;
+				case "content":
+				case "summary":
+				case "title":
+				case "subtitle":
+					update[attribute] = item[attribute];
+					this._addUpdate(update);
+					item[attribute] = new dojox.atom.io.model.Content(attribute);
+					item[attribute].value = value;
+					item.isDirty = true;
+					return true;
+				default:
+					update[attribute] = item[attribute];
+					this._addUpdate(update);
+					item[attribute] = value;
+					item.isDirty = true;
+					return true;
+			}
+		}
+		return false;
+	},
+
+	setValues: function(/* item */ item,
+						/* string */ attribute,
+						/* array */ values){
+		// summary:
+		//		See dojo.data.api.Write.setValues()
+		if(values.length === 0){
+			return this.unsetAttribute(item, attribute);
+		}
+		this._assertIsItem(item);
+		
+		var update = {item: item};
+		var value;
+		var i;
+		if(this._assertIsAttribute(attribute)){
+			switch(attribute){
+				case "link":
+					update.links = item.links;
+					item.links = null;
+					for(i in values){
+						value = values[i];
+						item.addLink(value.href,value.rel,value.hrefLang,value.title,value.type);
+					}
+					item.isDirty = true;
+					return true;
+				case "author":
+					update.authors = item.authors;
+					item.authors = null;
+					for(i in values){
+						value = values[i];
+						item.addAuthor(value.name, value.email, value.uri);
+					}
+					item.isDirty = true;
+					return true;
+				case "contributor":
+					update.contributors = item.contributors;
+					item.contributors = null;
+					for(i in values){
+						value = values[i];
+						item.addContributor(value.name, value.email, value.uri);
+					}
+					item.isDirty = true;
+					return true;
+				case "categories":
+					update.categories = item.categories;
+					item.categories = null;
+					for(i in values){
+						value = values[i];
+						item.addCategory(value.scheme, value.term, value.label);
+					}
+					item.isDirty = true;
+					return true;
+				case "icon":
+				case "id":
+				case "logo":
+				case "xmlBase":
+				case "rights":
+					update[attribute] = item[attribute];
+					item[attribute] = values[0];
+					item.isDirty = true;
+					return true;
+				case "updated":
+				case "published":
+				case "issued":
+				case "modified":
+					update[attribute] = item[attribute];
+					item[attribute] = dojox.atom.io.model.util.createDate(values[0]);
+					item.isDirty = true;
+					return true;
+				case "content":
+				case "summary":
+				case "title":
+				case "subtitle":
+					update[attribute] = item[attribute];
+					item[attribute] = new dojox.atom.io.model.Content(attribute);
+					item[attribute].values[0] = values[0];
+					item.isDirty = true;
+					return true;
+				default:
+					update[attribute] = item[attribute];
+					item[attribute] = values[0];
+					item.isDirty = true;
+					return true;
+			}
+		}
+		this._addUpdate(update);
+		return false;
+	},
+
+	unsetAttribute: function(	/* item */ item,
+								/* string */ attribute){
+		// summary:
+		//		See dojo.data.api.Write.unsetAttribute()
+		this._assertIsItem(item);
+		if(this._assertIsAttribute(attribute)){
+			if(item[attribute] !== null){
+				var update = {item: item};
+				switch(attribute){
+					case "author":
+					case "contributor":
+					case "link":
+						update[attribute+"s"] = item[attribute+"s"];
+						break;
+					case "category":
+						update.categories = item.categories;
+						break;
+					default:
+						update[attribute] = item[attribute];
+						break;
+				}
+				item.isDirty = true;
+				item[attribute] = null;
+				this._addUpdate(update);
+				return true;
+			}
+		}
+		return false; // boolean
+	},
+
+	save: function(/* object */ keywordArgs){
+		// summary:
+		//		See dojo.data.api.Write.save()
+		// keywordArgs:
+		//		{
+		//			onComplete: function
+		//			onError: function
+		//			scope: object
+		//		}
+		var i;
+		for(i in this._adds){
+			this._atomIO.addEntry(this._adds[i], null, function(){}, keywordArgs.onError, false, keywordArgs.scope);
+		}
+			
+		this._adds = null;
+		
+		for(i in this._updates){
+			this._atomIO.updateEntry(this._updates[i].item, function(){}, keywordArgs.onError, false, this.xmethod, keywordArgs.scope);
+		}
+			
+		this._updates = null;
+		
+		for(i in this._deletes){
+			this._atomIO.removeEntry(this._deletes[i], function(){}, keywordArgs.onError, this.xmethod, keywordArgs.scope);
+		}
+			
+		this._deletes = null;
+		
+		this._atomIO.getFeed(this.url,dojo.hitch(this,this._setFeed));
+		
+		if(keywordArgs.onComplete){
+			var scope = keywordArgs.scope || dojo.global;
+			keywordArgs.onComplete.call(scope);
+		}
+	},
+
+	revert: function(){
+		// summary:
+		//		See dojo.data.api.Write.revert()
+		var i;
+		for(i in this._adds){
+			this._feed.removeEntry(this._adds[i]);
+		}
+			
+		this._adds = null;
+		
+		var update, item, key;
+		for(i in this._updates){
+			update = this._updates[i];
+			item = update.item;
+			for(key in update){
+				if(key !== "item"){
+					item[key] = update[key];
+				}
+			}
+		}
+		this._updates = null;
+		
+		for(i in this._deletes){
+			this._feed.addEntry(this._deletes[i]);
+		}
+		this._deletes = null;
+		return true;
+	},
+
+	isDirty: function(/* item? */ item){
+		// summary:
+		//		See dojo.data.api.Write.isDirty()
+		if(item){
+			this._assertIsItem(item);
+			return item.isDirty?true:false; //boolean
+		}
+		return (this._adds !== null || this._updates !== null); //boolean
+	}
+});
 dojo.extend(dojox.data.AppStore,dojo.data.util.simpleFetch);
-}
+
+return dojox.data.AppStore;
+});

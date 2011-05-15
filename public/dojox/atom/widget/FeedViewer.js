@@ -1,410 +1,798 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.atom.widget.FeedViewer"]){
-dojo._hasResource["dojox.atom.widget.FeedViewer"]=true;
 dojo.provide("dojox.atom.widget.FeedViewer");
+
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
 dojo.require("dijit._Container");
 dojo.require("dojox.atom.io.Connection");
-dojo.requireLocalization("dojox.atom.widget","FeedViewerEntry",null,"ROOT,ar,ca,cs,da,de,el,es,fi,fr,he,hu,it,ja,kk,ko,nb,nl,pl,pt,pt-pt,ro,ru,sk,sl,sv,th,tr,zh,zh-tw");
+dojo.requireLocalization("dojox.atom.widget", "FeedViewerEntry");
+
 dojo.experimental("dojox.atom.widget.FeedViewer");
-dojo.declare("dojox.atom.widget.FeedViewer",[dijit._Widget,dijit._Templated,dijit._Container],{feedViewerTableBody:null,feedViewerTable:null,entrySelectionTopic:"",url:"",xmethod:false,localSaveOnly:false,templateString:dojo.cache("dojox.atom","widget/templates/FeedViewer.html","<div class=\"feedViewerContainer\" dojoAttachPoint=\"feedViewerContainerNode\">\n\t<table cellspacing=\"0\" cellpadding=\"0\" class=\"feedViewerTable\">\n\t\t<tbody dojoAttachPoint=\"feedViewerTableBody\" class=\"feedViewerTableBody\">\n\t\t</tbody>\n\t</table>\n</div>\n"),_feed:null,_currentSelection:null,_includeFilters:null,alertsEnabled:false,postCreate:function(){
-this._includeFilters=[];
-if(this.entrySelectionTopic!==""){
-this._subscriptions=[dojo.subscribe(this.entrySelectionTopic,this,"_handleEvent")];
-}
-this.atomIO=new dojox.atom.io.Connection();
-this.childWidgets=[];
-},startup:function(){
-this.containerNode=this.feedViewerTableBody;
-var _1=this.getDescendants();
-for(var i in _1){
-var _2=_1[i];
-if(_2&&_2.isFilter){
-this._includeFilters.push(new dojox.atom.widget.FeedViewer.CategoryIncludeFilter(_2.scheme,_2.term,_2.label));
-_2.destroy();
-}
-}
-if(this.url!==""){
-this.setFeedFromUrl(this.url);
-}
-},clear:function(){
-this.destroyDescendants();
-},setFeedFromUrl:function(_3){
-if(_3!==""){
-if(this._isRelativeURL(_3)){
-var _4="";
-if(_3.charAt(0)!=="/"){
-_4=this._calculateBaseURL(window.location.href,true);
-}else{
-_4=this._calculateBaseURL(window.location.href,false);
-}
-this.url=_4+_3;
-}
-this.atomIO.getFeed(_3,dojo.hitch(this,this.setFeed));
-}
-},setFeed:function(_5){
-this._feed=_5;
-this.clear();
-var _6=function(a,b){
-var _7=this._displayDateForEntry(a);
-var _8=this._displayDateForEntry(b);
-if(_7>_8){
-return -1;
-}
-if(_7<_8){
-return 1;
-}
-return 0;
-};
-var _9=function(_a){
-var _b=_a.split(",");
-_b.pop();
-return _b.join(",");
-};
-var _c=_5.entries.sort(dojo.hitch(this,_6));
-if(_5){
-var _d=null;
-for(var i=0;i<_c.length;i++){
-var _e=_c[i];
-if(this._isFilterAccepted(_e)){
-var _f=this._displayDateForEntry(_e);
-var _10="";
-if(_f!==null){
-_10=_9(_f.toLocaleString());
-if(_10===""){
-_10=""+(_f.getMonth()+1)+"/"+_f.getDate()+"/"+_f.getFullYear();
-}
-}
-if((_d===null)||(_d!=_10)){
-this.appendGrouping(_10);
-_d=_10;
-}
-this.appendEntry(_e);
-}
-}
-}
-},_displayDateForEntry:function(_11){
-if(_11.updated){
-return _11.updated;
-}
-if(_11.modified){
-return _11.modified;
-}
-if(_11.issued){
-return _11.issued;
-}
-return new Date();
-},appendGrouping:function(_12){
-var _13=new dojox.atom.widget.FeedViewerGrouping({});
-_13.setText(_12);
-this.addChild(_13);
-this.childWidgets.push(_13);
-},appendEntry:function(_14){
-var _15=new dojox.atom.widget.FeedViewerEntry({"xmethod":this.xmethod});
-_15.setTitle(_14.title.value);
-_15.setTime(this._displayDateForEntry(_14).toLocaleTimeString());
-_15.entrySelectionTopic=this.entrySelectionTopic;
-_15.feed=this;
-this.addChild(_15);
-this.childWidgets.push(_15);
-this.connect(_15,"onClick","_rowSelected");
-_14.domNode=_15.entryNode;
-_14._entryWidget=_15;
-_15.entry=_14;
-},deleteEntry:function(_16){
-if(!this.localSaveOnly){
-this.atomIO.deleteEntry(_16.entry,dojo.hitch(this,this._removeEntry,_16),null,this.xmethod);
-}else{
-this._removeEntry(_16,true);
-}
-dojo.publish(this.entrySelectionTopic,[{action:"delete",source:this,entry:_16.entry}]);
-},_removeEntry:function(_17,_18){
-if(_18){
-var idx=dojo.indexOf(this.childWidgets,_17);
-var _19=this.childWidgets[idx-1];
-var _1a=this.childWidgets[idx+1];
-if(_19.declaredClass==="dojox.atom.widget.FeedViewerGrouping"&&(_1a===undefined||_1a.declaredClass==="dojox.atom.widget.FeedViewerGrouping")){
-_19.destroy();
-}
-_17.destroy();
-}else{
-}
-},_rowSelected:function(evt){
-var _1b=evt.target;
-while(_1b){
-if(_1b.attributes){
-var _1c=_1b.attributes.getNamedItem("widgetid");
-if(_1c&&_1c.value.indexOf("FeedViewerEntry")!=-1){
-break;
-}
-}
-_1b=_1b.parentNode;
-}
-for(var i=0;i<this._feed.entries.length;i++){
-var _1d=this._feed.entries[i];
-if((_1b===_1d.domNode)&&(this._currentSelection!==_1d)){
-dojo.addClass(_1d.domNode,"feedViewerEntrySelected");
-dojo.removeClass(_1d._entryWidget.timeNode,"feedViewerEntryUpdated");
-dojo.addClass(_1d._entryWidget.timeNode,"feedViewerEntryUpdatedSelected");
-this.onEntrySelected(_1d);
-if(this.entrySelectionTopic!==""){
-dojo.publish(this.entrySelectionTopic,[{action:"set",source:this,feed:this._feed,entry:_1d}]);
-}
-if(this._isEditable(_1d)){
-_1d._entryWidget.enableDelete();
-}
-this._deselectCurrentSelection();
-this._currentSelection=_1d;
-break;
-}else{
-if((_1b===_1d.domNode)&&(this._currentSelection===_1d)){
-dojo.publish(this.entrySelectionTopic,[{action:"delete",source:this,entry:_1d}]);
-this._deselectCurrentSelection();
-break;
-}
-}
-}
-},_deselectCurrentSelection:function(){
-if(this._currentSelection){
-dojo.addClass(this._currentSelection._entryWidget.timeNode,"feedViewerEntryUpdated");
-dojo.removeClass(this._currentSelection.domNode,"feedViewerEntrySelected");
-dojo.removeClass(this._currentSelection._entryWidget.timeNode,"feedViewerEntryUpdatedSelected");
-this._currentSelection._entryWidget.disableDelete();
-this._currentSelection=null;
-}
-},_isEditable:function(_1e){
-var _1f=false;
-if(_1e&&_1e!==null&&_1e.links&&_1e.links!==null){
-for(var x in _1e.links){
-if(_1e.links[x].rel&&_1e.links[x].rel=="edit"){
-_1f=true;
-break;
-}
-}
-}
-return _1f;
-},onEntrySelected:function(_20){
-},_isRelativeURL:function(url){
-var _21=function(url){
-var _22=false;
-if(url.indexOf("file://")===0){
-_22=true;
-}
-return _22;
-};
-var _23=function(url){
-var _24=false;
-if(url.indexOf("http://")===0){
-_24=true;
-}
-return _24;
-};
-var _25=false;
-if(url!==null){
-if(!_21(url)&&!_23(url)){
-_25=true;
-}
-}
-return _25;
-},_calculateBaseURL:function(_26,_27){
-var _28=null;
-if(_26!==null){
-var _29=_26.indexOf("?");
-if(_29!=-1){
-_26=_26.substring(0,_29);
-}
-if(_27){
-_29=_26.lastIndexOf("/");
-if((_29>0)&&(_29<_26.length)&&(_29!==(_26.length-1))){
-_28=_26.substring(0,(_29+1));
-}else{
-_28=_26;
-}
-}else{
-_29=_26.indexOf("://");
-if(_29>0){
-_29=_29+3;
-var _2a=_26.substring(0,_29);
-var _2b=_26.substring(_29,_26.length);
-_29=_2b.indexOf("/");
-if((_29<_2b.length)&&(_29>0)){
-_28=_2a+_2b.substring(0,_29);
-}else{
-_28=_2a+_2b;
-}
-}
-}
-}
-return _28;
-},_isFilterAccepted:function(_2c){
-var _2d=false;
-if(this._includeFilters&&(this._includeFilters.length>0)){
-for(var i=0;i<this._includeFilters.length;i++){
-var _2e=this._includeFilters[i];
-if(_2e.match(_2c)){
-_2d=true;
-break;
-}
-}
-}else{
-_2d=true;
-}
-return _2d;
-},addCategoryIncludeFilter:function(_2f){
-if(_2f){
-var _30=_2f.scheme;
-var _31=_2f.term;
-var _32=_2f.label;
-var _33=true;
-if(!_30){
-_30=null;
-}
-if(!_31){
-_30=null;
-}
-if(!_32){
-_30=null;
-}
-if(this._includeFilters&&this._includeFilters.length>0){
-for(var i=0;i<this._includeFilters.length;i++){
-var _34=this._includeFilters[i];
-if((_34.term===_31)&&(_34.scheme===_30)&&(_34.label===_32)){
-_33=false;
-break;
-}
-}
-}
-if(_33){
-this._includeFilters.push(dojox.atom.widget.FeedViewer.CategoryIncludeFilter(_30,_31,_32));
-}
-}
-},removeCategoryIncludeFilter:function(_35){
-if(_35){
-var _36=_35.scheme;
-var _37=_35.term;
-var _38=_35.label;
-if(!_36){
-_36=null;
-}
-if(!_37){
-_36=null;
-}
-if(!_38){
-_36=null;
-}
-var _39=[];
-if(this._includeFilters&&this._includeFilters.length>0){
-for(var i=0;i<this._includeFilters.length;i++){
-var _3a=this._includeFilters[i];
-if(!((_3a.term===_37)&&(_3a.scheme===_36)&&(_3a.label===_38))){
-_39.push(_3a);
-}
-}
-this._includeFilters=_39;
-}
-}
-},_handleEvent:function(_3b){
-if(_3b.source!=this){
-if(_3b.action=="update"&&_3b.entry){
-var evt=_3b;
-if(!this.localSaveOnly){
-this.atomIO.updateEntry(evt.entry,dojo.hitch(evt.source,evt.callback),null,true);
-}
-this._currentSelection._entryWidget.setTime(this._displayDateForEntry(evt.entry).toLocaleTimeString());
-this._currentSelection._entryWidget.setTitle(evt.entry.title.value);
-}else{
-if(_3b.action=="post"&&_3b.entry){
-if(!this.localSaveOnly){
-this.atomIO.addEntry(_3b.entry,this.url,dojo.hitch(this,this._addEntry));
-}else{
-this._addEntry(_3b.entry);
-}
-}
-}
-}
-},_addEntry:function(_3c){
-this._feed.addEntry(_3c);
-this.setFeed(this._feed);
-dojo.publish(this.entrySelectionTopic,[{action:"set",source:this,feed:this._feed,entry:_3c}]);
-},destroy:function(){
-this.clear();
-dojo.forEach(this._subscriptions,dojo.unsubscribe);
-}});
-dojo.declare("dojox.atom.widget.FeedViewerEntry",[dijit._Widget,dijit._Templated],{templateString:dojo.cache("dojox.atom","widget/templates/FeedViewerEntry.html","<tr class=\"feedViewerEntry\" dojoAttachPoint=\"entryNode\" dojoAttachEvent=\"onclick:onClick\">\n    <td class=\"feedViewerEntryUpdated\" dojoAttachPoint=\"timeNode\">\n    </td>\n    <td>\n        <table border=\"0\" width=\"100%\" dojoAttachPoint=\"titleRow\">\n            <tr padding=\"0\" border=\"0\">\n                <td class=\"feedViewerEntryTitle\" dojoAttachPoint=\"titleNode\">\n                </td>\n                <td class=\"feedViewerEntryDelete\" align=\"right\">\n                    <span dojoAttachPoint=\"deleteButton\" dojoAttachEvent=\"onclick:deleteEntry\" class=\"feedViewerDeleteButton\" style=\"display:none;\">[delete]</span>\n                </td>\n            <tr>\n        </table>\n    </td>\n</tr>\n"),entryNode:null,timeNode:null,deleteButton:null,entry:null,feed:null,postCreate:function(){
-var _3d=dojo.i18n.getLocalization("dojox.atom.widget","FeedViewerEntry");
-this.deleteButton.innerHTML=_3d.deleteButton;
-},setTitle:function(_3e){
-if(this.titleNode.lastChild){
-this.titleNode.removeChild(this.titleNode.lastChild);
-}
-var _3f=document.createElement("div");
-_3f.innerHTML=_3e;
-this.titleNode.appendChild(_3f);
-},setTime:function(_40){
-if(this.timeNode.lastChild){
-this.timeNode.removeChild(this.timeNode.lastChild);
-}
-var _41=document.createTextNode(_40);
-this.timeNode.appendChild(_41);
-},enableDelete:function(){
-if(this.deleteButton!==null){
-this.deleteButton.style.display="inline";
-}
-},disableDelete:function(){
-if(this.deleteButton!==null){
-this.deleteButton.style.display="none";
-}
-},deleteEntry:function(_42){
-_42.preventDefault();
-_42.stopPropagation();
-this.feed.deleteEntry(this);
-},onClick:function(e){
-}});
-dojo.declare("dojox.atom.widget.FeedViewerGrouping",[dijit._Widget,dijit._Templated],{templateString:dojo.cache("dojox.atom","widget/templates/FeedViewerGrouping.html","<tr dojoAttachPoint=\"groupingNode\" class=\"feedViewerGrouping\">\n\t<td colspan=\"2\" dojoAttachPoint=\"titleNode\" class=\"feedViewerGroupingTitle\">\n\t</td>\n</tr>\n"),groupingNode:null,titleNode:null,setText:function(_43){
-if(this.titleNode.lastChild){
-this.titleNode.removeChild(this.titleNode.lastChild);
-}
-var _44=document.createTextNode(_43);
-this.titleNode.appendChild(_44);
-}});
-dojo.declare("dojox.atom.widget.AtomEntryCategoryFilter",[dijit._Widget,dijit._Templated],{scheme:"",term:"",label:"",isFilter:true});
-dojo.declare("dojox.atom.widget.FeedViewer.CategoryIncludeFilter",null,{constructor:function(_45,_46,_47){
-this.scheme=_45;
-this.term=_46;
-this.label=_47;
-},match:function(_48){
-var _49=false;
-if(_48!==null){
-var _4a=_48.categories;
-if(_4a!==null){
-for(var i=0;i<_4a.length;i++){
-var _4b=_4a[i];
-if(this.scheme!==""){
-if(this.scheme!==_4b.scheme){
-break;
-}
-}
-if(this.term!==""){
-if(this.term!==_4b.term){
-break;
-}
-}
-if(this.label!==""){
-if(this.label!==_4b.label){
-break;
-}
-}
-_49=true;
-}
-}
-}
-return _49;
-}});
-}
+
+dojo.declare("dojox.atom.widget.FeedViewer",[dijit._Widget, dijit._Templated, dijit._Container],{
+	//	summary:
+	//		An ATOM feed viewer that allows for viewing a feed, deleting entries, and editing entries.
+	//	description:
+	//		An ATOM feed viewer that allows for viewing a feed, deleting entries, and editing entries.
+	feedViewerTableBody: null,	//The body of the feed viewer table so we can access it and populate it.  Will be assigned via template.
+	feedViewerTable: null,		//The overal table container which contains the feed viewer table.  Will be assigned via template.
+	entrySelectionTopic: "",	//The topic to broadcast when any entry is clicked so that a listener can pick up it and display it.
+	url: "",					//The URL to which to connect to initially on creation.
+	xmethod: false,
+	localSaveOnly: false,
+
+	//Templates for the HTML rendering.  Need to figure these out better, admittedly.
+	templateString: dojo.cache("dojox.atom", "widget/templates/FeedViewer.html"),
+
+	_feed: null,
+	_currentSelection: null, // Currently selected entry
+
+	_includeFilters: null,
+
+	alertsEnabled: false,
+
+	postCreate: function(){
+		//	summary:
+		//		The postCreate function.
+		//	description:
+		//		The postCreate function.  Creates our AtomIO object for future interactions and subscribes to the
+		//		event given in markup/creation.
+		this._includeFilters = [];
+
+		if(this.entrySelectionTopic !== ""){
+			this._subscriptions = [dojo.subscribe(this.entrySelectionTopic, this, "_handleEvent")];
+		}
+		this.atomIO = new dojox.atom.io.Connection();
+		this.childWidgets = [];
+	},
+	
+	startup: function(){
+		//	summary:
+		//		The startup function.
+		//	description:
+		//		The startup function.  Parses the filters and sets the feed based on the given url.
+		this.containerNode = this.feedViewerTableBody;
+		var children = this.getDescendants();
+		for(var i in children){
+			var child = children[i];
+			if(child && child.isFilter){
+				this._includeFilters.push(new dojox.atom.widget.FeedViewer.CategoryIncludeFilter(child.scheme, child.term, child.label));
+				child.destroy();
+			}
+		}
+		
+		if(this.url !== ""){
+			this.setFeedFromUrl(this.url);
+		}
+	},
+
+	clear: function(){
+		//	summary:
+		//		Function clearing all current entries in the feed view.
+		//	description:
+		//		Function clearing all current entries in the feed view.
+		//
+		//	returns:
+		//		Nothing.
+		this.destroyDescendants();
+	},
+
+	setFeedFromUrl: function(/*string*/url){
+		//	summary:
+		//		Function setting the feed from a URL which to get the feed.
+		//	description:
+		//		Function setting the dojox.atom.io.model.Feed data into the view.
+		//
+		//	url:
+		//		The URL to the feed to load.
+		//
+		//	returns:
+		//		Nothing.
+		if(url !== ""){
+			if(this._isRelativeURL(url)){
+				var baseUrl = "";
+				if(url.charAt(0) !== '/'){
+					baseUrl = this._calculateBaseURL(window.location.href, true);
+				}else{
+					baseUrl = this._calculateBaseURL(window.location.href, false);
+				}
+				this.url = baseUrl + url;
+			}
+
+			this.atomIO.getFeed(url,dojo.hitch(this,this.setFeed));
+		}
+	},
+
+
+	setFeed: function(/*object*/feed){
+		//	summary:
+		//		Function setting the dojox.atom.io.model.Feed data into the view.
+		//	description:
+		//		Function setting the dojox.atom.io.model.Feed data into the view.
+		//
+		//	entry:
+		//		The dojox.atom.io.model.Feed object to process
+		//
+		//	returns:
+		//		Nothing.
+		this._feed = feed;
+		this.clear();
+		var entrySorter=function(a,b){
+			var dispA = this._displayDateForEntry(a);
+			var dispB = this._displayDateForEntry(b);
+			if(dispA > dispB){return -1;}
+			if(dispA < dispB){return 1;}
+			return 0;
+		};
+
+		// This function may not be safe in different locales.
+		var groupingStr = function(dateStr){
+			var dpts = dateStr.split(',');
+			
+			dpts.pop(); // remove year and time
+			return dpts.join(",");
+		};
+		var sortedEntries = feed.entries.sort(dojo.hitch(this,entrySorter));
+		if(feed){
+			var lastSectionTitle = null;
+			for(var i=0;i<sortedEntries.length;i++){
+				
+				var entry = sortedEntries[i];
+
+				if(this._isFilterAccepted(entry)){
+					var time = this._displayDateForEntry(entry);
+					var sectionTitle = "";
+
+					if(time !== null){
+						sectionTitle = groupingStr(time.toLocaleString());
+
+						if(sectionTitle === "" ){
+							//Generally an issue on Opera with how its toLocaleString() works, so do a quick and dirty date construction M/D/Y
+							sectionTitle = "" + (time.getMonth() + 1) + "/" + time.getDate() + "/" + time.getFullYear();
+						}
+					}
+					if((lastSectionTitle === null) || (lastSectionTitle != sectionTitle)){
+						this.appendGrouping(sectionTitle);
+						lastSectionTitle = sectionTitle;
+					}
+					this.appendEntry(entry);
+				}
+			}
+		}
+	},
+
+	_displayDateForEntry: function(/*object*/entry){
+		//	summary:
+		//		Internal function for determining the appropriate date to display.
+		//		description: Internal function for determining of a particular entry is editable.
+		//
+		//	entry:
+		//		The dojox.atom.io.model.Entry object to examine.
+		//
+		//	returns:
+		//		An appropriate date for the feed viewer display.
+		if(entry.updated){return entry.updated;}
+		if(entry.modified){return entry.modified;}
+		if(entry.issued){return entry.issued;}
+		return new Date();
+	},
+
+	appendGrouping: function(/*string*/titleText){
+		//	summary:
+		//		Function for appending a new grouping of entries to the feed view.
+		//	description:
+		//		Function for appending a grouping of entries to the feed view.
+		//
+		//	entry:
+		//		The title of the new grouping to create on the view.
+		//
+		//	returns:
+		//		Nothing.
+		var entryWidget = new dojox.atom.widget.FeedViewerGrouping({});
+		entryWidget.setText(titleText);
+		this.addChild(entryWidget);
+		this.childWidgets.push(entryWidget);
+	},
+
+	appendEntry: function(/*object*/entry){
+		//	summary:
+		//		Function for appending an entry to the feed view.
+		//	description:
+		//		Function for appending an entry to the feed view.
+		//
+		//	entry:
+		//		The dojox.atom.io.model.Entry object to append
+		//
+		//	returns:
+		//		Nothing.
+		var entryWidget = new dojox.atom.widget.FeedViewerEntry({"xmethod": this.xmethod});
+		entryWidget.setTitle(entry.title.value);
+		entryWidget.setTime(this._displayDateForEntry(entry).toLocaleTimeString());
+		entryWidget.entrySelectionTopic = this.entrySelectionTopic;
+		entryWidget.feed = this;
+		this.addChild(entryWidget);
+		this.childWidgets.push(entryWidget);
+		this.connect(entryWidget, "onClick", "_rowSelected");
+		entry.domNode = entryWidget.entryNode;
+		
+		//Need to set up a bi-directional reference here to control events between the two.
+		entry._entryWidget = entryWidget;
+		entryWidget.entry = entry;
+	},
+	
+	deleteEntry: function(/*object*/entryRow){
+		//	summary:
+		//		Function for deleting a row from the view
+		//	description:
+		//		Function for deleting a row from the view
+		if(!this.localSaveOnly){
+			this.atomIO.deleteEntry(entryRow.entry, dojo.hitch(this, this._removeEntry, entryRow), null, this.xmethod);
+		}else{
+			this._removeEntry(entryRow, true);
+		}
+		dojo.publish(this.entrySelectionTopic, [{ action: "delete", source: this, entry: entryRow.entry }]);
+	},
+
+	_removeEntry: function(/*FeedViewerEntry*/ entry, /* boolean */success){
+		//	summary:
+		//		callback for when an entry is deleted from a feed.
+		//	description:
+		//		callback for when an entry is deleted from a feed.
+		if(success){
+			/* Check if this is the last Entry beneath the given date */
+			var idx = dojo.indexOf(this.childWidgets, entry);
+			var before = this.childWidgets[idx-1];
+			var after = this.childWidgets[idx+1];
+			if( before.declaredClass === 'dojox.atom.widget.FeedViewerGrouping' &&
+				(after === undefined || after.declaredClass === 'dojox.atom.widget.FeedViewerGrouping')){
+				before.destroy();
+			}
+			
+			/* Destroy the FeedViewerEntry to remove it from the view */
+			entry.destroy();
+		}else{}
+	},
+	
+	_rowSelected: function(/*object*/evt){
+		//	summary:
+		//		Internal function for handling the selection of feed entries.
+		//	description:
+		//		Internal function for handling the selection of feed entries.
+		//
+		//	evt:
+		//		The click event that triggered a selection.
+		//
+		//	returns:
+		//		Nothing.
+		var selectedNode = evt.target;
+		while(selectedNode){
+			if(selectedNode.attributes){
+				var widgetid = selectedNode.attributes.getNamedItem("widgetid");
+				if(widgetid && widgetid.value.indexOf("FeedViewerEntry") != -1){
+					break;
+				}
+			}
+			selectedNode = selectedNode.parentNode;
+		}
+
+		for(var i=0;i<this._feed.entries.length;i++){
+			var entry = this._feed.entries[i];
+			if( (selectedNode === entry.domNode) && (this._currentSelection !== entry) ){
+				//Found it and it isn't already selected.
+				dojo.addClass(entry.domNode, "feedViewerEntrySelected");
+				dojo.removeClass(entry._entryWidget.timeNode, "feedViewerEntryUpdated");
+				dojo.addClass(entry._entryWidget.timeNode, "feedViewerEntryUpdatedSelected");
+
+				this.onEntrySelected(entry);
+				if(this.entrySelectionTopic !== ""){
+					dojo.publish(this.entrySelectionTopic, [{ action: "set", source: this, feed: this._feed, entry: entry }]);
+				}
+				if(this._isEditable(entry)){
+					entry._entryWidget.enableDelete();
+				}
+
+				this._deselectCurrentSelection();
+				this._currentSelection = entry;
+				break;
+			}else if( (selectedNode === entry.domNode) && (this._currentSelection === entry) ){
+				//Found it and it is the current selection, we just want to de-select it so users can 'unselect rows' if they want.
+				dojo.publish(this.entrySelectionTopic, [{ action: "delete", source: this, entry: entry }]);
+				this._deselectCurrentSelection();
+				break;
+			}
+		}
+	},
+
+	_deselectCurrentSelection: function(){
+		//	summary:
+		//		Internal function for unselecting the current selection.
+		//	description:
+		//		Internal function for unselecting the current selection.
+		//
+		//	returns:
+		//		Nothing.
+		if(this._currentSelection){
+			dojo.addClass(this._currentSelection._entryWidget.timeNode, "feedViewerEntryUpdated");
+			dojo.removeClass(this._currentSelection.domNode, "feedViewerEntrySelected");
+			dojo.removeClass(this._currentSelection._entryWidget.timeNode, "feedViewerEntryUpdatedSelected");
+			this._currentSelection._entryWidget.disableDelete();
+			this._currentSelection = null;
+		}
+	},
+
+
+	_isEditable: function(/*object*/entry){
+		//	summary:
+		//		Internal function for determining of a particular entry is editable.
+		//	description:
+		//		Internal function for determining of a particular entry is editable.
+		//		This is used for determining if the delete action should be displayed or not.
+		//
+		//	entry:
+		//		The dojox.atom.io.model.Entry object to examine
+		//
+		//	returns:
+		//		Boolean denoting if the entry seems editable or not..
+		var retVal = false;
+		if(entry && entry !== null && entry.links && entry.links !== null){
+			for(var x in entry.links){
+				if(entry.links[x].rel && entry.links[x].rel == "edit"){
+					retVal = true;
+					break;
+				}
+			}
+		}
+		return retVal;
+	},
+
+	onEntrySelected: function(/*object*/entry){
+		//	summary:
+		//		Function intended for over-riding/replacement as an attachpoint to for other items to recieve
+		//		selection notification.
+		//	description: Function intended for over0-riding/replacement as an attachpoint to for other items to recieve
+		//		selection notification.
+		//
+		//	entry:
+		//		The dojox.atom.io.model.Entry object selected.
+		//
+		//	returns:
+		//		Nothing.
+	},
+
+	_isRelativeURL: function(/*string*/url){
+		//	summary:
+		//		Method to determine if the URL is relative or absolute.
+		//	description:
+		//		Method to determine if the URL is relative or absolute.  Basic assumption is if it doesn't start
+		//		with http:// or file://, it's relative to the current document.
+		//
+		//	url:
+		//		The URL to inspect.
+		//
+		//	returns:
+		//		boolean indicating whether it's a relative url or not.
+		var isFileURL = function(url){
+			var retVal = false;
+			if(url.indexOf("file://") === 0){
+				retVal = true;
+			}
+			return retVal;
+		}
+
+		var isHttpURL = function(url){
+			var retVal = false;
+			if(url.indexOf("http://") === 0){
+				retVal = true;
+			}
+			return retVal;
+		}
+
+		var retVal = false;
+		if(url !== null){
+			if(!isFileURL(url) && !isHttpURL(url)){
+				retVal = true;
+			}
+		}
+		return retVal;
+	},
+
+	_calculateBaseURL: function(/*string*/fullURL, /*boolean*/currentPageRelative){
+		//	summary:
+		//		Internal function to calculate a baseline URL from the provided full URL.
+		//	description:
+		//		Internal function to calculate a baseline URL from the provided full URL.
+		//
+		//	fullURL:
+		//		The full URL as a string.
+		//	currentPageRelative:
+		//		Flag to denote of the base URL should be calculated as just the server base, or relative to the current page/location in the URL.
+		//
+		//	returns:
+		//		String of the baseline URL
+		var baseURL = null;
+		if(fullURL !== null){
+			//Check to see if we need to strip off any query parameters from the URL.
+			var index = fullURL.indexOf("?");
+			if(index != -1){
+				fullURL = fullURL.substring(0,index);
+				//console.debug("Removed query parameters.  URL now: " + fullURL);
+			}
+
+			if(currentPageRelative){
+				//Relative to the 'current page' in the URL, so we need to trim that off.
+				//Now we need to trim if necessary.  If it ends in /, then we don't have a filename to trim off
+				//so we can return.
+				index = fullURL.lastIndexOf("/");
+				if((index > 0) && (index < fullURL.length) && (index !== (fullURL.length -1))){
+					//We want to include the terminating /
+					baseURL = fullURL.substring(0,(index + 1));
+				}else{
+					baseURL = fullURL;
+				}
+			}else{
+				//We want to find the first occurance of / after the <protocol>://
+				index = fullURL.indexOf("://");
+				if(index > 0){
+					index = index + 3;
+					var protocol = fullURL.substring(0,index);
+					var fragmentURL = fullURL.substring(index, fullURL.length);
+					index = fragmentURL.indexOf("/");
+					if((index < fragmentURL.length) && (index > 0) ){
+						baseURL = protocol + fragmentURL.substring(0,index);
+					}else{
+						baseURL = protocol + fragmentURL;
+					}
+				}
+			}
+		}
+		return baseURL;
+	},
+
+	_isFilterAccepted: function(/*object*/entry) {
+		//	summary:
+		//		Internal function to do matching of category filters to widgets.
+		//	description:
+		//		Internal function to do matching of category filters to widgets.
+		//
+		//	returns:
+		//		boolean denoting if this entry matched one of the accept filters.
+		var accepted = false;
+		if (this._includeFilters && (this._includeFilters.length > 0)) {
+			for (var i = 0; i < this._includeFilters.length; i++) {
+				var filter = this._includeFilters[i];
+				if (filter.match(entry)) {
+					accepted = true;
+					break;
+				}
+			}
+		}
+		else {
+			accepted = true;
+		}
+		return accepted;
+	},
+
+	addCategoryIncludeFilter: function(/*object*/filter) {
+		//	summary:
+		//		Function to add a filter for entry inclusion in the feed view.
+		//	description:
+		//		Function to add a filter for entry inclusion in the feed view.
+		//
+		//	filter:
+		//		The basic items to filter on and the values.
+		//		Should be of format: {scheme: <some text or null>, term: <some text or null>, label: <some text or null>}
+		//
+		//	returns:
+		//		Nothing.
+		if (filter) {
+			var scheme = filter.scheme;
+			var term = filter.term;
+			var label = filter.label;
+			var addIt = true;
+
+			if (!scheme) {
+				scheme = null;
+			}
+			if (!term) {
+				scheme = null;
+			}
+			if (!label) {
+				scheme = null;
+			}
+			
+			if (this._includeFilters && this._includeFilters.length > 0) {
+				for (var i = 0; i < this._includeFilters.length; i++) {
+					var eFilter = this._includeFilters[i];
+					if ((eFilter.term === term) && (eFilter.scheme === scheme) && (eFilter.label === label)) {
+						//Verify we don't have this filter already.
+						addIt = false;
+						break;
+					}
+				}
+			}
+
+			if (addIt) {
+				this._includeFilters.push(dojox.atom.widget.FeedViewer.CategoryIncludeFilter(scheme, term, label));
+			}
+		}
+	},
+
+	removeCategoryIncludeFilter: function(/*object*/filter) {
+		//	summary:
+		//		Function to remove a filter for entry inclusion in the feed view.
+		//	description:
+		//		Function to remove a filter for entry inclusion in the feed view.
+		//
+		//	filter:
+		//		The basic items to identify the filter that is present.
+		//		Should be of format: {scheme: <some text or null>, term: <some text or null>, label: <some text or null>}
+		//
+		//	returns:
+		//		Nothing.
+		if (filter) {
+			var scheme = filter.scheme;
+			var term = filter.term;
+			var label = filter.label;
+
+			if (!scheme) {
+				scheme = null;
+			}
+			if (!term) {
+				scheme = null;
+			}
+			if (!label) {
+				scheme = null;
+			}
+			
+			var newFilters = [];
+			if (this._includeFilters && this._includeFilters.length > 0) {
+				for (var i = 0; i < this._includeFilters.length; i++) {
+					var eFilter = this._includeFilters[i];
+					if (!((eFilter.term === term) && (eFilter.scheme === scheme) && (eFilter.label === label))) {
+						//Keep only filters that do not match
+						newFilters.push(eFilter);
+					}
+				}
+				this._includeFilters = newFilters;
+			}
+		}
+	},
+
+	_handleEvent: function(/*object*/entrySelectionEvent) {
+		//	summary:
+		//		Internal function for listening to a topic that will handle entry notification.
+		//	description:
+		//		Internal function for listening to a topic that will handle entry notification.
+		//
+		//	entrySelectionEvent:
+		//		The topic message containing the entry that was selected for view.
+		//
+		//	returns:
+		//		Nothing.
+		if(entrySelectionEvent.source != this) {
+			if(entrySelectionEvent.action == "update" && entrySelectionEvent.entry) {
+                var evt = entrySelectionEvent;
+				if(!this.localSaveOnly){
+					this.atomIO.updateEntry(evt.entry, dojo.hitch(evt.source,evt.callback), null, true);
+				}
+				this._currentSelection._entryWidget.setTime(this._displayDateForEntry(evt.entry).toLocaleTimeString());
+				this._currentSelection._entryWidget.setTitle(evt.entry.title.value);
+			} else if(entrySelectionEvent.action == "post" && entrySelectionEvent.entry) {
+				if(!this.localSaveOnly){
+					this.atomIO.addEntry(entrySelectionEvent.entry, this.url, dojo.hitch(this,this._addEntry));
+				}else{
+					this._addEntry(entrySelectionEvent.entry);
+				}
+			}
+		}
+	},
+	
+	_addEntry: function(/*object*/entry) {
+		//	summary:
+		//		callback function used when adding an entry to the feed.
+		//	description:
+		//		callback function used when adding an entry to the feed.  After the entry has been posted to the feed,
+		//		we add it to our feed representation (to show it on the page) and publish an event to update any entry viewers.
+		this._feed.addEntry(entry);
+		this.setFeed(this._feed);
+		dojo.publish(this.entrySelectionTopic, [{ action: "set", source: this, feed: this._feed, entry: entry }]);
+	},
+
+	destroy: function(){
+		//	summary:
+		//		Destroys this widget, including all descendants and subscriptions.
+		//	description:
+		//		Destroys this widget, including all descendants and subscriptions.
+		this.clear();
+		dojo.forEach(this._subscriptions, dojo.unsubscribe);
+	}
+});
+
+dojo.declare("dojox.atom.widget.FeedViewerEntry",[dijit._Widget, dijit._Templated],{
+	//	summary:
+	//		Widget for handling the display of an entry and specific events associated with it.
+	//		description: Widget for handling the display of an entry and specific events associated with it.
+
+	templateString: dojo.cache("dojox.atom", "widget/templates/FeedViewerEntry.html"),
+
+	entryNode: null,
+	timeNode: null,
+	deleteButton: null,
+	entry: null,
+	feed: null,
+
+	postCreate: function(){
+		var _nlsResources = dojo.i18n.getLocalization("dojox.atom.widget", "FeedViewerEntry");
+		this.deleteButton.innerHTML = _nlsResources.deleteButton;
+	},
+
+	setTitle: function(/*string*/text){
+		//	summary:
+		//		Function to set the title of the entry.
+		//	description:
+		//		Function to set the title of the entry.
+		//
+		//	text:
+		//		The title.
+		//
+		//	returns:
+		//		Nothing.
+		if (this.titleNode.lastChild){this.titleNode.removeChild(this.titleNode.lastChild);}
+		
+		var titleTextNode = document.createElement("div");
+		titleTextNode.innerHTML = text;
+		this.titleNode.appendChild(titleTextNode);
+	},
+
+	setTime: function(/*string*/timeText){
+		//	summary:
+		//		Function to set the time of the entry.
+		//	description:
+		//		Function to set the time of the entry.
+		//
+		//	timeText:
+		//		The string form of the date.
+		//
+		//	returns:
+		//		Nothing.
+		if (this.timeNode.lastChild){this.timeNode.removeChild(this.timeNode.lastChild);}
+		var timeTextNode = document.createTextNode(timeText);
+		this.timeNode.appendChild(timeTextNode);
+	},
+
+	enableDelete: function(){
+		//	summary:
+		//		Function to enable the delete action on this entry.
+		//	description:
+		//		Function to enable the delete action on this entry.
+		//
+		//	returns:
+		//		Nothing.
+		if (this.deleteButton !== null) {
+			//TODO Fix this
+			this.deleteButton.style.display = 'inline';
+		}
+	},
+
+	disableDelete: function(){
+		//	summary:
+		//		Function to disable the delete action on this entry.
+		//	description:
+		//		Function to disable the delete action on this entry.
+		//
+		// 	returns:
+		//		Nothing.
+		if (this.deleteButton !== null) {
+			this.deleteButton.style.display = 'none';
+		}
+	},
+
+	deleteEntry: function(/*object*/event) {
+		//	summary:
+		//		Function to handle the delete event and delete the entry.
+		// 	description:
+		//		Function to handle the delete event and delete the entry.
+		//
+		//	returns:
+		//		Nothing.
+		event.preventDefault();
+		event.stopPropagation();
+		this.feed.deleteEntry(this);
+	},
+
+	onClick: function(/*object*/e){
+		//	summary:
+		//		Attach point for when a row is clicked on.
+		// 	description:
+		//		Attach point for when a row is clicked on.
+		//
+		// 	e:
+		//		The event generated by the click.
+	}
+});
+
+dojo.declare("dojox.atom.widget.FeedViewerGrouping",[dijit._Widget, dijit._Templated],{
+	//	summary:
+	//		Grouping of feed entries.
+	//	description:
+	//		Grouping of feed entries.
+	templateString: dojo.cache("dojox.atom", "widget/templates/FeedViewerGrouping.html"),
+	
+	groupingNode: null,
+	titleNode: null,
+
+	setText: function(text){
+		//	summary:
+		//		Sets the text to be shown above this grouping.
+		//	description:
+		//		Sets the text to be shown above this grouping.
+		//
+		//	text:
+		//		The text to show.
+		if (this.titleNode.lastChild){this.titleNode.removeChild(this.titleNode.lastChild);}
+		var textNode = document.createTextNode(text);
+		this.titleNode.appendChild(textNode);
+	}
+});
+
+dojo.declare("dojox.atom.widget.AtomEntryCategoryFilter",[dijit._Widget, dijit._Templated],{
+	//	summary:
+	//		A filter to be applied to the list of entries.
+	//	description:
+	//		A filter to be applied to the list of entries.
+	scheme: "",
+	term: "",
+	label: "",
+	isFilter: true
+});
+
+dojo.declare("dojox.atom.widget.FeedViewer.CategoryIncludeFilter",null,{
+	constructor: function(scheme, term, label){
+		//	summary:
+		//		The initializer function.
+		//	description:
+		//		The initializer function.
+		this.scheme = scheme;
+		this.term = term;
+		this.label = label;
+	},
+
+	match: function(entry) {
+		//	summary:
+		//		Function to determine if this category filter matches against a category on an atom entry
+		//	description:
+		//		Function to determine if this category filter matches against a category on an atom entry
+		//
+		//	returns:
+		//		boolean denoting if this category filter matched to this entry.
+		var matched = false;
+		if (entry !== null) {
+			var categories = entry.categories;
+			if (categories !== null) {
+				for (var i = 0; i < categories.length; i++) {
+					var category = categories[i];
+
+					if (this.scheme !== "") {
+						if (this.scheme !== category.scheme) {
+							break;
+						}
+					}
+					
+					if (this.term !== "") {
+						if (this.term !== category.term) {
+							break;
+						}
+					}
+
+					if (this.label !== "") {
+						if (this.label !== category.label) {
+							break;
+						}
+					}
+					//Made it this far, everything matched.
+					matched = true;
+				}
+			}
+		}
+		return matched;
+	}
+});

@@ -1,1 +1,10 @@
-({"selectContents":"Vybrať obsah","deleteElement":"Vymazať element","moveEnd":"Presunúť kurzor na koniec","deleteContents":"Vymazať obsah","nodeActions":"Akcie pre ${nodeName}","selectElement":"Vybrať element","moveStart":"Presunúť kurzor na začiatok"})
+({
+	"nodeActions": "Akcie pre ${nodeName}",
+	"selectContents": "Vybrať obsah",
+	"selectElement": "Vybrať element",
+	"deleteElement": "Vymazať element",
+	"deleteContents": "Vymazať obsah",
+	"moveStart": "Presunúť kurzor na začiatok",
+	"moveEnd": "Presunúť kurzor na koniec"
+})
+

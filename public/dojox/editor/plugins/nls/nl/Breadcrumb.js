@@ -1,1 +1,10 @@
-({"selectContents":"Inhoud selecteren","deleteElement":"Element wissen","moveEnd":"Cursor verplaatsen naar eind","deleteContents":"Inhoud wissen","nodeActions":"${nodeName} Acties","selectElement":"Element selecteren","moveStart":"Cursor verplaatsen naar start"})
+({
+	"nodeActions": "${nodeName} Acties",
+	"selectContents": "Inhoud selecteren",
+	"selectElement": "Element selecteren",
+	"deleteElement": "Element wissen",
+	"deleteContents": "Inhoud wissen",
+	"moveStart": "Cursor verplaatsen naar start",
+	"moveEnd": "Cursor verplaatsen naar eind"
+})
+

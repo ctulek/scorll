@@ -1,1 +1,11 @@
-({"set":"Insertar","text":"Descripción","insertImageTitle":"Insertar imagen","invalidMessage":"Tipo de archivo de imagen no válido","prePopuTextBrowse":" o seleccione un archivo local.","browse":"Examinar...","prePopuTextUrl":"Especifique un URL de imagen","url":"Imagen"})
+({
+	insertImageTitle: "Insertar imagen",
+	url: "Imagen",
+	browse: "Examinar...",
+	text: "Descripción",
+	set: "Insertar",
+	invalidMessage: "Tipo de archivo de imagen no válido",
+	prePopuTextUrl: "Especifique un URL de imagen",
+	prePopuTextBrowse: " o seleccione un archivo local."
+})
+

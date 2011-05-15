@@ -1,1 +1,9 @@
-({"set":"Imposta","insertAnchor":"Inserisci ancoraggio","title":"Proprietà ancoraggio","text":"Descrizione:","cancel":"Annulla","anchor":"Nome:"})
+({
+	insertAnchor: "Inserisci ancoraggio",
+	title: "Proprietà ancoraggio",
+	anchor: "Nome:",
+	text: "Descrizione:",
+	set: "Imposta",
+	cancel: "Annulla"
+})
+

@@ -1,1 +1,9 @@
-({"set":"Establecer","insertAnchor":"Insertar ancla","title":"Propiedades del ancla","text":"Descripción:","cancel":"Cancelar","anchor":"Nombre:"})
+({
+	insertAnchor: "Insertar ancla",
+	title: "Propiedades del ancla",
+	anchor: "Nombre:",
+	text: "Descripción:",
+	set: "Establecer",
+	cancel: "Cancelar"
+})
+

@@ -1,66 +1,107 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojo/store/util/SimpleQueryEngine", ["dojo"], function(dojo) {
+dojo.getObject("store.util", true, dojo);
 
+dojo.store.util.SimpleQueryEngine = function(query, options){
+	// summary:
+	//		Simple query engine that matches using filter functions, named filter
+	//		functions or objects by name-value on a query object hash
+	//
+	// description:
+	//		The SimpleQueryEngine provides a way of getting a QueryResults through
+	//		the use of a simple object hash as a filter.  The hash will be used to
+	//		match properties on data objects with the corresponding value given. In
+	//		other words, only exact matches will be returned.
+	//
+	//		This function can be used as a template for more complex query engines;
+	//		for example, an engine can be created that accepts an object hash that
+	//		contains filtering functions, or a string that gets evaluated, etc.
+	//
+	//		When creating a new dojo.store, simply set the store's queryEngine
+	//		field as a reference to this function.
+	//
+	// query: Object
+	//		An object hash with fields that may match fields of items in the store.
+	//		Values in the hash will be compared by normal == operator, but regular expressions
+	//		or any object that provides a test() method are also supported and can be
+	// 		used to match strings by more complex expressions
+	// 		(and then the regex's or object's test() method will be used to match values).
+	//
+	// options: dojo.store.util.SimpleQueryEngine.__queryOptions?
+	//		An object that contains optional information such as sort, start, and count.
+	//
+	// returns: Function
+	//		A function that caches the passed query under the field "matches".  See any
+	//		of the "query" methods on dojo.stores.
+	//
+	// example:
+	//		Define a store with a reference to this engine, and set up a query method.
+	//
+	//	|	var myStore = function(options){
+	//	|		//	...more properties here
+	//	|		this.queryEngine = dojo.store.util.SimpleQueryEngine;
+	//	|		//	define our query method
+	//	|		this.query = function(query, options){
+	//	|			return dojo.store.util.QueryResults(this.queryEngine(query, options)(this.data));
+	//	|		};
+	//	|	};
 
-if(!dojo._hasResource["dojo.store.util.SimpleQueryEngine"]){
-dojo._hasResource["dojo.store.util.SimpleQueryEngine"]=true;
-dojo.provide("dojo.store.util.SimpleQueryEngine");
-dojo.getObject("store.util",true,dojo);
-dojo.store.util.SimpleQueryEngine=function(_1,_2){
-switch(typeof _1){
-default:
-throw new Error("Can not query with a "+typeof _1);
-case "object":
-case "undefined":
-var _3=_1;
-_1=function(_4){
-for(var _5 in _3){
-var _6=_3[_5];
-if(_6&&_6.test){
-if(!_6.test(_4[_5])){
-return false;
-}
-}else{
-if(_6!=_4[_5]){
-return false;
-}
-}
-}
-return true;
+	// create our matching query function
+	switch(typeof query){
+		default:
+			throw new Error("Can not query with a " + typeof query);
+		case "object": case "undefined":
+			var queryObject = query;
+			query = function(object){
+				for(var key in queryObject){
+					var required = queryObject[key];
+					if(required && required.test){
+						if(!required.test(object[key])){
+							return false;
+						}
+					}else if(required != object[key]){
+						return false;
+					}
+				}
+				return true;
+			};
+			break;
+		case "string":
+			// named query
+			if(!this[query]){
+				throw new Error("No filter function " + query + " was found in store");
+			}
+			query = this[query];
+			// fall through
+		case "function":
+			// fall through
+	}
+	function execute(array){
+		// execute the whole query, first we filter
+		var results = dojo.filter(array, query);
+		// next we sort
+		if(options && options.sort){
+			results.sort(function(a, b){
+				for(var sort, i=0; sort = options.sort[i]; i++){
+					var aValue = a[sort.attribute];
+					var bValue = b[sort.attribute];
+					if (aValue != bValue) {
+						return !!sort.descending == aValue > bValue ? -1 : 1;
+					}
+				}
+				return 0;
+			});
+		}
+		// now we paginate
+		if(options && (options.start || options.count)){
+			var total = results.length;
+			results = results.slice(options.start || 0, (options.start || 0) + (options.count || Infinity));
+			results.total = total;
+		}
+		return results;
+	}
+	execute.matches = query;
+	return execute;
 };
-break;
-case "string":
-if(!this[_1]){
-throw new Error("No filter function "+_1+" was found in store");
-}
-_1=this[_1];
-case "function":
-}
-function _7(_8){
-var _9=dojo.filter(_8,_1);
-if(_2&&_2.sort){
-_9.sort(function(a,b){
-for(var _a,i=0;_a=_2.sort[i];i++){
-var _b=a[_a.attribute];
-var _c=b[_a.attribute];
-if(_b!=_c){
-return !!_a.descending==_b>_c?-1:1;
-}
-}
-return 0;
+
+return dojo.store.util.SimpleQueryEngine;
 });
-}
-if(_2&&(_2.start||_2.count)){
-var _d=_9.length;
-_9=_9.slice(_2.start||0,(_2.start||0)+(_2.count||Infinity));
-_9.total=_d;
-}
-return _9;
-};
-_7.matches=_1;
-return _7;
-};
-}

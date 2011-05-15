@@ -1,40 +1,58 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojo/store/util/QueryResults", ["dojo"], function(dojo) {
+dojo.getObject("store.util", true, dojo);
 
+dojo.store.util.QueryResults = function(results){
+	// summary:
+	//		A function that wraps the results of a store query with additional
+	//		methods.
+	//
+	// description:
+	//		QueryResults is a basic wrapper that allows for array-like iteration
+	//		over any kind of returned data from a query.  While the simplest store
+	//		will return a plain array of data, other stores may return deferreds or
+	//		promises; this wrapper makes sure that *all* results can be treated
+	//		the same.
+	//
+	//		Additional methods include `forEach`, `filter` and `map`.
+	//
+	// returns: Object
+	//		An array-like object that can be used for iterating over.
+	//
+	// example:
+	//		Query a store and iterate over the results.
+	//
+	//	|	store.query({ prime: true }).forEach(function(item){
+	//	|		//	do something
+	//	|	});
+	
+	if(!results){
+		return results;
+	}
+	// if it is a promise it may be frozen
+	if(results.then){
+		results = dojo.delegate(results);
+	}
+	function addIterativeMethod(method){
+		if(!results[method]){
+			results[method] = function(){
+				var args = arguments;
+				return dojo.when(results, function(results){
+					Array.prototype.unshift.call(args, results);
+					return dojo.store.util.QueryResults(dojo[method].apply(dojo, args));
+				});
+			};
+		}
+	}
+	addIterativeMethod("forEach");
+	addIterativeMethod("filter");
+	addIterativeMethod("map");
+	if(!results.total){
+		results.total = dojo.when(results, function(results){
+			return results.length;
+		});
+	}
+	return results;
+};
 
-if(!dojo._hasResource["dojo.store.util.QueryResults"]){
-dojo._hasResource["dojo.store.util.QueryResults"]=true;
-dojo.provide("dojo.store.util.QueryResults");
-dojo.getObject("store.util",true,dojo);
-dojo.store.util.QueryResults=function(_1){
-if(!_1){
-return _1;
-}
-if(_1.then){
-_1=dojo.delegate(_1);
-}
-function _2(_3){
-if(!_1[_3]){
-_1[_3]=function(){
-var _4=arguments;
-return dojo.when(_1,function(_5){
-Array.prototype.unshift.call(_4,_5);
-return dojo.store.util.QueryResults(dojo[_3].apply(dojo,_4));
+return dojo.store.util.QueryResults;
 });
-};
-}
-};
-_2("forEach");
-_2("filter");
-_2("map");
-if(!_1.total){
-_1.total=dojo.when(_1,function(_6){
-return _6.length;
-});
-}
-return _1;
-};
-}

@@ -1,140 +1,279 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.layout.TableContainer"]){
-dojo._hasResource["dojox.layout.TableContainer"]=true;
 dojo.experimental("dojox.layout.TableContainer");
 dojo.provide("dojox.layout.TableContainer");
 dojo.require("dijit.layout._LayoutWidget");
-dojo.declare("dojox.layout.TableContainer",dijit.layout._LayoutWidget,{cols:1,labelWidth:"100",showLabels:true,orientation:"horiz",spacing:1,customClass:"",postCreate:function(){
-this.inherited(arguments);
-this._children=[];
-this.connect(this,"set",function(_1,_2){
-if(_2&&(_1=="orientation"||_1=="customClass"||_1=="cols")){
-this.layout();
-}
+
+dojo.declare("dojox.layout.TableContainer",
+	dijit.layout._LayoutWidget,
+	{
+	// summary:
+	//		A container that lays out its child widgets in a table layout.
+	//
+	// description:
+	//		The TableContainer lays out child widgets in a Table layout.
+	//		Each widget can specify a "label" or a "title" parameter.
+	//		This label is displayed either above or to the left of
+	//		a widget depending on whether the "orientation" attribute
+	//		is "horiz" or "vert", for horizontal and vertical respectively.
+	//		The number of columns is configured using the "cols" attribute.
+	//		The width of labels can be configured using the "labelWidth" parameter.
+	//
+	// example:
+	// |	<div dojoType="dojox.layout.TableContainer" orientation="vert" cols="3>
+	// |		<div dojoType="dijit.form.TextInput" value="John" label="First Name:"></div>
+	// |		<div dojoType="dijit.form.CheckBox" label="Is Student?:"></div>
+	// |		<div dojoType="dojox.form.DateTextBox" label="Date Of Birth:"></div>
+	// |	</div>
+	//
+
+	cols: 1,
+	
+	// labelWidth: Number|String
+	//		Defines the width of a label.  If the value is a number, it is
+	//		treated as a pixel value.  The other valid value is a percentage,
+	//		e.g. "50%"
+	labelWidth: "100",
+
+	// showLabels: Boolean
+	//		True if labels should be displayed, false otherwise.
+	showLabels: true,
+
+	// orientation: String
+	//		Either "horiz" or "vert" for label orientation.
+	orientation: "horiz",
+	
+	// spacing: Number
+	//		The cell spacing to apply to the table.
+	spacing: 1,
+
+	// customClass: String
+	//		A CSS class that will be applied to child elements.  For example, if
+	//		the class is "myClass", the table will have "myClass-table" applied to it,
+	//		each label TD will have "myClass-labelCell" applied, and each
+	//		widget TD will have "myClass-valueCell" applied.
+	customClass: "",
+
+	postCreate: function(){
+		this.inherited(arguments);
+		this._children = [];
+		
+		// If the orientation, customClass or cols attributes are changed,
+		// layout the widgets again.
+		this.connect(this, "set", function(name, value){
+			if(value && (name == "orientation" || name == "customClass" || name == "cols")) {
+				this.layout();
+			}
+		})
+	},
+
+	startup: function() {
+		if(this._started) {
+			return;
+		}
+		this.inherited(arguments);
+		if(this._initialized) {
+			return;
+		}
+		var children = this.getChildren();
+		if(children.length < 1) {
+			return;
+		}
+		this._initialized = true;
+
+		dojo.addClass(this.domNode, "dijitTableLayout");
+
+		// Call startup on all child widgets
+		dojo.forEach(children, function(child){
+			if(!child.started && !child._started) {
+				child.startup();
+			}
+		});
+		this.resize();
+		this.layout();
+	},
+
+	resize: function(){
+		// summary:
+		//		Resizes all children.  This widget itself
+		//		does not resize, as it takes up 100% of the
+		//		available width.
+		dojo.forEach(this.getChildren(), function(child){
+			if(typeof child.resize == "function") {
+				child.resize();
+			}
+		});
+	},
+
+	layout: function(){
+		// summary:
+		//		Lays out the child widgets.
+		if(!this._initialized){
+			return;
+		}
+
+		var children = this.getChildren();
+
+		var childIds = {};
+		var _this = this;
+
+		function addCustomClass(node, type, count) {
+			if(_this.customClass != "") {
+				var clazz = _this.customClass+ "-" + (type || node.tagName.toLowerCase());
+				dojo.addClass(node, clazz);
+
+				if(arguments.length > 2) {
+					dojo.addClass(node, clazz + "-" + count);
+				}
+			}
+		}
+
+		// Find any new children that have been added since the last layout() call
+		dojo.forEach(this._children, dojo.hitch(this, function(child){
+			childIds[child.id] = child;
+		}));
+
+		dojo.forEach(children, dojo.hitch(this, function(child, index){
+			if(!childIds[child.id]) {
+				// Add pre-existing children to the start of the array
+				this._children.push(child);
+			}
+		}));
+
+		// Create the table.  It fills the width of it's container.
+		var table = dojo.create("table", {
+			"width": "100%",
+			 "class": "tableContainer-table tableContainer-table-" + this.orientation,
+			 "cellspacing" : this.spacing
+			},
+			this.domNode);
+
+		var tbody = dojo.create("tbody");
+		table.appendChild(tbody);
+
+		addCustomClass(table, "table", this.orientation);
+
+		var width = Math.floor(100 / this.cols) + "%";
+
+		var labelRow = dojo.create("tr", {}, tbody);
+		var childRow = (!this.showLabels || this.orientation == "horiz")
+											? labelRow : dojo.create("tr", {}, tbody);
+		var maxCols = this.cols * (this.showLabels ? 2 : 1);
+		var numCols = 0;
+
+		// Iterate over the children, adding them to the table.
+		dojo.forEach(this._children, dojo.hitch(this, function(child, index){
+			
+			var colspan = child.colspan || 1;
+			
+			if(colspan > 1) {
+				colspan = this.showLabels ?
+					Math.min(maxCols - 1, colspan * 2 -1): Math.min(maxCols, colspan);
+			}
+
+			// Create a new row if we need one
+			if(numCols + colspan - 1 + (this.showLabels ? 1 : 0)>= maxCols) {
+				numCols = 0;
+				labelRow = dojo.create("tr", {}, tbody);
+				childRow = this.orientation == "horiz" ? labelRow : dojo.create("tr", {}, tbody);
+			}
+			var labelCell;
+			
+			// If labels should be visible, add them
+			if(this.showLabels) {
+				labelCell = dojo.create("td", {"class": "tableContainer-labelCell"}, labelRow);
+
+				// If the widget should take up both the label and value,
+				// then just set the class on it.
+				if(child.spanLabel) {
+					dojo.attr(labelCell, this.orientation == "vert" ? "rowspan" : "colspan", 2);
+				}
+				else {
+					// Add the custom label class to the label cell
+					addCustomClass(labelCell, "labelCell");
+					var labelProps = {"for": child.get("id")};
+					var label = dojo.create("label", labelProps, labelCell);
+
+					if(Number(this.labelWidth) > -1 ||
+						String(this.labelWidth).indexOf("%") > -1) {
+							
+						// Set the width of the label cell with either a pixel or percentage value
+						dojo.style(labelCell, "width",
+							String(this.labelWidth).indexOf("%") < 0
+								? this.labelWidth + "px" : this.labelWidth);
+					}
+
+					label.innerHTML = child.get("label") || child.get("title");
+				}
+			}
+			var childCell;
+
+			if(child.spanLabel && labelCell) {
+				childCell = labelCell;
+			} else {
+				 childCell = dojo.create("td", {
+				 	"class" : "tableContainer-valueCell"
+				}, childRow);
+			}
+			if(colspan > 1) {
+				dojo.attr(childCell, "colspan", colspan);
+			}
+			
+			// Add the widget cell's custom class, if one exists.
+			addCustomClass(childCell, "valueCell", index);
+
+			childCell.appendChild(child.domNode);
+			numCols += colspan + (this.showLabels ? 1 : 0);
+		}));
+
+		if(this.table)	 {
+			this.table.parentNode.removeChild(this.table);
+		}
+		// Refresh the layout of any child widgets, allowing them to resize
+		// to their new parent.
+		dojo.forEach(children, function(child){
+			if(typeof child.layout == "function") {
+				child.layout();
+			}
+		});
+		this.table = table;
+		this.resize();
+	},
+	
+	destroyDescendants: function(/*Boolean*/ preserveDom){
+		// summary:
+		//      Destroys all the widgets inside this.containerNode,
+		//      but not this widget itself
+		dojo.forEach(this._children, function(child){ child.destroyRecursive(preserveDom); });
+	},
+	
+	_setSpacingAttr: function(value) {
+		// summary:
+		//		Sets the spacing attribute.
+		this.spacing = value;
+		if(this.table) {
+			this.table.cellspacing = Number(value);
+		}
+	}
 });
-},startup:function(){
-if(this._started){
-return;
-}
-this.inherited(arguments);
-if(this._initialized){
-return;
-}
-var _3=this.getChildren();
-if(_3.length<1){
-return;
-}
-this._initialized=true;
-dojo.addClass(this.domNode,"dijitTableLayout");
-dojo.forEach(_3,function(_4){
-if(!_4.started&&!_4._started){
-_4.startup();
-}
+
+// Extend the default widget with both label and title elements, as
+// well as a "spanLabel" attribute.  If a widget
+dojo.extend(dijit._Widget, {
+	// label: String
+	//		The label to display for a given widget
+	label: "",
+	
+	// title: String
+	//		The label to display for a given widget.  This is interchangeable
+	//		with the 'label' parameter, as some widgets already have a use
+	//		for the 'label', and this can be used instead to avoid conflicts.
+	title: "",
+	
+	// spanLabel: Boolean
+	//		Setting spanLabel to true makes the widget take up both the
+	//		label and value cells. Defaults to false.
+	spanLabel: false,
+	
+	// colspan: Number
+	//		The number of columns this widget should span.
+	colspan: 1
 });
-this.resize();
-this.layout();
-},resize:function(){
-dojo.forEach(this.getChildren(),function(_5){
-if(typeof _5.resize=="function"){
-_5.resize();
-}
-});
-},layout:function(){
-if(!this._initialized){
-return;
-}
-var _6=this.getChildren();
-var _7={};
-var _8=this;
-function _9(_a,_b,_c){
-if(_8.customClass!=""){
-var _d=_8.customClass+"-"+(_b||_a.tagName.toLowerCase());
-dojo.addClass(_a,_d);
-if(arguments.length>2){
-dojo.addClass(_a,_d+"-"+_c);
-}
-}
-};
-dojo.forEach(this._children,dojo.hitch(this,function(_e){
-_7[_e.id]=_e;
-}));
-dojo.forEach(_6,dojo.hitch(this,function(_f,_10){
-if(!_7[_f.id]){
-this._children.push(_f);
-}
-}));
-var _11=dojo.create("table",{"width":"100%","class":"tableContainer-table tableContainer-table-"+this.orientation,"cellspacing":this.spacing},this.domNode);
-var _12=dojo.create("tbody");
-_11.appendChild(_12);
-_9(_11,"table",this.orientation);
-var _13=Math.floor(100/this.cols)+"%";
-var _14=dojo.create("tr",{},_12);
-var _15=(!this.showLabels||this.orientation=="horiz")?_14:dojo.create("tr",{},_12);
-var _16=this.cols*(this.showLabels?2:1);
-var _17=0;
-dojo.forEach(this._children,dojo.hitch(this,function(_18,_19){
-var _1a=_18.colspan||1;
-if(_1a>1){
-_1a=this.showLabels?Math.min(_16-1,_1a*2-1):Math.min(_16,_1a);
-}
-if(_17+_1a-1+(this.showLabels?1:0)>=_16){
-_17=0;
-_14=dojo.create("tr",{},_12);
-_15=this.orientation=="horiz"?_14:dojo.create("tr",{},_12);
-}
-var _1b;
-if(this.showLabels){
-_1b=dojo.create("td",{"class":"tableContainer-labelCell"},_14);
-if(_18.spanLabel){
-dojo.attr(_1b,this.orientation=="vert"?"rowspan":"colspan",2);
-}else{
-_9(_1b,"labelCell");
-var _1c={"for":_18.get("id")};
-var _1d=dojo.create("label",_1c,_1b);
-if(Number(this.labelWidth)>-1||String(this.labelWidth).indexOf("%")>-1){
-dojo.style(_1b,"width",String(this.labelWidth).indexOf("%")<0?this.labelWidth+"px":this.labelWidth);
-}
-_1d.innerHTML=_18.get("label")||_18.get("title");
-}
-}
-var _1e;
-if(_18.spanLabel&&_1b){
-_1e=_1b;
-}else{
-_1e=dojo.create("td",{"class":"tableContainer-valueCell"},_15);
-}
-if(_1a>1){
-dojo.attr(_1e,"colspan",_1a);
-}
-_9(_1e,"valueCell",_19);
-_1e.appendChild(_18.domNode);
-_17+=_1a+(this.showLabels?1:0);
-}));
-if(this.table){
-this.table.parentNode.removeChild(this.table);
-}
-dojo.forEach(_6,function(_1f){
-if(typeof _1f.layout=="function"){
-_1f.layout();
-}
-});
-this.table=_11;
-this.resize();
-},destroyDescendants:function(_20){
-dojo.forEach(this._children,function(_21){
-_21.destroyRecursive(_20);
-});
-},_setSpacingAttr:function(_22){
-this.spacing=_22;
-if(this.table){
-this.table.cellspacing=Number(_22);
-}
-}});
-dojo.extend(dijit._Widget,{label:"",title:"",spanLabel:false,colspan:1});
-}

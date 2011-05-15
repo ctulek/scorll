@@ -1,183 +1,328 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojox/data/SnapLogicStore", ["dojo", "dojox", "dojo/io/script", "dojo/data/util/sorter"], function(dojo, dojox) {
 
+dojo.declare("dojox.data.SnapLogicStore", null, {
+	Parts: {
+		DATA: "data",
+		COUNT: "count"
+	},
 
-if(!dojo._hasResource["dojox.data.SnapLogicStore"]){
-dojo._hasResource["dojox.data.SnapLogicStore"]=true;
-dojo.provide("dojox.data.SnapLogicStore");
-dojo.require("dojo.io.script");
-dojo.require("dojo.data.util.sorter");
-dojo.declare("dojox.data.SnapLogicStore",null,{Parts:{DATA:"data",COUNT:"count"},url:"",constructor:function(_1){
-if(_1.url){
-this.url=_1.url;
-}
-this._parameters=_1.parameters;
-},_assertIsItem:function(_2){
-if(!this.isItem(_2)){
-throw new Error("dojox.data.SnapLogicStore: a function was passed an item argument that was not an item");
-}
-},_assertIsAttribute:function(_3){
-if(typeof _3!=="string"){
-throw new Error("dojox.data.SnapLogicStore: a function was passed an attribute argument that was not an attribute name string");
-}
-},getFeatures:function(){
-return {"dojo.data.api.Read":true};
-},getValue:function(_4,_5,_6){
-this._assertIsItem(_4);
-this._assertIsAttribute(_5);
-var i=dojo.indexOf(_4.attributes,_5);
-if(i!==-1){
-return _4.values[i];
-}
-return _6;
-},getAttributes:function(_7){
-this._assertIsItem(_7);
-return _7.attributes;
-},hasAttribute:function(_8,_9){
-this._assertIsItem(_8);
-this._assertIsAttribute(_9);
-for(var i=0;i<_8.attributes.length;++i){
-if(_9==_8.attributes[i]){
-return true;
-}
-}
-return false;
-},isItemLoaded:function(_a){
-return this.isItem(_a);
-},loadItem:function(_b){
-},getLabel:function(_c){
-return undefined;
-},getLabelAttributes:function(_d){
-return null;
-},containsValue:function(_e,_f,_10){
-return this.getValue(_e,_f)===_10;
-},getValues:function(_11,_12){
-this._assertIsItem(_11);
-this._assertIsAttribute(_12);
-var i=dojo.indexOf(_11.attributes,_12);
-if(i!==-1){
-return [_11.values[i]];
-}
-return [];
-},isItem:function(_13){
-if(_13&&_13._store===this){
-return true;
-}
-return false;
-},close:function(_14){
-},_fetchHandler:function(_15){
-var _16=_15.scope||dojo.global;
-if(_15.onBegin){
-_15.onBegin.call(_16,_15._countResponse[0],_15);
-}
-if(_15.onItem||_15.onComplete){
-var _17=_15._dataResponse;
-if(!_17.length){
-_15.onError.call(_16,new Error("dojox.data.SnapLogicStore: invalid response of length 0"),_15);
-return;
-}else{
-if(_15.query!="record count"){
-var _18=_17.shift();
-var _19=[];
-for(var i=0;i<_17.length;++i){
-if(_15._aborted){
-break;
-}
-_19.push({attributes:_18,values:_17[i],_store:this});
-}
-if(_15.sort&&!_15._aborted){
-_19.sort(dojo.data.util.sorter.createSortFunction(_15.sort,self));
-}
-}else{
-_19=[({attributes:["count"],values:_17,_store:this})];
-}
-}
-if(_15.onItem){
-for(var i=0;i<_19.length;++i){
-if(_15._aborted){
-break;
-}
-_15.onItem.call(_16,_19[i],_15);
-}
-_19=null;
-}
-if(_15.onComplete&&!_15._aborted){
-_15.onComplete.call(_16,_19,_15);
-}
-}
-},_partHandler:function(_1a,_1b,_1c){
-if(_1c instanceof Error){
-if(_1b==this.Parts.DATA){
-_1a._dataHandle=null;
-}else{
-_1a._countHandle=null;
-}
-_1a._aborted=true;
-if(_1a.onError){
-_1a.onError.call(_1a.scope,_1c,_1a);
-}
-}else{
-if(_1a._aborted){
-return;
-}
-if(_1b==this.Parts.DATA){
-_1a._dataResponse=_1c;
-}else{
-_1a._countResponse=_1c;
-}
-if((!_1a._dataHandle||_1a._dataResponse!==null)&&(!_1a._countHandle||_1a._countResponse!==null)){
-this._fetchHandler(_1a);
-}
-}
-},fetch:function(_1d){
-_1d._countResponse=null;
-_1d._dataResponse=null;
-_1d._aborted=false;
-_1d.abort=function(){
-if(!_1d._aborted){
-_1d._aborted=true;
-if(_1d._dataHandle&&_1d._dataHandle.cancel){
-_1d._dataHandle.cancel();
-}
-if(_1d._countHandle&&_1d._countHandle.cancel){
-_1d._countHandle.cancel();
-}
-}
-};
-if(_1d.onItem||_1d.onComplete){
-var _1e=this._parameters||{};
-if(_1d.start){
-if(_1d.start<0){
-throw new Error("dojox.data.SnapLogicStore: request start value must be 0 or greater");
-}
-_1e["sn.start"]=_1d.start+1;
-}
-if(_1d.count){
-if(_1d.count<0){
-throw new Error("dojox.data.SnapLogicStore: request count value 0 or greater");
-}
-_1e["sn.limit"]=_1d.count;
-}
-_1e["sn.content_type"]="application/javascript";
-var _1f=this;
-var _20=function(_21,_22){
-if(_21 instanceof Error){
-_1f._fetchHandler(_21,_1d);
-}
-};
-var _23={url:this.url,content:_1e,timeout:60000,callbackParamName:"sn.stream_header",handle:dojo.hitch(this,"_partHandler",_1d,this.Parts.DATA)};
-_1d._dataHandle=dojo.io.script.get(_23);
-}
-if(_1d.onBegin){
-var _1e={};
-_1e["sn.count"]="records";
-_1e["sn.content_type"]="application/javascript";
-var _23={url:this.url,content:_1e,timeout:60000,callbackParamName:"sn.stream_header",handle:dojo.hitch(this,"_partHandler",_1d,this.Parts.COUNT)};
-_1d._countHandle=dojo.io.script.get(_23);
-}
-return _1d;
-}});
-}
+	url: "",
+
+	constructor: function(/* Object */args){
+		//	summary:
+		//		Initialize a SnapLogicStore object.
+		//	args:
+		//		An object that contains properties for initializing the new data store object. The
+		//		following properties are understood:
+		//			url:
+		//				A URL to the SnapLogic pipeline's output routed through PipeToHttp. Typically, this
+		//				will look like "http://<server-host>:<port>/pipe/<pipeline-url>/<pipeline-output-view>".
+		//			parameters:
+		//				An object whose properties define parameters to the pipeline. The values of these
+		//				properties will be sent to the pipeline as parameters when it run.
+		//
+		if(args.url){
+			this.url = args.url;
+		}
+		this._parameters = args.parameters;
+	},
+
+	_assertIsItem: function(/* item */item){
+		//	summary:
+		//		This function tests whether the item passed in is indeed an item in the store.
+		//	item:
+		//		The item to test for being contained by the store.
+		if(!this.isItem(item)){
+			throw new Error("dojox.data.SnapLogicStore: a function was passed an item argument that was not an item");
+		}
+	},
+
+	_assertIsAttribute: function(/* attribute-name-string */ attribute){
+		//	summary:
+		//		This function tests whether the item passed in is indeed a valid 'attribute' like type for the store.
+		//	attribute:
+		//		The attribute to test for being contained by the store.
+		if(typeof attribute !== "string"){
+			throw new Error("dojox.data.SnapLogicStore: a function was passed an attribute argument that was not an attribute name string");
+		}
+	},
+
+	getFeatures: function(){
+		//	summary:
+		//		See dojo.data.api.Read.getFeatures()
+		return {
+			'dojo.data.api.Read': true
+		};
+	},
+
+	getValue: function(item, attribute, defaultValue){
+		//	summary:
+		//		See dojo.data.api.Read.getValue()
+		this._assertIsItem(item);
+		this._assertIsAttribute(attribute);
+		var i = dojo.indexOf(item.attributes, attribute);
+		if(i !== -1){
+			return item.values[i];
+		}
+		return defaultValue;
+	},
+
+	getAttributes: function(item){
+		//	summary:
+		//		See dojo.data.api.Read.getAttributes()
+		this._assertIsItem(item);
+		return item.attributes;
+	},
+
+	hasAttribute: function(item, attribute){
+		//	summary:
+		//		See dojo.data.api.Read.hasAttributes()
+		this._assertIsItem(item);
+		this._assertIsAttribute(attribute);
+		for(var i = 0; i < item.attributes.length; ++i){
+			if(attribute == item.attributes[i]){
+				return true;
+			}
+		}
+		return false;
+	},
+
+	isItemLoaded: function(item){
+		 //	summary:
+		 //		 See dojo.data.api.Read.isItemLoaded()
+		 return this.isItem(item);		// Boolean
+	},
+
+	loadItem: function(keywordArgs){
+		//	summary:
+		//		See dojo.data.api.Read.loadItem()
+	},
+
+	getLabel: function(item){
+		//	summary:
+		//		See dojo.data.api.Read.getLabel()
+		return undefined;
+	},
+	
+	getLabelAttributes: function(item){
+		//	summary:
+		//		See dojo.data.api.Read.getLabelAttributes()
+		return null;
+	},
+
+	containsValue: function(item, attribute, value){
+		//	summary:
+		//		See dojo.data.api.Read.containsValue()
+		return this.getValue(item, attribute) === value;		// Boolean
+	},
+
+	getValues: function(item, attribute){
+		//	summary:
+		//		See dojo.data.api.Read.getValue()
+		this._assertIsItem(item);
+		this._assertIsAttribute(attribute);
+		var i = dojo.indexOf(item.attributes, attribute);
+		if(i !== -1){
+			return [item.values[i]];	// Array
+		}
+		return [];
+	},
+
+	isItem: function(item){
+		//	summary:
+		//		See dojo.data.api.Read.isItem()
+		if(item && item._store === this){
+			return true;
+		}
+		return false;
+	},
+	
+	close: function(request){
+		//	summary:
+		//		See dojo.data.api.Read.close()
+	},
+
+	_fetchHandler: function(/* Object */request){
+		//	summary:
+		//		Process data retrieved via fetch and send it back to requester.
+		//	response:
+		//		The data returend from the I/O transport. In the normal case, it will be an array of result rows
+		//		from the pipeline. In the special case for record count optimization, response will be an array
+		//		with a single element containing the total pipeline result row count. See fetch() for details
+		//		on this optimization.
+
+		var scope = request.scope || dojo.global;
+
+		if(request.onBegin){
+			// Check for the record count optimization
+			request.onBegin.call(scope, request._countResponse[0], request);
+		}
+		
+		if(request.onItem || request.onComplete){
+			var response = request._dataResponse;
+
+			if(!response.length){
+				request.onError.call(scope,
+									 new Error("dojox.data.SnapLogicStore: invalid response of length 0"),
+									 request);
+				return;
+			}else if(request.query != 'record count'){
+				//If this was not a record count request, the first element returned will contain
+				//the field names.
+				var field_names = response.shift();
+				
+				var items = [];
+				for(var i = 0; i < response.length; ++i){
+					if(request._aborted){
+						break;
+					}
+
+					items.push({attributes: field_names, values: response[i], _store: this});
+				}
+
+				if(request.sort && !request._aborted){
+					items.sort(dojo.data.util.sorter.createSortFunction(request.sort, self));
+				}
+			}else{
+				//This is a record count request, so manually set the field names.
+				items = [({attributes: ['count'], values: response, _store: this})];
+			}
+
+			if(request.onItem){
+				for(var i = 0; i < items.length; ++i){
+					if(request._aborted){
+						break;
+					}
+					request.onItem.call(scope, items[i], request);
+				}
+				items = null;
+			}
+
+			if(request.onComplete && !request._aborted){
+				request.onComplete.call(scope, items, request);
+			}
+		}
+	},
+		
+	_partHandler: function(/* Object */request, /* String */part, /* Object */response){
+		//	summary:
+		//		Handle the individual replies for both data and length requests.
+		//	request:
+		//		The request/handle object used with the original fetch() call.
+		//  part:
+		//		A value indicating which request this handler call is for (this.Parts).
+		//	response:
+		//		Response received from the underlying IO transport.
+
+		if(response instanceof Error){
+			if(part == this.Parts.DATA){
+				request._dataHandle = null;
+			}else{
+				request._countHandle = null;
+			}
+			request._aborted = true;
+			if(request.onError){
+				request.onError.call(request.scope, response, request);
+			}
+		}else{
+			if(request._aborted){
+				return;
+			}
+			if(part == this.Parts.DATA){
+				request._dataResponse = response;
+			}else{
+				request._countResponse = response;
+			}
+			if((!request._dataHandle || request._dataResponse !== null) &&
+				(!request._countHandle || request._countResponse !== null)){
+				this._fetchHandler(request);
+			}
+		}
+	},
+
+	fetch: function(/* Object */request){
+		//	summary:
+		//		See dojo.data.api.Read.close()
+		//	request:
+		//		See dojo.data.api.Read.close() for generic interface.
+		//
+		//		In addition to the standard Read API fetch support, this store supports an optimization for
+		//		for retrieving the total count of records in the Pipeline without retrieving the data. To
+		//		use this optimization, simply provide an onBegin handler without an onItem or onComplete handler.
+
+		request._countResponse = null;
+		request._dataResponse = null;
+		request._aborted = false;
+		request.abort = function(){
+			if(!request._aborted){
+				request._aborted = true;
+				if(request._dataHandle && request._dataHandle.cancel){
+					request._dataHandle.cancel();
+				}
+				if(request._countHandle && request._countHandle.cancel){
+					request._countHandle.cancel();
+				}
+			}
+		};
+
+		// Only make the call for data if onItem or onComplete is used. Otherwise, onBegin will only
+		// require the total row count.
+		if(request.onItem || request.onComplete){
+			var content = this._parameters || {};
+			if(request.start){
+				if(request.start < 0){
+					throw new Error("dojox.data.SnapLogicStore: request start value must be 0 or greater");
+				}
+				content['sn.start'] = request.start + 1;
+			}
+			if(request.count){
+				if(request.count < 0){
+					throw new Error("dojox.data.SnapLogicStore: request count value 0 or greater");
+				}
+				content['sn.limit'] = request.count;
+			}
+			
+			content['sn.content_type'] = 'application/javascript';
+
+			var store = this;
+			var handler = function(response, ioArgs){
+				if(response instanceof Error){
+					store._fetchHandler(response, request);
+				}
+			};
+
+			var getArgs = {
+				url: this.url,
+				content: content,
+				// preventCache: true,
+				timeout: 60000,								//Starting a pipeline can take a long time.
+				callbackParamName: "sn.stream_header",
+				handle: dojo.hitch(this, "_partHandler", request, this.Parts.DATA)
+			};
+
+			request._dataHandle = dojo.io.script.get(getArgs);
+		}
+		
+		if(request.onBegin){
+			var content = {};
+			content['sn.count'] = 'records';
+			content['sn.content_type'] = 'application/javascript';
+
+			var getArgs = {
+				url: this.url,
+				content: content,
+				timeout: 60000,
+				callbackParamName: "sn.stream_header",
+				handle: dojo.hitch(this, "_partHandler", request, this.Parts.COUNT)
+			};
+
+			request._countHandle = dojo.io.script.get(getArgs);
+		}
+			
+		return request;			// Object
+	}
+});
+
+return dojox.data.SnapLogicStore;
+});
+

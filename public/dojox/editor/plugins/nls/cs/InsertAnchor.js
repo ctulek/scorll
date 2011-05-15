@@ -1,1 +1,9 @@
-({"set":"Nastavit","insertAnchor":"Vložit kotvu","title":"Vlastnosti kotvy","text":"Popis:","cancel":"Storno","anchor":"Název:"})
+({
+	insertAnchor: "Vložit kotvu",
+	title: "Vlastnosti kotvy",
+	anchor: "Název:",
+	text: "Popis:",
+	set: "Nastavit",
+	cancel: "Storno"
+})
+

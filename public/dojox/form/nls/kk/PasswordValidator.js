@@ -1,1 +1,5 @@
-({"badPasswordMessage":"Құпия сөз дұрыс емес.","nomatchMessage":"Құпия сөздер сәйкес емес."})
+({
+        nomatchMessage: "Құпия сөздер сәйкес емес.",
+		badPasswordMessage: "Құпия сөз дұрыс емес."
+})
+

@@ -1,14 +1,10 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dijit/PopupMenuBarItem", ["dojo", "dijit", "dijit/PopupMenuItem", "dijit/MenuBarItem"], function(dojo, dijit) {
+
+dojo.declare("dijit.PopupMenuBarItem", [dijit.PopupMenuItem, dijit._MenuBarItemMixin], {
+	// summary:
+	//		Item in a MenuBar like "File" or "Edit", that spawns a submenu when pressed (or hovered)
+});
 
 
-if(!dojo._hasResource["dijit.PopupMenuBarItem"]){
-dojo._hasResource["dijit.PopupMenuBarItem"]=true;
-dojo.provide("dijit.PopupMenuBarItem");
-dojo.require("dijit.PopupMenuItem");
-dojo.require("dijit.MenuBarItem");
-dojo.declare("dijit.PopupMenuBarItem",[dijit.PopupMenuItem,dijit._MenuBarItemMixin],{});
-}
+return dijit.PopupMenuBarItem;
+});

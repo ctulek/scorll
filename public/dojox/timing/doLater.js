@@ -1,24 +1,42 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.timing.doLater"]){
-dojo._hasResource["dojox.timing.doLater"]=true;
 dojo.provide("dojox.timing.doLater");
 dojo.experimental("dojox.timing.doLater");
-dojox.timing.doLater=function(_1,_2,_3){
-if(_1){
-return false;
-}
-var _4=dojox.timing.doLater.caller,_5=dojox.timing.doLater.caller.arguments;
-_3=_3||100;
-_2=_2||dojo.global;
-setTimeout(function(){
-_4.apply(_2,_5);
-},_3);
-return true;
-};
+
+dojox.timing.doLater = function(/*anything*/conditional,/*Object ?*/context, /* Number ? */interval){
+	// summary:
+	//		Check if a parameter is ready, and if not,
+	//		"do later". doLater will ping the parameter
+	//		until it evaluates to something (truthy).
+	//		It thens calls the caller with original
+	//		arguments, using the supplied context or
+	//		window.
+	//	description:
+	//		dojox.timing.doLater(conditional) is testing if the call
+	//		should be done later. So it returns
+	//		true if the param is false.
+	//	arguments:
+	//		conditional: anything
+	//			Can be a property that eventually gets set, or
+	//			an expression, method... anything that can be
+	//			evaluated.
+	//		context:	Object
+	//			The namespace where the call originated.
+	//			Defaults to global and anonymous functions
+	//		interval:	Number
+	//			Poll time to check conditional in Milliseconds
+	// example:
+	//		| setTimeout(function(){
+	//		| 		if(dojox.timing.doLater(app.ready)){return;}
+	//		| 		console.log("Code is ready! anonymous.function SUCCESS")
+	//		| 	},700);
+	//
+	if(conditional){ return false; }  // Boolean
+	var callback = dojox.timing.doLater.caller,
+		args = dojox.timing.doLater.caller.arguments;
+	interval = interval || 100;
+	context = context || dojo.global;
+	
+	setTimeout(function(){
+		callback.apply(context, args);
+	},interval);
+	return true; // Boolean
 }

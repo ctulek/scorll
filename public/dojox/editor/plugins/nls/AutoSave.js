@@ -1,1 +1,13 @@
-({"saveLabel":"Save","saveSettingdialogTitle":"Auto-Save","saveSettingdialogButtonOk":"Set Interval","saveMessageSuccess":"Saved at ${0}","saveSettingdialogButtonCancel":"Cancel","saveSettingdialogDescription":"Specify Auto-Save interval","saveSettingLabelOn":"Set Auto-Save Interval...","saveSettingdialogParamLabel":"min","saveSettingdialogParamName":"Auto-Save Interval","saveMessageFail":"Failed to save at ${0}","saveSettingLabelOff":"Turn off Auto-Save"})
+({
+	"saveLabel": "Save",
+	"saveSettingLabelOn": "Set Auto-Save Interval...",
+	"saveSettingLabelOff": "Turn off Auto-Save",
+	"saveSettingdialogTitle": "Auto-Save",
+	"saveSettingdialogDescription": "Specify Auto-Save interval",
+	"saveSettingdialogParamName": "Auto-Save Interval",
+	"saveSettingdialogParamLabel": "min",
+	"saveSettingdialogButtonOk": "Set Interval",
+	"saveSettingdialogButtonCancel": "Cancel",
+	"saveMessageSuccess": "Saved at ${0}",
+	"saveMessageFail": "Failed to save at ${0}"
+})

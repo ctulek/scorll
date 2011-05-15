@@ -1,1 +1,8 @@
-({"descending":"Кему","ascending":"Өсу реті бойынша","nestedSort":"Кірістірілген сұрыптау","unsorted":"Бұл бағанды сұрыптамау","singleSort":"Бір рет сұрыптау","indirectSelectionRadio":"Row ${0}, single selection, radio box","indirectSelectionCheckBox":"Row ${0}, multiple selection, check box","selectAll":"Select all","sortingState":"${0} - ${1}"})
+({
+	singleSort: "Бір рет сұрыптау",
+	nestedSort: "Кірістірілген сұрыптау",
+	ascending: "Өсу реті бойынша",
+	descending: "Кему",
+	unsorted: "Бұл бағанды сұрыптамау"
+})
+

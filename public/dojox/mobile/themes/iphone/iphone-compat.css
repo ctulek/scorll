@@ -1,7 +1,9 @@
-
+/* mbl.widget.Heading */
 .mblHeading {
 	background-image: url(compat/heading-bg.png);
 }
+
+/* Heading Arrow Button */
 .mblArrowButtonHead {
 	position: absolute;
 	top: 6px;
@@ -15,6 +17,8 @@
 	padding: 0px 10px 0px 10px;
 	background-image: url(compat/arrow-button-bg.png);
 }
+
+/* Round Corner */
 .mblRoundCorner {
 	background-color: white;
 	height: 1px;
@@ -56,6 +60,7 @@
 .mblRoundCorner5T {
 	margin: 0px 1px;
 }
+
 .mblRoundCorner0B {
 	height: 0px;
 }
@@ -77,12 +82,17 @@
 	background-color: #ADAAAD;
 	margin: 0px 5px;
 }
+
+/* dojox.mobile.EdgeToEdgeCategory */
 .mblEdgeToEdgeCategory {
 	background-image: url(compat/edge-categ-bg.png);
 }
-*html li.mblListItem.mblVariableHeight { 
+
+/* mbl.widget.ListItem */
+*html li.mblListItem.mblVariableHeight { /* IE6 hack */
 	height: 0;
 }
+
 .mblListItem .mblArrow {
 	border-style: none;
 	top: 16px;
@@ -93,9 +103,13 @@
 .mblItemSelected .mblArrow {
 	background-image: url(compat/white-arrow.png);
 }
+
+/* dojox.mobile.TabBarButton */
 .dj_ie6 .mblTabBarButtonDiv, .dj_ie7 .mblTabBarButtonDiv {
 	left: auto;
 }
+
+/* Switch */
 .mblSwitchInner {
 	width: 100px;
 }
@@ -150,6 +164,7 @@
 	margin: 0px 1px;
 	border-width: 0px 1px;
 }
+
 .mblSwitchCorner1B {
 	background-color: #FBFBFB;
 	margin: 0px 1px;
@@ -165,6 +180,7 @@
 	margin: 0px 4px;
 	border-width: 0px;
 }
+
 .mblSwitchBgLeft .mblSwitchCorner1T {
 	border-width: 0px 2px;
 	background-color: #093889;
@@ -175,6 +191,7 @@
 .mblSwitchBgLeft .mblSwitchCorner3T {
 	background-color: #285AB2;
 }
+
 .mblSwitchBgLeft .mblSwitchCorner1B {
 	background-color: #66A1F6;
 }
@@ -184,6 +201,7 @@
 .mblSwitchBgLeft .mblSwitchCorner3B {
 	background-color: #5289D7;
 }
+
 .mblSwitchText {
 	height: 21px;
 	line-height: 21px;
@@ -197,15 +215,21 @@
 	left: 35px;
 	border-right: 1px solid #848684;
 }
+
+/* Icon Content Heading */
 .mblIconContentHeading {
 	background-image: url(compat/icon-content-heading-bg.png);
 }
+
+/* dojox.mobile.Button */
 .mblBlueButton {
 	background-image: url(compat/blue-button-bg.png);
 }
 .mblBlueButtonSelected {
 	background-image: url(compat/blue-button-sel-bg.png);
 }
+
+/* Tab Container */
 .mblTabPanelHeader {
 	background-image: url(compat/heading-bg.png);
 }
@@ -215,7 +239,7 @@
 .mblTabContainer .mblTabButtonSelected {
 	background-image: url(compat/tab-sel-button-bg.png);
 }
-*html .mblTabButton { 
+*html .mblTabButton { /* IE6 hack */
 	behavior: expression(
 		(function(el){
 			if(!el.previousSibling)
@@ -224,6 +248,8 @@
 		})(this)
 	);
 }
+
+/* Progress Indicator */
 .mblProg {
 	position: absolute;
 	top: 0px;

@@ -1,281 +1,484 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.form.manager._Mixin"]){
-dojo._hasResource["dojox.form.manager._Mixin"]=true;
 dojo.provide("dojox.form.manager._Mixin");
+
 dojo.require("dijit._Widget");
+
 (function(){
-var fm=dojox.form.manager,aa=fm.actionAdapter=function(_1){
-return function(_2,_3,_4){
-if(dojo.isArray(_3)){
-dojo.forEach(_3,function(_5){
-_1.call(this,_2,_5,_4);
-},this);
-}else{
-_1.apply(this,arguments);
-}
-};
-},ia=fm.inspectorAdapter=function(_6){
-return function(_7,_8,_9){
-return _6.call(this,_7,dojo.isArray(_8)?_8[0]:_8,_9);
-};
-},_a={domNode:1,containerNode:1,srcNodeRef:1,bgIframe:1},_b=fm._keys=function(o){
-var _c=[],_d;
-for(_d in o){
-if(o.hasOwnProperty(_d)){
-_c.push(_d);
-}
-}
-return _c;
-},_e=function(_f){
-var _10=_f.get("name");
-if(_10&&_f instanceof dijit.form._FormWidget){
-if(_10 in this.formWidgets){
-var a=this.formWidgets[_10].widget;
-if(dojo.isArray(a)){
-a.push(_f);
-}else{
-this.formWidgets[_10].widget=[a,_f];
-}
-}else{
-this.formWidgets[_10]={widget:_f,connections:[]};
-}
-}else{
-_10=null;
-}
-return _10;
-},_11=function(_12){
-var _13={};
-aa(function(_14,w){
-var o=w.get("observer");
-if(o&&typeof o=="string"){
-dojo.forEach(o.split(","),function(o){
-o=dojo.trim(o);
-if(o&&dojo.isFunction(this[o])){
-_13[o]=1;
-}
-},this);
-}
-}).call(this,null,this.formWidgets[_12].widget);
-return _b(_13);
-},_15=function(_16,_17){
-var t=this.formWidgets[_16],w=t.widget,c=t.connections;
-if(c.length){
-dojo.forEach(c,dojo.disconnect);
-c=t.connections=[];
-}
-if(dojo.isArray(w)){
-dojo.forEach(w,function(w){
-dojo.forEach(_17,function(o){
-c.push(dojo.connect(w,"onChange",this,function(evt){
-if(this.watching&&dojo.attr(w.focusNode,"checked")){
-this[o](w.get("value"),_16,w,evt);
-}
-}));
-},this);
-},this);
-}else{
-var _18=w.declaredClass=="dijit.form.Button"?"onClick":"onChange";
-dojo.forEach(_17,function(o){
-c.push(dojo.connect(w,_18,this,function(evt){
-if(this.watching){
-this[o](w.get("value"),_16,w,evt);
-}
-}));
-},this);
-}
-};
-dojo.declare("dojox.form.manager._Mixin",null,{watching:true,startup:function(){
-if(this._started){
-return;
-}
-this.formWidgets={};
-this.formNodes={};
-this.registerWidgetDescendants(this);
-this.inherited(arguments);
-},destroy:function(){
-for(var _19 in this.formWidgets){
-dojo.forEach(this.formWidgets[_19].connections,dojo.disconnect);
-}
-this.formWidgets={};
-this.inherited(arguments);
-},registerWidget:function(_1a){
-if(typeof _1a=="string"){
-_1a=dijit.byId(_1a);
-}else{
-if(_1a.tagName&&_1a.cloneNode){
-_1a=dijit.byNode(_1a);
-}
-}
-var _1b=_e.call(this,_1a);
-if(_1b){
-_15.call(this,_1b,_11.call(this,_1b));
-}
-return this;
-},unregisterWidget:function(_1c){
-if(_1c in this.formWidgets){
-dojo.forEach(this.formWidgets[_1c].connections,this.disconnect,this);
-delete this.formWidgets[_1c];
-}
-return this;
-},registerWidgetDescendants:function(_1d){
-if(typeof _1d=="string"){
-_1d=dijit.byId(_1d);
-}else{
-if(_1d.tagName&&_1d.cloneNode){
-_1d=dijit.byNode(_1d);
-}
-}
-var _1e=dojo.map(_1d.getDescendants(),_e,this);
-dojo.forEach(_1e,function(_1f){
-if(_1f){
-_15.call(this,_1f,_11.call(this,_1f));
-}
-},this);
-return this.registerNodeDescendants?this.registerNodeDescendants(_1d.domNode):this;
-},unregisterWidgetDescendants:function(_20){
-if(typeof _20=="string"){
-_20=dijit.byId(_20);
-}else{
-if(_20.tagName&&_20.cloneNode){
-_20=dijit.byNode(_20);
-}
-}
-dojo.forEach(dojo.map(_20.getDescendants(),function(w){
-return w instanceof dijit.form._FormWidget&&w.get("name")||null;
-}),function(_21){
-if(_21){
-this.unregisterNode(_21);
-}
-},this);
-return this.unregisterNodeDescendants?this.unregisterNodeDescendants(_20.domNode):this;
-},formWidgetValue:function(_22,_23){
-var _24=arguments.length==2&&_23!==undefined,_25;
-if(typeof _22=="string"){
-_22=this.formWidgets[_22];
-if(_22){
-_22=_22.widget;
-}
-}
-if(!_22){
-return null;
-}
-if(dojo.isArray(_22)){
-if(_24){
-dojo.forEach(_22,function(_26){
-_26.set("checked",false,!this.watching);
-});
-dojo.forEach(_22,function(_27){
-_27.set("checked",_27.value===_23,!this.watching);
-});
-return this;
-}
-dojo.some(_22,function(_28){
-if(dojo.attr(_28.focusNode,"checked")){
-_25=_28;
-return true;
-}
-return false;
-});
-return _25?_25.get("value"):"";
-}
-if(_22.declaredClass=="dijit.form.CheckBox"){
-if(_24){
-_22.set("value",Boolean(_23),!this.watching);
-return this;
-}
-return Boolean(_22.get("value"));
-}
-if(_24){
-_22.set("value",_23,!this.watching);
-return this;
-}
-return _22.get("value");
-},formPointValue:function(_29,_2a){
-if(_29&&typeof _29=="string"){
-_29=this[_29];
-}
-if(!_29||!_29.tagName||!_29.cloneNode){
-return null;
-}
-if(!dojo.hasClass(_29,"dojoFormValue")){
-return null;
-}
-if(arguments.length==2&&_2a!==undefined){
-_29.innerHTML=_2a;
-return this;
-}
-return _29.innerHTML;
-},inspectFormWidgets:function(_2b,_2c,_2d){
-var _2e,_2f={};
-if(_2c){
-if(dojo.isArray(_2c)){
-dojo.forEach(_2c,function(_30){
-if(_30 in this.formWidgets){
-_2f[_30]=_2b.call(this,_30,this.formWidgets[_30].widget,_2d);
-}
-},this);
-}else{
-for(_2e in _2c){
-if(_2e in this.formWidgets){
-_2f[_2e]=_2b.call(this,_2e,this.formWidgets[_2e].widget,_2c[_2e]);
-}
-}
-}
-}else{
-for(_2e in this.formWidgets){
-_2f[_2e]=_2b.call(this,_2e,this.formWidgets[_2e].widget,_2d);
-}
-}
-return _2f;
-},inspectAttachedPoints:function(_31,_32,_33){
-var _34,_35={};
-if(_32){
-if(dojo.isArray(_32)){
-dojo.forEach(_32,function(_36){
-var _37=this[_36];
-if(_37&&_37.tagName&&_37.cloneNode){
-_35[_36]=_31.call(this,_36,_37,_33);
-}
-},this);
-}else{
-for(_34 in _32){
-var _38=this[_34];
-if(_38&&_38.tagName&&_38.cloneNode){
-_35[_34]=_31.call(this,_34,_38,_32[_34]);
-}
-}
-}
-}else{
-for(_34 in this){
-if(!(_34 in _a)){
-var _38=this[_34];
-if(_38&&_38.tagName&&_38.cloneNode){
-_35[_34]=_31.call(this,_34,_38,_33);
-}
-}
-}
-}
-return _35;
-},inspect:function(_39,_3a,_3b){
-var _3c=this.inspectFormWidgets(function(_3d,_3e,_3f){
-if(dojo.isArray(_3e)){
-return _39.call(this,_3d,dojo.map(_3e,function(w){
-return w.domNode;
-}),_3f);
-}
-return _39.call(this,_3d,_3e.domNode,_3f);
-},_3a,_3b);
-if(this.inspectFormNodes){
-dojo.mixin(_3c,this.inspectFormNodes(_39,_3a,_3b));
-}
-return dojo.mixin(_3c,this.inspectAttachedPoints(_39,_3a,_3b));
-}});
+	var fm = dojox.form.manager,
+
+		aa = fm.actionAdapter = function(action){
+			// summary:
+			//		Adapter that automates application of actions to arrays.
+			// action: Function:
+			//		Function that takes three parameters: a name, an object
+			//		(usually node or widget), and a value. This action will
+			//		be applied to all elements of array.
+			return function(name, elems, value){
+				if(dojo.isArray(elems)){
+					dojo.forEach(elems, function(elem){
+						action.call(this, name, elem, value);
+					}, this);
+				}else{
+					action.apply(this, arguments);
+				}
+			};
+		},
+
+		ia = fm.inspectorAdapter = function(inspector){
+			// summary:
+			//		Adapter that applies an inspector only to the first item of the array.
+			// inspector: Function:
+			//		Function that takes three parameters: a name, an object
+			//		(usually node or widget), and a value.
+			return function(name, elem, value){
+				return inspector.call(this, name, dojo.isArray(elem) ? elem[0] : elem, value);
+			};
+		},
+
+		skipNames = {domNode: 1, containerNode: 1, srcNodeRef: 1, bgIframe: 1},
+
+		keys = fm._keys = function(o){
+			// similar to dojox.lang.functional.keys
+			var list = [], key;
+			for(key in o){
+				if(o.hasOwnProperty(key)){
+					list.push(key);
+				}
+			}
+			return list;
+		},
+
+		registerWidget = function(widget){
+			var name = widget.get("name");
+			if(name && widget instanceof dijit.form._FormWidget){
+				if(name in this.formWidgets){
+					var a = this.formWidgets[name].widget;
+					if(dojo.isArray(a)){
+						a.push(widget);
+					}else{
+						this.formWidgets[name].widget = [a, widget];
+					}
+				}else{
+					this.formWidgets[name] = {widget: widget, connections: []};
+				}
+			}else{
+				name = null;
+			}
+			return name;
+		},
+
+		getObserversFromWidget = function(name){
+			var observers = {};
+			aa(function(_, w){
+				var o = w.get("observer");
+				if(o && typeof o == "string"){
+					dojo.forEach(o.split(","), function(o){
+						o = dojo.trim(o);
+						if(o && dojo.isFunction(this[o])){
+							observers[o] = 1;
+						}
+					}, this);
+				}
+			}).call(this, null, this.formWidgets[name].widget);
+			return keys(observers);
+		},
+
+		connectWidget = function(name, observers){
+			var t = this.formWidgets[name], w = t.widget, c = t.connections;
+			if(c.length){
+				dojo.forEach(c, dojo.disconnect);
+				c = t.connections = [];
+			}
+			if(dojo.isArray(w)){
+				// radio buttons
+				dojo.forEach(w, function(w){
+					dojo.forEach(observers, function(o){
+						c.push(dojo.connect(w, "onChange", this, function(evt){
+							// TODO: for some reason for radio button widgets
+							// w.checked != w.focusNode.checked when value changes.
+							// We test the underlying value to be 100% sure.
+							if(this.watching && dojo.attr(w.focusNode, "checked")){
+								this[o](w.get("value"), name, w, evt);
+							}
+						}));
+					}, this);
+				}, this);
+			}else{
+				// the rest
+				// the next line is a crude workaround for dijit.form.Button that fires onClick instead of onChange
+				var eventName = w.declaredClass == "dijit.form.Button" ?
+						"onClick" : "onChange";
+				dojo.forEach(observers, function(o){
+					c.push(dojo.connect(w, eventName, this, function(evt){
+						if(this.watching){
+							this[o](w.get("value"), name, w, evt);
+						}
+					}));
+				}, this);
+			}
+		};
+
+	dojo.declare("dojox.form.manager._Mixin", null, {
+		// summary:
+		//		Mixin to orchestrate dynamic forms.
+		// description:
+		//		This mixin provideas a foundation for an enhanced form
+		//		functionality: unified access to individual form elements,
+		//		unified "onchange" event processing, general event
+		//		processing, I/O orchestration, and common form-related
+		//		functionality. See additional mixins in dojox.form.manager
+		//		namespace.
+
+		watching: true,
+
+		startup: function(){
+			// summary:
+			//		Called after all the widgets have been instantiated and their
+			//		dom nodes have been inserted somewhere under dojo.doc.body.
+
+			if(this._started){ return; }
+
+			this.formWidgets = {};
+			this.formNodes = {};
+			this.registerWidgetDescendants(this);
+
+			this.inherited(arguments);
+		},
+
+		destroy: function(){
+			// summary:
+			//		Called when the widget is being destroyed
+
+			for(var name in this.formWidgets){
+				dojo.forEach(this.formWidgets[name].connections, dojo.disconnect);
+			}
+			this.formWidgets = {};
+
+			this.inherited(arguments);
+		},
+
+		// register/unregister widgets and nodes
+
+		registerWidget: function(widget){
+			// summary:
+			//		Register a widget with the form manager
+			// widget: String|Node|dijit.form._FormWidget:
+			//		A widget, or its widgetId, or its DOM node
+			// returns: Object:
+			//		Returns self
+			if(typeof widget == "string"){
+				widget = dijit.byId(widget);
+			}else if(widget.tagName && widget.cloneNode){
+				widget = dijit.byNode(widget);
+			}
+			var name = registerWidget.call(this, widget);
+			if(name){
+				connectWidget.call(this, name, getObserversFromWidget.call(this, name));
+			}
+			return this;
+		},
+
+		unregisterWidget: function(name){
+			// summary:
+			//		Removes the widget by name from internal tables unregistering
+			//		connected observers
+			// name: String:
+			//		Name of the to unregister
+			// returns: Object:
+			//		Returns self
+			if(name in this.formWidgets){
+				dojo.forEach(this.formWidgets[name].connections, this.disconnect, this);
+				delete this.formWidgets[name];
+			}
+			return this;
+		},
+
+		registerWidgetDescendants: function(widget){
+			// summary:
+			//		Register widget's descendants with the form manager
+			// widget: String|Node|dijit._Widget:
+			//		A widget, or its widgetId, or its DOM node
+			// returns: Object:
+			//		Returns self
+
+			// convert to widget, if required
+			if(typeof widget == "string"){
+				widget = dijit.byId(widget);
+			}else if(widget.tagName && widget.cloneNode){
+				widget = dijit.byNode(widget);
+			}
+
+			// build the map of widgets
+			var widgets = dojo.map(widget.getDescendants(), registerWidget, this);
+
+			// process observers for widgets
+			dojo.forEach(widgets, function(name){
+				if(name){
+					connectWidget.call(this, name, getObserversFromWidget.call(this, name));
+				}
+			}, this);
+
+			// do the same with nodes, if available
+			return this.registerNodeDescendants ?
+				this.registerNodeDescendants(widget.domNode) : this;
+		},
+
+		unregisterWidgetDescendants: function(widget){
+			// summary:
+			//		Unregister widget's descendants with the form manager
+			// widget: String|Node|dijit._Widget:
+			//		A widget, or its widgetId, or its DOM node
+			// returns: Object:
+			//		Returns self
+
+			// convert to widget, if required
+			if(typeof widget == "string"){
+				widget = dijit.byId(widget);
+			}else if(widget.tagName && widget.cloneNode){
+				widget = dijit.byNode(widget);
+			}
+
+			// unregister widgets by names
+			dojo.forEach(
+				dojo.map(
+					widget.getDescendants(),
+					function(w){
+						return w instanceof dijit.form._FormWidget && w.get("name") || null;
+					}
+				),
+				function(name){
+					if(name){
+						this.unregisterNode(name);
+					}
+				},
+				this
+			);
+
+			// do the same with nodes, if available
+			return this.unregisterNodeDescendants ?
+				this.unregisterNodeDescendants(widget.domNode) : this;
+		},
+
+		// value accessors
+
+		formWidgetValue: function(elem, value){
+			// summary:
+			//		Set or get a form widget by name.
+			// elem: String|Object|Array:
+			//		Form element's name, widget object, or array or radio widgets.
+			// value: Object?:
+			//		Optional. The value to set.
+			// returns: Object:
+			//		For a getter it returns the value, for a setter it returns
+			//		self. If the elem is not valid, null will be returned.
+
+			var isSetter = arguments.length == 2 && value !== undefined, result;
+
+			if(typeof elem == "string"){
+				elem = this.formWidgets[elem];
+				if(elem){
+					elem = elem.widget;
+				}
+			}
+
+			if(!elem){
+				return null;	// Object
+			}
+
+			if(dojo.isArray(elem)){
+				// input/radio array of widgets
+				if(isSetter){
+					dojo.forEach(elem, function(widget){
+						widget.set("checked", false, !this.watching);
+					});
+					dojo.forEach(elem, function(widget){
+						widget.set("checked", widget.value === value, !this.watching);
+					});
+					return this;	// self
+				}
+				// getter
+				dojo.some(elem, function(widget){
+					// TODO: for some reason for radio button widgets
+					// w.checked != w.focusNode.checked when value changes.
+					// We test the underlying value to be 100% sure.
+					if(dojo.attr(widget.focusNode, "checked")){
+					//if(widget.get("checked")){
+						result = widget;
+						return true;
+					}
+					return false;
+				});
+				return result ? result.get("value") : "";	// String
+			}
+
+			// checkbox widget is a special case :-(
+			if(elem.declaredClass == "dijit.form.CheckBox"){
+				if(isSetter){
+					elem.set("value", Boolean(value), !this.watching);
+					return this;	// self
+				}
+				return Boolean(elem.get("value"));	// Object
+			}
+
+			// all other elements
+			if(isSetter){
+				elem.set("value", value, !this.watching);
+				return this;	// self
+			}
+			return elem.get("value");	// Object
+		},
+
+		formPointValue: function(elem, value){
+			// summary:
+			//		Set or get a node context by name (using dojoAttachPoint).
+			// elem: String|Object|Array:
+			//		A node.
+			// value: Object?:
+			//		Optional. The value to set.
+			// returns: Object:
+			//		For a getter it returns the value, for a setter it returns
+			//		self. If the elem is not valid, null will be returned.
+
+			if(elem && typeof elem == "string"){
+				elem = this[elem];
+			}
+
+			if(!elem || !elem.tagName || !elem.cloneNode){
+				return null;	// Object
+			}
+
+			if(!dojo.hasClass(elem, "dojoFormValue")){
+				// accessing the value of the attached point not marked with CSS class 'dojoFormValue'
+				return null;
+			}
+
+			if(arguments.length == 2 && value !== undefined){
+				// setter
+				elem.innerHTML = value;
+				return this;	// self
+			}
+			// getter
+			return elem.innerHTML;	// String
+		},
+
+		// inspectors
+
+		inspectFormWidgets: function(inspector, state, defaultValue){
+			// summary:
+			//		Run an inspector function on controlled widgets returning a result object.
+			// inspector: Function:
+			//		A function to be called on a widget. Takes three arguments: a name, a widget object
+			//		or an array of widget objects, and a supplied value. Runs in the context of
+			//		the form manager. Returns a value that will be collected and returned as a state.
+			// state: Object?:
+			//		Optional. If a name-value dictionary --- only listed names will be processed.
+			//		If an array, all names in the array will be processed with defaultValue.
+			//		If omitted or null, all widgets will be processed with defaultValue.
+			// defaultValue: Object?:
+			//		Optional. The default state (true, if omitted).
+
+			var name, result = {};
+
+			if(state){
+				if(dojo.isArray(state)){
+					dojo.forEach(state, function(name){
+						if(name in this.formWidgets){
+							result[name] = inspector.call(this, name, this.formWidgets[name].widget, defaultValue);
+						}
+					}, this);
+				}else{
+					for(name in state){
+						if(name in this.formWidgets){
+							result[name] = inspector.call(this, name, this.formWidgets[name].widget, state[name]);
+						}
+					}
+				}
+			}else{
+				for(name in this.formWidgets){
+					result[name] = inspector.call(this, name, this.formWidgets[name].widget, defaultValue);
+				}
+			}
+
+			return result;	// Object
+		},
+
+		inspectAttachedPoints: function(inspector, state, defaultValue){
+			// summary:
+			//		Run an inspector function on "dojoAttachPoint" nodes returning a result object.
+			// inspector: Function:
+			//		A function to be called on a node. Takes three arguments: a name, a node or
+			//		an array of nodes, and a supplied value. Runs in the context of the form manager.
+			//		Returns a value that will be collected and returned as a state.
+			// state: Object?:
+			//		Optional. If a name-value dictionary --- only listed names will be processed.
+			//		If an array, all names in the array will be processed with defaultValue.
+			//		If omitted or null, all attached point nodes will be processed with defaultValue.
+			// defaultValue: Object?:
+			//		Optional. The default state (true, if omitted).
+
+			var name, result = {};
+
+			if(state){
+				if(dojo.isArray(state)){
+					dojo.forEach(state, function(name){
+						var elem = this[name];
+						if(elem && elem.tagName && elem.cloneNode){
+							result[name] = inspector.call(this, name, elem, defaultValue);
+						}
+					}, this);
+				}else{
+					for(name in state){
+						var elem = this[name];
+						if(elem && elem.tagName && elem.cloneNode){
+							result[name] = inspector.call(this, name, elem, state[name]);
+						}
+					}
+				}
+			}else{
+				for(name in this){
+					if(!(name in skipNames)){
+						var elem = this[name];
+						if(elem && elem.tagName && elem.cloneNode){
+							result[name] = inspector.call(this, name, elem, defaultValue);
+						}
+					}
+				}
+			}
+
+			return result;	// Object
+		},
+
+		inspect: function(inspector, state, defaultValue){
+			// summary:
+			//		Run an inspector function on controlled elements returning a result object.
+			// inspector: Function:
+			//		A function to be called on a widget, form element, and an attached node.
+			//		Takes three arguments: a name, a node (domNode in the case of widget) or
+			//		an array of such objects, and a supplied value. Runs in the context of
+			//		the form manager. Returns a value that will be collected and returned as a state.
+			// state: Object?:
+			//		Optional. If a name-value dictionary --- only listed names will be processed.
+			//		If an array, all names in the array will be processed with defaultValue.
+			//		If omitted or null, all controlled elements will be processed with defaultValue.
+			// defaultValue: Object?:
+			//		Optional. The default state (true, if omitted).
+
+			var result = this.inspectFormWidgets(function(name, widget, value){
+				if(dojo.isArray(widget)){
+					return inspector.call(this, name, dojo.map(widget, function(w){ return w.domNode; }), value);
+				}
+				return inspector.call(this, name, widget.domNode, value);
+			}, state, defaultValue);
+			if(this.inspectFormNodes){
+				dojo.mixin(result, this.inspectFormNodes(inspector, state, defaultValue));
+			}
+			return dojo.mixin(result, this.inspectAttachedPoints(inspector, state, defaultValue));	// Object
+		}
+	});
 })();
-dojo.extend(dijit._Widget,{observer:""});
-}
+
+// These arguments can be specified for widgets which are used in forms.
+// Since any widget can be specified as sub widgets, mix it into the base
+// widget class.  (This is a hack, but it's effective.)
+dojo.extend(dijit._Widget, {
+	observer: ""
+});

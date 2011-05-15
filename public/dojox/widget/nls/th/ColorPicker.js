@@ -1,1 +1,11 @@
-({"redLabel":"อาร์","valueLabel":"วี","hueLabel":"เอช","saturationLabel":"เอส","saturationPickerTitle":"ตัวเลือกความอิ่มของสี","huePickerTitle":"ตัวเลือกสี","greenLabel":"จี","blueLabel":"บี","hexLabel":"hex","degLabel":"°"})
+({
+redLabel: "อาร์",
+greenLabel: "จี",
+blueLabel: "บี",
+hueLabel: "เอช",
+saturationLabel: "เอส",
+valueLabel: "วี", /* aka intensity or brightness */
+huePickerTitle: "ตัวเลือกสี",
+saturationPickerTitle: "ตัวเลือกความอิ่มของสี"
+})
+

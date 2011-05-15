@@ -1,1 +1,14 @@
-({"saveLabel":"Salvare","saveSettingdialogTitle":"Auto-salvare","saveSettingdialogButtonOk":"Setare interval","saveMessageSuccess":"Salvat la ${0}","saveSettingdialogButtonCancel":"Anulare","saveSettingdialogDescription":"Specificare interval auto-salvare","saveSettingLabelOn":"Setare interval auto-salvare...","saveSettingdialogParamLabel":"min","saveSettingdialogParamName":"Interval auto-salvare","saveMessageFail":"A eşuat să salveze la${0}","saveSettingLabelOff":"Oprire auto-salvare"})
+({
+	"saveLabel": "Salvare",
+	"saveSettingLabelOn": "Setare interval auto-salvare...",
+	"saveSettingLabelOff": "Oprire auto-salvare",
+	"saveSettingdialogTitle": "Auto-salvare",
+	"saveSettingdialogDescription": "Specificare interval auto-salvare",
+	"saveSettingdialogParamName": "Interval auto-salvare",
+	"saveSettingdialogParamLabel": "min",
+	"saveSettingdialogButtonOk": "Setare interval",
+	"saveSettingdialogButtonCancel": "Anulare",
+	"saveMessageSuccess": "Salvat la ${0}",
+	"saveMessageFail": "A eşuat să salveze la${0}"
+})
+

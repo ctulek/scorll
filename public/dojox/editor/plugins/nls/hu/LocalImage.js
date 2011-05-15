@@ -1,1 +1,11 @@
-({"set":"Beszúrás","text":"Leírás","insertImageTitle":"Kép beszúrása","invalidMessage":"Érvénytelen képfájltípus","prePopuTextBrowse":" vagy tallózással válasszon ki egy helyi fájlt.","browse":"Tallózás...","prePopuTextUrl":"Adja meg a kép URL címét","url":"Kép"})
+({
+	insertImageTitle: "Kép beszúrása",
+	url: "Kép",
+	browse: "Tallózás...",
+	text: "Leírás",
+	set: "Beszúrás",
+	invalidMessage: "Érvénytelen képfájltípus",
+	prePopuTextUrl: "Adja meg a kép URL címét",
+	prePopuTextBrowse: " vagy tallózással válasszon ki egy helyi fájlt."
+})
+

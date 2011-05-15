@@ -1,1 +1,3 @@
-({"showBlockNodes":"Vis HTML-blokkelementer"})
+({
+	"showBlockNodes": "Vis HTML-blokkelementer"
+})

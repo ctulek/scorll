@@ -1,1 +1,3 @@
-({"insertEntity":"Sett inn symbol"})
+({
+	insertEntity: "Sett inn symbol"
+})

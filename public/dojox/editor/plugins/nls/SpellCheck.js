@@ -1,1 +1,16 @@
-({"cancel":"Cancel","toDic":"Add to dictionary","skip":"Skip","iMsg":"No spelling suggestions","replaceAll":"Replace All","widgetLabel":"Batch Spell Check","skipAll":"Skip All","suggestions":"Suggestions","iSkipAll":"Skip all like this","replaceWith":"Replace with","msg":"No misspellings found","replace":"Replace","unfound":"Not found","iSkip":"Skip this"})
+({
+	widgetLabel: "Batch Spell Check",
+	unfound: "Not found",
+	skip: "Skip",
+	skipAll: "Skip All",
+	toDic: "Add to dictionary",
+	suggestions: "Suggestions",
+	replace: "Replace",
+	replaceWith: "Replace with",
+	replaceAll: "Replace All",
+	cancel: "Cancel",
+	msg: "No misspellings found",
+	iSkip: "Skip this",
+	iSkipAll: "Skip all like this",
+	iMsg: "No spelling suggestions"
+})

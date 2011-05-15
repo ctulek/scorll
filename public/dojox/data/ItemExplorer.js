@@ -1,12 +1,3 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.data.ItemExplorer"]){
-dojo._hasResource["dojox.data.ItemExplorer"]=true;
 dojo.provide("dojox.data.ItemExplorer");
 dojo.require("dijit.Tree");
 dojo.require("dijit.Dialog");
@@ -16,446 +7,620 @@ dojo.require("dijit.form.Textarea");
 dojo.require("dijit.form.Button");
 dojo.require("dijit.form.CheckBox");
 dojo.require("dijit.form.FilteringSelect");
+
 (function(){
-var _1=function(_2,_3,_4){
-var _5=_2.getValues(_3,_4);
-if(_5.length<2){
-_5=_2.getValue(_3,_4);
-}
-return _5;
-};
-dojo.declare("dojox.data.ItemExplorer",dijit.Tree,{useSelect:false,refSelectSearchAttr:null,constructor:function(_6){
-dojo.mixin(this,_6);
-var _7=this;
-var _8={};
-var _9=this.rootModelNode={value:_8,id:"root"};
-this._modelNodeIdMap={};
-this._modelNodePropMap={};
-var _a=1;
-this.model={getRoot:function(_b){
-_b(_9);
-},mayHaveChildren:function(_c){
-return _c.value&&typeof _c.value=="object"&&!(_c.value instanceof Date);
-},getChildren:function(_d,_e,_f){
-var _10,_11,_12=_d.value;
-var _13=[];
-if(_12==_8){
-_e([]);
-return;
-}
-var _14=_7.store&&_7.store.isItem(_12,true);
-if(_14&&!_7.store.isItemLoaded(_12)){
-_7.store.loadItem({item:_12,onItem:function(_15){
-_12=_15;
-_16();
-}});
-}else{
-_16();
-}
-function _16(){
-if(_14){
-_10=_7.store.getAttributes(_12);
-_11=_12;
-}else{
-if(_12&&typeof _12=="object"){
-_11=_d.value;
-_10=[];
-for(var i in _12){
-if(_12.hasOwnProperty(i)&&i!="__id"&&i!="__clientId"){
-_10.push(i);
-}
-}
-}
-}
-if(_10){
-for(var key,k=0;key=_10[k++];){
-_13.push({property:key,value:_14?_1(_7.store,_12,key):_12[key],parent:_11});
-}
-_13.push({addNew:true,parent:_11,parentNode:_d});
-}
-_e(_13);
-};
-},getIdentity:function(_17){
-if(!_17.id){
-if(_17.addNew){
-_17.property="--addNew";
-}
-_17.id=_a++;
-if(_7.store){
-if(_7.store.isItem(_17.value)){
-var _18=_7.store.getIdentity(_17.value);
-(_7._modelNodeIdMap[_18]=_7._modelNodeIdMap[_18]||[]).push(_17);
-}
-if(_17.parent){
-_18=_7.store.getIdentity(_17.parent)+"."+_17.property;
-(_7._modelNodePropMap[_18]=_7._modelNodePropMap[_18]||[]).push(_17);
-}
-}
-}
-return _17.id;
-},getLabel:function(_19){
-return _19===_9?"Object Properties":_19.addNew?(_19.parent instanceof Array?"Add new value":"Add new property"):_19.property+": "+(_19.value instanceof Array?"("+_19.value.length+" elements)":_19.value);
-},onChildrenChange:function(_1a){
-},onChange:function(_1b){
-}};
-},postCreate:function(){
-this.inherited(arguments);
-dojo.connect(this,"onClick",function(_1c,_1d){
-this.lastFocused=_1d;
-if(_1c.addNew){
-this._addProperty();
-}else{
-this._editProperty();
-}
+	var getValue = function(store, item, prop){
+		var value = store.getValues(item, prop);
+		if(value.length < 2){
+			value = store.getValue(item, prop);
+		}
+		return value;
+	}
+
+dojo.declare("dojox.data.ItemExplorer", dijit.Tree, {
+	useSelect: false,
+	refSelectSearchAttr: null,
+	constructor: function(options){
+		dojo.mixin(this, options);
+		var self = this;
+		var initialRootValue = {};
+		var root = this.rootModelNode = {value:initialRootValue,id:"root"};
+
+		this._modelNodeIdMap = {};
+		this._modelNodePropMap = {};
+		var nextId = 1;
+		this.model = {
+			getRoot: function(onItem){
+				onItem(root);
+			},
+			mayHaveChildren: function(modelNode){
+				return modelNode.value && typeof modelNode.value == 'object' && !(modelNode.value instanceof Date);
+			},
+			getChildren: function(parentModelNode, onComplete, onError){
+				var keys, parent, item = parentModelNode.value;
+				var children = [];
+				if(item == initialRootValue){
+					onComplete([]);
+					return;
+				}
+				var isItem = self.store && self.store.isItem(item, true);
+				if(isItem && !self.store.isItemLoaded(item)){
+					// if it is not loaded, do so now.
+					self.store.loadItem({
+						item:item,
+						onItem:function(loadedItem){
+							item = loadedItem;
+							enumerate();
+						}
+					});
+				}else{
+					enumerate();
+				}
+				function enumerate(){
+					// once loaded, enumerate the keys
+					if(isItem){
+						// get the properties through the dojo data API
+						keys = self.store.getAttributes(item);
+						parent = item;
+					}else if(item && typeof item == 'object'){
+						parent = parentModelNode.value;
+						keys = [];
+						// also we want to be able to drill down into plain JS objects/arrays
+						for(var i in item){
+							if(item.hasOwnProperty(i) && i != '__id' && i != '__clientId'){
+								keys.push(i);
+							}
+						}
+					}
+					if(keys){
+						for(var key, k=0; key = keys[k++];){
+							children.push({
+								property:key,
+								value: isItem ? getValue(self.store, item, key) : item[key],
+								parent:	parent});
+						}
+						children.push({addNew:true, parent: parent, parentNode : parentModelNode});
+					}
+					onComplete(children);
+				}
+			},
+			getIdentity: function(modelNode){
+				if(!modelNode.id){
+					if(modelNode.addNew){
+						modelNode.property = "--addNew";
+					}
+					modelNode.id = nextId++;
+					if(self.store){
+						if(self.store.isItem(modelNode.value)){
+							var identity = self.store.getIdentity(modelNode.value);
+							(self._modelNodeIdMap[identity] = self._modelNodeIdMap[identity] || []).push(modelNode);
+						}
+						if(modelNode.parent){
+							identity = self.store.getIdentity(modelNode.parent) + '.' + modelNode.property;
+							(self._modelNodePropMap[identity] = self._modelNodePropMap[identity] || []).push(modelNode);
+						}
+					}
+				}
+				return modelNode.id;
+			},
+			getLabel: function(modelNode){
+				return modelNode === root ?
+						"Object Properties" :
+							modelNode.addNew ? (modelNode.parent instanceof Array ? "Add new value" : "Add new property") :
+								modelNode.property + ": " +
+									(modelNode.value instanceof Array ? "(" + modelNode.value.length + " elements)" : modelNode.value);
+			},
+			onChildrenChange: function(modelNode){
+			},
+			onChange: function(modelNode){
+			}
+		};
+	},
+	postCreate: function(){
+		this.inherited(arguments);
+		// handle the clicking on the "add new property item"
+		dojo.connect(this, "onClick", function(modelNode, treeNode){
+			this.lastFocused = treeNode;
+			if(modelNode.addNew){
+				//this.focusNode(treeNode.getParent());
+				this._addProperty();
+			}else{
+				this._editProperty();
+			}
+		});
+		var contextMenu = new dijit.Menu({
+			targetNodeIds: [this.rootNode.domNode],
+			id: "contextMenu"
+			});
+		dojo.connect(contextMenu, "_openMyself", this, function(e){
+			var node = dijit.getEnclosingWidget(e.target);
+			if(node){
+				var item = node.item;
+				if(this.store.isItem(item.value, true) && !item.parent){
+					dojo.forEach(contextMenu.getChildren(), function(widget){
+						widget.attr("disabled", (widget.label != "Add"));
+					});
+					this.lastFocused = node;
+					// TODO: Root Node - allow Edit when mutli-value editing is possible
+				}else if(item.value && typeof item.value == 'object' && !(item.value instanceof Date)){
+					// an object that's not a Date - could be a store item
+					dojo.forEach(contextMenu.getChildren(), function(widget){
+						widget.attr("disabled", (widget.label != "Add") && (widget.label != "Delete"));
+					});
+					this.lastFocused = node;
+					// TODO: Object - allow Edit when mutli-value editing is possible
+				}else if(item.property && dojo.indexOf(this.store.getIdentityAttributes(), item.property) >= 0){ // id node
+					this.focusNode(node);
+					alert("Cannot modify an Identifier node.");
+				}else if(item.addNew){
+					this.focusNode(node);
+				}else{
+					dojo.forEach(contextMenu.getChildren(), function(widget){
+						widget.attr("disabled", (widget.label != "Edit") && (widget.label != "Delete"));
+					})
+					// this won't focus the node but gives us a way to reference the node
+					this.lastFocused = node;
+				}
+			}
+		});
+		contextMenu.addChild(new dijit.MenuItem({label: "Add", onClick: dojo.hitch(this, "_addProperty")}));
+		contextMenu.addChild(new dijit.MenuItem({label: "Edit", onClick: dojo.hitch(this, "_editProperty")}));
+		contextMenu.addChild(new dijit.MenuItem({label: "Delete", onClick: dojo.hitch(this, "_destroyProperty")}));
+		contextMenu.startup();
+	},
+	store: null,
+	setStore: function(store){
+		this.store = store;
+		var self = this;
+		if(this._editDialog){
+			this._editDialog.destroyRecursive();
+			delete this._editDialog;
+		}
+		// i think we should just destroy this._editDialog and let _createEditDialog take care of everything
+		// once it gets called again by either _editProperty or _addProperty - it will create everything again
+		// using the new store.	this way we don't need to keep track of what is in the dialog if we change it.
+		/*if(this._editDialog && this.useSelect){
+			dojo.query(".reference [widgetId]", this._editDialog.containerNode).forEach(function(node){
+				dijit.getEnclosingWidget(node).attr("store", store);
+			});
+		}*/
+		dojo.connect(store, "onSet", function(item, attribute, oldValue, newValue){
+			var nodes, i, identity = self.store.getIdentity(item);
+			nodes = self._modelNodeIdMap[identity];
+
+			if(nodes &&
+					(oldValue === undefined || newValue === undefined ||
+					oldValue instanceof Array || newValue instanceof Array || typeof oldValue == 'object' || typeof newValue == 'object')){
+				for(i = 0; i < nodes.length; i++){
+					(function(node){
+						self.model.getChildren(node, function(children){
+							self.model.onChildrenChange(node, children);
+						});
+					})(nodes[i]);
+				}
+			}
+			nodes = self._modelNodePropMap[identity + "." + attribute];
+
+			if(nodes){
+				for(i = 0; i < nodes.length; i++){
+					nodes[i].value = newValue;
+					self.model.onChange(nodes[i]);
+				}
+			}
+		});
+		this.rootNode.setChildItems([]);
+	},
+	setItem: function(item){
+		// this is called to show a different item
+
+		// reset the maps, for the root getIdentity is not called, so we pre-initialize it here
+		(this._modelNodeIdMap = {})[this.store.getIdentity(item)] = [this.rootModelNode];
+		this._modelNodePropMap = {};
+
+		this.rootModelNode.value = item;
+		var self = this;
+		this.model.getChildren(this.rootModelNode, function(children){
+			self.rootNode.setChildItems(children);
+		});
+
+	},
+	refreshItem: function(){
+		this.setItem(this.rootModelNode.value);
+	},
+	_createEditDialog: function(){
+		this._editDialog = new dijit.Dialog({
+			 title: "Edit Property",
+			 execute: dojo.hitch(this, "_updateItem"),
+			 preload: true
+		});
+		this._editDialog.placeAt(dojo.body());
+		this._editDialog.startup();
+
+		// handle for dialog content
+		var pane = dojo.doc.createElement('div');
+
+		// label for property
+		var labelProp = dojo.doc.createElement('label');
+		dojo.attr(labelProp, "for", "property");
+		dojo.style(labelProp, "fontWeight", "bold");
+		dojo.attr(labelProp, "innerHTML", "Property:")
+		pane.appendChild(labelProp);
+
+		// property name field
+		var propName = new dijit.form.ValidationTextBox({
+			name: "property",
+			value: "",
+			required: true,
+			disabled: true
+		}).placeAt(pane);
+
+		pane.appendChild(dojo.doc.createElement("br"));
+		pane.appendChild(dojo.doc.createElement("br"));
+
+		// radio button for "value"
+		var value = new dijit.form.RadioButton({
+			name: "itemType",
+			value: "value",
+			onClick: dojo.hitch(this, function(){this._enableFields("value");})
+		}).placeAt(pane);
+
+		// label for value
+		var labelVal = dojo.doc.createElement('label');
+		dojo.attr(labelVal, "for", "value");
+		dojo.attr(labelVal, "innerHTML", "Value (JSON):")
+		pane.appendChild(labelVal);
+
+		 // container for value fields
+		var valueDiv = dojo.doc.createElement("div");
+		dojo.addClass(valueDiv, "value");
+
+		// textarea
+		var textarea = new dijit.form.Textarea({
+			name: "jsonVal"
+		}).placeAt(valueDiv);
+		pane.appendChild(valueDiv);
+
+		// radio button for "reference"
+		var reference = new dijit.form.RadioButton({
+			name: "itemType",
+			value: "reference",
+			onClick: dojo.hitch(this, function(){this._enableFields("reference");})
+		}).placeAt(pane);
+
+		// label for reference
+		var labelRef = dojo.doc.createElement('label');
+		dojo.attr(labelRef, "for", "_reference");
+		dojo.attr(labelRef, "innerHTML", "Reference (ID):")
+		pane.appendChild(labelRef);
+		pane.appendChild(dojo.doc.createElement("br"));
+
+		// container for reference fields
+		var refDiv = dojo.doc.createElement("div");
+		dojo.addClass(refDiv, "reference");
+
+		if(this.useSelect){
+			// filteringselect
+			// TODO: see if there is a way to sort the items in this list
+			var refSelect = new dijit.form.FilteringSelect({
+				name: "_reference",
+				store: this.store,
+				searchAttr: this.refSelectSearchAttr || this.store.getIdentityAttributes()[0],
+				required: false,
+				value: null,		// need to file a ticket about the fetch that happens when declared with value: null
+				pageSize: 10
+			}).placeAt(refDiv);
+		}else{
+			var refTextbox = new dijit.form.ValidationTextBox({
+				name: "_reference",
+				value: "",
+				promptMessage: "Enter the ID of the item to reference",
+				isValid: dojo.hitch(this, function(isFocused){
+					// don't validate while it's focused
+					return true;//isFocused || this.store.getItemByIdentity(this._editDialog.attr("value")._reference);
+				})
+			}).placeAt(refDiv);
+		}
+		pane.appendChild(refDiv);
+		pane.appendChild(dojo.doc.createElement("br"));
+		pane.appendChild(dojo.doc.createElement("br"));
+
+		// buttons
+		var buttons = document.createElement('div');
+		buttons.setAttribute("dir", "rtl");
+		var cancelButton = new dijit.form.Button({type: "reset", label: "Cancel"}).placeAt(buttons);
+		cancelButton.onClick = dojo.hitch(this._editDialog, "onCancel");
+		var okButton = new dijit.form.Button({type: "submit", label: "OK"}).placeAt(buttons);
+		pane.appendChild(buttons);
+
+		this._editDialog.attr("content", pane);
+	},
+	_enableFields: function(selection){
+		// enables/disables fields based on whether the value in this._editDialog is a reference or a primitive value
+		switch(selection){
+			case "reference":
+				dojo.query(".value [widgetId]", this._editDialog.containerNode).forEach(function(node){
+					dijit.getEnclosingWidget(node).attr("disabled", true);
+				});
+				dojo.query(".reference [widgetId]", this._editDialog.containerNode).forEach(function(node){
+					dijit.getEnclosingWidget(node).attr("disabled", false);
+				});
+				break;
+			case "value":
+				dojo.query(".value [widgetId]", this._editDialog.containerNode).forEach(function(node){
+					dijit.getEnclosingWidget(node).attr("disabled", false);
+				});
+				dojo.query(".reference [widgetId]", this._editDialog.containerNode).forEach(function(node){
+					dijit.getEnclosingWidget(node).attr("disabled", true);
+				});
+				break;
+		}
+	},
+	_updateItem: function(vals){
+		// a single "execute" function that handles adding and editing of values and references.
+		var node, item, val, storeItemVal, editingItem = this._editDialog.attr("title") == "Edit Property";
+		var editDialog = this._editDialog;
+		var store = this.store;
+		function setValue(){
+			try{
+				var itemVal, propPath = [];
+				var prop = vals.property;
+				if(editingItem){
+					while(!store.isItem(item.parent, true)){
+						node = node.getParent();
+						propPath.push(item.property);
+						item = node.item;
+					}
+					if(propPath.length == 0){
+						// working with an item attribute already
+						store.setValue(item.parent, item.property, val);
+					}else{
+						// need to walk back down the item property to the object
+						storeItemVal = getValue(store, item.parent, item.property);
+						if(storeItemVal instanceof Array){
+							// create a copy for modification
+							storeItemVal = storeItemVal.concat();
+						}
+						itemVal = storeItemVal;
+						while(propPath.length > 1){
+							itemVal = itemVal[propPath.pop()];
+						}
+						itemVal[propPath] = val; // this change is reflected in storeItemVal as well
+						store.setValue(item.parent, item.property, storeItemVal);
+					}
+				}else{
+					// adding a property
+					if(store.isItem(value, true)){
+						// adding a top-level property to an item
+						if(!store.isItemLoaded(value)){
+							// fetch the value and see if it is an array
+							store.loadItem({
+								item: value,
+								onItem: function(loadedItem){
+									if(loadedItem instanceof Array){
+										prop = loadedItem.length;
+									}
+									store.setValue(loadedItem, prop, val);
+								}
+							});
+						}else{
+							if(value instanceof Array){
+								prop = value.length;
+							}
+							store.setValue(value, prop, val);
+						}
+					}else{
+						// adding a property to a lower level in an item
+						if(item.value instanceof Array){
+							propPath.push(item.value.length);
+						}else{
+							propPath.push(vals.property);
+						}
+						while(!store.isItem(item.parent, true)){
+							node = node.getParent();
+							propPath.push(item.property);
+							item = node.item;
+						}
+						storeItemVal = getValue(store, item.parent, item.property);
+						itemVal = storeItemVal;
+						while(propPath.length > 1){
+							itemVal = itemVal[propPath.pop()];
+						}
+						itemVal[propPath] = val;
+						store.setValue(item.parent, item.property, storeItemVal);
+					}
+				}
+			}catch(e){
+				alert(e);
+			}
+		}
+
+		if(editDialog.validate()){
+			node = this.lastFocused;
+			item = node.item;
+			var value = item.value;
+			// var property = null;
+			if(item.addNew){
+				// we are adding a property to the parent item
+				// the real value of the parent is in the parent property of the lastFocused item
+				// this.lastFocused.getParent().item.value may be a reference to an item
+				value = node.item.parent;
+				node = node.getParent();
+				item = node.item;
+			}
+			val = null;
+			switch(vals.itemType){
+				case "reference":
+					this.store.fetchItemByIdentity({identity:vals._reference,
+						onItem:function(item){
+							val = item;
+							setValue();
+						},
+						onError:function(){
+							alert("The id could not be found");
+						}
+					});
+					break;
+				case "value":
+					var jsonVal = vals.jsonVal;
+					val = dojo.fromJson(jsonVal);
+					// ifit is a function we want to preserve the source (comments, et al)
+					if(typeof val == 'function'){
+						val.toString = function(){
+							return jsonVal;
+						}
+					}
+					setValue();
+					break;
+			}
+		}else{
+			// the form didn't validate - show it again.
+			editDialog.show();
+		}
+	},
+	_editProperty: function(){
+		// this mixin stops us polluting the tree item with jsonVal etc.
+		// FIXME: if a store identifies items by instanceof checks, this will fail
+		var item = dojo.mixin({}, this.lastFocused.item);
+		// create the dialog or reset it if it already exists
+		if(!this._editDialog){
+			this._createEditDialog();
+		}else{
+			this._editDialog.reset();
+		}
+		// not allowed to edit an item's id - so check for that and stop it.
+		if(dojo.indexOf(this.store.getIdentityAttributes(), item.property) >= 0){
+			alert("Cannot Edit an Identifier!");
+		}else{
+			this._editDialog.attr("title", "Edit Property");
+			// make sure the property input is disabled
+			dijit.getEnclosingWidget(dojo.query("input", this._editDialog.containerNode)[0]).attr("disabled", true);
+			if(this.store.isItem(item.value, true)){
+				// root node || Item reference
+				if(item.parent){
+					// Item reference
+					item.itemType = "reference";
+					this._enableFields(item.itemType);
+					item._reference = this.store.getIdentity(item.value);
+					this._editDialog.attr("value", item);
+					this._editDialog.show();
+				} // else root node
+			}else{
+				if(item.value && typeof item.value == 'object' && !(item.value instanceof Date)){
+					// item.value is an object but it's NOT an item from the store - no-op
+					// only allow editing on a property not on the node that represents the object/array
+				}else{
+					// this is a primitive
+					item.itemType = "value";
+					this._enableFields(item.itemType);
+					item.jsonVal = typeof item.value == 'function' ?
+							// use the plain toString for functions, dojo.toJson doesn't support functions
+							item.value.toString() :
+								item.value instanceof Date ?
+									// A json-ish form of a date:
+									'new Date("' + item.value + '")' :
+									dojo.toJson(item.value);
+					this._editDialog.attr("value", item);
+					this._editDialog.show();
+				}
+			}
+		}
+	},
+	_destroyProperty: function(){
+		var node = this.lastFocused;
+		var item = node.item;
+		var propPath = [];
+		// we have to walk up the tree to the item before we can know if we're working with the identifier
+		while(!this.store.isItem(item.parent, true) || item.parent instanceof Array){
+			node = node.getParent();
+			propPath.push(item.property);
+			item = node.item;
+		}
+		// this will prevent any part of the identifier from being changed
+		if(dojo.indexOf(this.store.getIdentityAttributes(), item.property) >= 0){
+			alert("Cannot Delete an Identifier!");
+		}else{
+			try{
+				if(propPath.length > 0){
+					// not deleting a top-level property of an item so get the top-level store item to change
+					var itemVal, storeItemVal = getValue(this.store, item.parent, item.property);
+					itemVal = storeItemVal;
+					// walk back down the object if needed
+					while(propPath.length > 1){
+						itemVal = itemVal[propPath.pop()];
+					}
+					// delete the property
+					if(dojo.isArray(itemVal)){
+						// the value being deleted represents an array element
+						itemVal.splice(propPath, 1);
+					}else{
+						// object property
+						delete itemVal[propPath];
+					}
+					// save it back to the store
+					this.store.setValue(item.parent, item.property, storeItemVal);
+				}else{
+					// deleting an item property
+					this.store.unsetAttribute(item.parent, item.property);
+				}
+			}catch(e){
+				alert(e);
+			}
+		}
+	},
+	_addProperty: function(){
+		// item is what we are adding a property to
+		var item = this.lastFocused.item;
+		// value is the real value of the item - not a reference to a store item
+		var value = item.value;
+		var showDialog = dojo.hitch(this, function(){
+			var property = null;
+			if(!this._editDialog){
+				this._createEditDialog();
+			}else{
+				this._editDialog.reset();
+			}
+			// are we adding another item to an array?
+			if(value instanceof Array){
+				// preset the property to the next index in the array and disable the property field
+				property = value.length;
+				dijit.getEnclosingWidget(dojo.query("input", this._editDialog.containerNode)[0]).attr("disabled", true);
+			}else{
+				// enable the property TextBox
+				dijit.getEnclosingWidget(dojo.query("input", this._editDialog.containerNode)[0]).attr("disabled", false);
+			}
+			this._editDialog.attr("title", "Add Property");
+			// default to a value type
+			this._enableFields("value");
+			this._editDialog.attr("value", {itemType: "value", property: property});
+			this._editDialog.show();
+		});
+
+		if(item.addNew){
+			// we are adding a property to the parent item
+			item = this.lastFocused.getParent().item;
+			// the real value of the parent is in the parent property of the lastFocused item
+			// this.lastFocused.getParent().item.value may be a reference to an item
+			value = this.lastFocused.item.parent;
+		}
+		if(item.property && dojo.indexOf(this.store.getIdentityAttributes(), item.property) >= 0){
+			alert("Cannot add properties to an ID node!");
+		}else{
+			// ifthe value is an item then we need to get the item's value
+			if(this.store.isItem(value, true) && !this.store.isItemLoaded(value)){
+				// fetch the value and see if it is an array
+				this.store.loadItem({
+					item: value,
+					onItem: function(loadedItem){
+						value = loadedItem;
+						showDialog();
+					}
+				});
+			}else{
+				showDialog();
+			}
+//
+		}
+	}
 });
-var _1e=new dijit.Menu({targetNodeIds:[this.rootNode.domNode],id:"contextMenu"});
-dojo.connect(_1e,"_openMyself",this,function(e){
-var _1f=dijit.getEnclosingWidget(e.target);
-if(_1f){
-var _20=_1f.item;
-if(this.store.isItem(_20.value,true)&&!_20.parent){
-dojo.forEach(_1e.getChildren(),function(_21){
-_21.attr("disabled",(_21.label!="Add"));
-});
-this.lastFocused=_1f;
-}else{
-if(_20.value&&typeof _20.value=="object"&&!(_20.value instanceof Date)){
-dojo.forEach(_1e.getChildren(),function(_22){
-_22.attr("disabled",(_22.label!="Add")&&(_22.label!="Delete"));
-});
-this.lastFocused=_1f;
-}else{
-if(_20.property&&dojo.indexOf(this.store.getIdentityAttributes(),_20.property)>=0){
-this.focusNode(_1f);
-alert("Cannot modify an Identifier node.");
-}else{
-if(_20.addNew){
-this.focusNode(_1f);
-}else{
-dojo.forEach(_1e.getChildren(),function(_23){
-_23.attr("disabled",(_23.label!="Edit")&&(_23.label!="Delete"));
-});
-this.lastFocused=_1f;
-}
-}
-}
-}
-}
-});
-_1e.addChild(new dijit.MenuItem({label:"Add",onClick:dojo.hitch(this,"_addProperty")}));
-_1e.addChild(new dijit.MenuItem({label:"Edit",onClick:dojo.hitch(this,"_editProperty")}));
-_1e.addChild(new dijit.MenuItem({label:"Delete",onClick:dojo.hitch(this,"_destroyProperty")}));
-_1e.startup();
-},store:null,setStore:function(_24){
-this.store=_24;
-var _25=this;
-if(this._editDialog){
-this._editDialog.destroyRecursive();
-delete this._editDialog;
-}
-dojo.connect(_24,"onSet",function(_26,_27,_28,_29){
-var _2a,i,_2b=_25.store.getIdentity(_26);
-_2a=_25._modelNodeIdMap[_2b];
-if(_2a&&(_28===undefined||_29===undefined||_28 instanceof Array||_29 instanceof Array||typeof _28=="object"||typeof _29=="object")){
-for(i=0;i<_2a.length;i++){
-(function(_2c){
-_25.model.getChildren(_2c,function(_2d){
-_25.model.onChildrenChange(_2c,_2d);
-});
-})(_2a[i]);
-}
-}
-_2a=_25._modelNodePropMap[_2b+"."+_27];
-if(_2a){
-for(i=0;i<_2a.length;i++){
-_2a[i].value=_29;
-_25.model.onChange(_2a[i]);
-}
-}
-});
-this.rootNode.setChildItems([]);
-},setItem:function(_2e){
-(this._modelNodeIdMap={})[this.store.getIdentity(_2e)]=[this.rootModelNode];
-this._modelNodePropMap={};
-this.rootModelNode.value=_2e;
-var _2f=this;
-this.model.getChildren(this.rootModelNode,function(_30){
-_2f.rootNode.setChildItems(_30);
-});
-},refreshItem:function(){
-this.setItem(this.rootModelNode.value);
-},_createEditDialog:function(){
-this._editDialog=new dijit.Dialog({title:"Edit Property",execute:dojo.hitch(this,"_updateItem"),preload:true});
-this._editDialog.placeAt(dojo.body());
-this._editDialog.startup();
-var _31=dojo.doc.createElement("div");
-var _32=dojo.doc.createElement("label");
-dojo.attr(_32,"for","property");
-dojo.style(_32,"fontWeight","bold");
-dojo.attr(_32,"innerHTML","Property:");
-_31.appendChild(_32);
-var _33=new dijit.form.ValidationTextBox({name:"property",value:"",required:true,disabled:true}).placeAt(_31);
-_31.appendChild(dojo.doc.createElement("br"));
-_31.appendChild(dojo.doc.createElement("br"));
-var _34=new dijit.form.RadioButton({name:"itemType",value:"value",onClick:dojo.hitch(this,function(){
-this._enableFields("value");
-})}).placeAt(_31);
-var _35=dojo.doc.createElement("label");
-dojo.attr(_35,"for","value");
-dojo.attr(_35,"innerHTML","Value (JSON):");
-_31.appendChild(_35);
-var _36=dojo.doc.createElement("div");
-dojo.addClass(_36,"value");
-var _37=new dijit.form.Textarea({name:"jsonVal"}).placeAt(_36);
-_31.appendChild(_36);
-var _38=new dijit.form.RadioButton({name:"itemType",value:"reference",onClick:dojo.hitch(this,function(){
-this._enableFields("reference");
-})}).placeAt(_31);
-var _39=dojo.doc.createElement("label");
-dojo.attr(_39,"for","_reference");
-dojo.attr(_39,"innerHTML","Reference (ID):");
-_31.appendChild(_39);
-_31.appendChild(dojo.doc.createElement("br"));
-var _3a=dojo.doc.createElement("div");
-dojo.addClass(_3a,"reference");
-if(this.useSelect){
-var _3b=new dijit.form.FilteringSelect({name:"_reference",store:this.store,searchAttr:this.refSelectSearchAttr||this.store.getIdentityAttributes()[0],required:false,value:null,pageSize:10}).placeAt(_3a);
-}else{
-var _3c=new dijit.form.ValidationTextBox({name:"_reference",value:"",promptMessage:"Enter the ID of the item to reference",isValid:dojo.hitch(this,function(_3d){
-return true;
-})}).placeAt(_3a);
-}
-_31.appendChild(_3a);
-_31.appendChild(dojo.doc.createElement("br"));
-_31.appendChild(dojo.doc.createElement("br"));
-var _3e=document.createElement("div");
-_3e.setAttribute("dir","rtl");
-var _3f=new dijit.form.Button({type:"reset",label:"Cancel"}).placeAt(_3e);
-_3f.onClick=dojo.hitch(this._editDialog,"onCancel");
-var _40=new dijit.form.Button({type:"submit",label:"OK"}).placeAt(_3e);
-_31.appendChild(_3e);
-this._editDialog.attr("content",_31);
-},_enableFields:function(_41){
-switch(_41){
-case "reference":
-dojo.query(".value [widgetId]",this._editDialog.containerNode).forEach(function(_42){
-dijit.getEnclosingWidget(_42).attr("disabled",true);
-});
-dojo.query(".reference [widgetId]",this._editDialog.containerNode).forEach(function(_43){
-dijit.getEnclosingWidget(_43).attr("disabled",false);
-});
-break;
-case "value":
-dojo.query(".value [widgetId]",this._editDialog.containerNode).forEach(function(_44){
-dijit.getEnclosingWidget(_44).attr("disabled",false);
-});
-dojo.query(".reference [widgetId]",this._editDialog.containerNode).forEach(function(_45){
-dijit.getEnclosingWidget(_45).attr("disabled",true);
-});
-break;
-}
-},_updateItem:function(_46){
-var _47,_48,val,_49,_4a=this._editDialog.attr("title")=="Edit Property";
-var _4b=this._editDialog;
-var _4c=this.store;
-function _4d(){
-try{
-var _4e,_4f=[];
-var _50=_46.property;
-if(_4a){
-while(!_4c.isItem(_48.parent,true)){
-_47=_47.getParent();
-_4f.push(_48.property);
-_48=_47.item;
-}
-if(_4f.length==0){
-_4c.setValue(_48.parent,_48.property,val);
-}else{
-_49=_1(_4c,_48.parent,_48.property);
-if(_49 instanceof Array){
-_49=_49.concat();
-}
-_4e=_49;
-while(_4f.length>1){
-_4e=_4e[_4f.pop()];
-}
-_4e[_4f]=val;
-_4c.setValue(_48.parent,_48.property,_49);
-}
-}else{
-if(_4c.isItem(_51,true)){
-if(!_4c.isItemLoaded(_51)){
-_4c.loadItem({item:_51,onItem:function(_52){
-if(_52 instanceof Array){
-_50=_52.length;
-}
-_4c.setValue(_52,_50,val);
-}});
-}else{
-if(_51 instanceof Array){
-_50=_51.length;
-}
-_4c.setValue(_51,_50,val);
-}
-}else{
-if(_48.value instanceof Array){
-_4f.push(_48.value.length);
-}else{
-_4f.push(_46.property);
-}
-while(!_4c.isItem(_48.parent,true)){
-_47=_47.getParent();
-_4f.push(_48.property);
-_48=_47.item;
-}
-_49=_1(_4c,_48.parent,_48.property);
-_4e=_49;
-while(_4f.length>1){
-_4e=_4e[_4f.pop()];
-}
-_4e[_4f]=val;
-_4c.setValue(_48.parent,_48.property,_49);
-}
-}
-}
-catch(e){
-alert(e);
-}
-};
-if(_4b.validate()){
-_47=this.lastFocused;
-_48=_47.item;
-var _51=_48.value;
-if(_48.addNew){
-_51=_47.item.parent;
-_47=_47.getParent();
-_48=_47.item;
-}
-val=null;
-switch(_46.itemType){
-case "reference":
-this.store.fetchItemByIdentity({identity:_46._reference,onItem:function(_53){
-val=_53;
-_4d();
-},onError:function(){
-alert("The id could not be found");
-}});
-break;
-case "value":
-var _54=_46.jsonVal;
-val=dojo.fromJson(_54);
-if(typeof val=="function"){
-val.toString=function(){
-return _54;
-};
-}
-_4d();
-break;
-}
-}else{
-_4b.show();
-}
-},_editProperty:function(){
-var _55=dojo.mixin({},this.lastFocused.item);
-if(!this._editDialog){
-this._createEditDialog();
-}else{
-this._editDialog.reset();
-}
-if(dojo.indexOf(this.store.getIdentityAttributes(),_55.property)>=0){
-alert("Cannot Edit an Identifier!");
-}else{
-this._editDialog.attr("title","Edit Property");
-dijit.getEnclosingWidget(dojo.query("input",this._editDialog.containerNode)[0]).attr("disabled",true);
-if(this.store.isItem(_55.value,true)){
-if(_55.parent){
-_55.itemType="reference";
-this._enableFields(_55.itemType);
-_55._reference=this.store.getIdentity(_55.value);
-this._editDialog.attr("value",_55);
-this._editDialog.show();
-}
-}else{
-if(_55.value&&typeof _55.value=="object"&&!(_55.value instanceof Date)){
-}else{
-_55.itemType="value";
-this._enableFields(_55.itemType);
-_55.jsonVal=typeof _55.value=="function"?_55.value.toString():_55.value instanceof Date?"new Date(\""+_55.value+"\")":dojo.toJson(_55.value);
-this._editDialog.attr("value",_55);
-this._editDialog.show();
-}
-}
-}
-},_destroyProperty:function(){
-var _56=this.lastFocused;
-var _57=_56.item;
-var _58=[];
-while(!this.store.isItem(_57.parent,true)||_57.parent instanceof Array){
-_56=_56.getParent();
-_58.push(_57.property);
-_57=_56.item;
-}
-if(dojo.indexOf(this.store.getIdentityAttributes(),_57.property)>=0){
-alert("Cannot Delete an Identifier!");
-}else{
-try{
-if(_58.length>0){
-var _59,_5a=_1(this.store,_57.parent,_57.property);
-_59=_5a;
-while(_58.length>1){
-_59=_59[_58.pop()];
-}
-if(dojo.isArray(_59)){
-_59.splice(_58,1);
-}else{
-delete _59[_58];
-}
-this.store.setValue(_57.parent,_57.property,_5a);
-}else{
-this.store.unsetAttribute(_57.parent,_57.property);
-}
-}
-catch(e){
-alert(e);
-}
-}
-},_addProperty:function(){
-var _5b=this.lastFocused.item;
-var _5c=_5b.value;
-var _5d=dojo.hitch(this,function(){
-var _5e=null;
-if(!this._editDialog){
-this._createEditDialog();
-}else{
-this._editDialog.reset();
-}
-if(_5c instanceof Array){
-_5e=_5c.length;
-dijit.getEnclosingWidget(dojo.query("input",this._editDialog.containerNode)[0]).attr("disabled",true);
-}else{
-dijit.getEnclosingWidget(dojo.query("input",this._editDialog.containerNode)[0]).attr("disabled",false);
-}
-this._editDialog.attr("title","Add Property");
-this._enableFields("value");
-this._editDialog.attr("value",{itemType:"value",property:_5e});
-this._editDialog.show();
-});
-if(_5b.addNew){
-_5b=this.lastFocused.getParent().item;
-_5c=this.lastFocused.item.parent;
-}
-if(_5b.property&&dojo.indexOf(this.store.getIdentityAttributes(),_5b.property)>=0){
-alert("Cannot add properties to an ID node!");
-}else{
-if(this.store.isItem(_5c,true)&&!this.store.isItemLoaded(_5c)){
-this.store.loadItem({item:_5c,onItem:function(_5f){
-_5c=_5f;
-_5d();
-}});
-}else{
-_5d();
-}
-}
-}});
 })();
-}
+

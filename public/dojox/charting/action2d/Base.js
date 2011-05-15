@@ -1,43 +1,80 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.charting.action2d.Base"]){
-dojo._hasResource["dojox.charting.action2d.Base"]=true;
 dojo.provide("dojox.charting.action2d.Base");
+
 dojo.require("dojo.fx.easing");
 dojo.require("dojox.lang.functional.object");
 dojo.require("dojox.gfx.fx");
+
+/*=====
+dojox.charting.action2d.__BaseCtorArgs = function(duration, easing){
+ 	//	summary:
+	//		The base keyword arguments object for creating an action2d.
+	//	duration: Number?
+	//		The amount of time in milliseconds for an animation to last.  Default is 400.
+	//	easing: dojo.fx.easing.*?
+	//		An easing object (see dojo.fx.easing) for use in an animation.  The
+	//		default is dojo.fx.easing.backOut.
+	this.duration = duration;
+	this.easing = easing;
+}
+=====*/
 (function(){
-var _1=400,_2=dojo.fx.easing.backOut,df=dojox.lang.functional;
-dojo.declare("dojox.charting.action2d.Base",null,{overOutEvents:{onmouseover:1,onmouseout:1},constructor:function(_3,_4,_5){
-this.chart=_3;
-this.plot=_4||"default";
-this.anim={};
-if(!_5){
-_5={};
-}
-this.duration=_5.duration?_5.duration:_1;
-this.easing=_5.easing?_5.easing:_2;
-},connect:function(){
-this.handle=this.chart.connectToPlot(this.plot,this,"process");
-},disconnect:function(){
-if(this.handle){
-dojo.disconnect(this.handle);
-this.handle=null;
-}
-},reset:function(){
-},destroy:function(){
-this.disconnect();
-df.forIn(this.anim,function(o){
-df.forIn(o,function(_6){
-_6.action.stop(true);
-});
-});
-this.anim={};
-}});
+	var DEFAULT_DURATION = 400,	// ms
+		DEFAULT_EASING   = dojo.fx.easing.backOut,
+		df = dojox.lang.functional;
+
+	dojo.declare("dojox.charting.action2d.Base", null, {
+
+		overOutEvents: {onmouseover: 1, onmouseout: 1},
+
+		constructor: function(chart, plot, kwargs){
+			//	summary:
+			//		Create a new base Action.
+			//	chart: dojox.charting.Chart2D
+			//		The chart this action applies to.
+			//	plot: String?
+			//		The name of the plot this action belongs to.  If none is passed "default" is assumed.
+			//	kwargs: dojox.charting.action2d.__BaseCtorArgs?
+			//		Optional arguments for the action.
+			this.chart = chart;
+			this.plot = plot || "default";
+			this.anim = {};
+
+			// process common optional named parameters
+			if(!kwargs){ kwargs = {}; }
+			this.duration = kwargs.duration ? kwargs.duration : DEFAULT_DURATION;
+			this.easing   = kwargs.easing   ? kwargs.easing   : DEFAULT_EASING;
+		},
+
+		connect: function(){
+			//	summary:
+			//		Connect this action to the given plot.
+			this.handle = this.chart.connectToPlot(this.plot, this, "process");
+		},
+
+		disconnect: function(){
+			//	summary:
+			//		Disconnect this action from the given plot, if connected.
+			if(this.handle){
+				dojo.disconnect(this.handle);
+				this.handle = null;
+			}
+		},
+
+		reset: function(){
+			//	summary:
+			//		Reset the action.
+		},
+
+		destroy: function(){
+			//	summary:
+			//		Do any cleanup needed when destroying parent elements.
+			this.disconnect();
+			df.forIn(this.anim, function(o){
+				df.forIn(o, function(anim){
+					anim.action.stop(true);
+				});
+			});
+			this.anim = {};
+		}
+	});
 })();
-}

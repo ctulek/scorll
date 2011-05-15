@@ -1,125 +1,224 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojox/socket", ["dojo", "dojo/cookie"], function(dojo) {
 
+var WebSocket = window.WebSocket;
 
-if(!dojo._hasResource["dojox.socket"]){
-dojo._hasResource["dojox.socket"]=true;
-dojo.provide("dojox.socket");
-dojo.require("dojo.cookie");
-var WebSocket=window.WebSocket;
-function Socket(_1){
-if(typeof _1=="string"){
-_1={url:_1};
-}
-return WebSocket?dojox.socket.WebSocket(_1,true):dojox.socket.LongPoll(_1);
+function Socket(/*dojo.__XhrArgs*/ argsOrUrl){
+	// summary:
+	//		Provides a simple socket connection using WebSocket, or alternate
+	// 		communication mechanisms in legacy browsers for comet-style communication. This is based
+	//		on the WebSocket API and returns an object that implements the WebSocket interface:
+	//		http://dev.w3.org/html5/websockets/#websocket
+	//	description:
+	//		Provides socket connections. This can be used with virtually any Comet protocol.
+	//	argsOrUrl:
+	//		This uses the same arguments as the other I/O functions in Dojo, or a
+	// 		URL to connect to. The URL should be a relative URL in order to properly
+	//		work with WebSockets (it can still be host relative, like //other-site.org/endpoint)
+	// returns:
+	// 		An object that implements the WebSocket API
+	// example:
+	//		| dojo.require("dojox.socket");
+	//		| var socket = dojox.socket({"//comet-server/comet");
+	//		| // we could also add auto-reconnect support
+	//		| // now we can connect to standard HTML5 WebSocket-style events
+	//		| dojo.connect(socket, "onmessage", function(event){
+	//		|    var message = event.data;
+	//		|    // do something with the message
+	//		| });
+	//		| // send something
+	//		| socket.send("hi there");
+	//		| whenDone(function(){
+	//		|   socket.close();
+	//		| });
+	//		You can also use the Reconnect module:
+	//		| dojo.require("dojox.socket");
+	//		| dojo.require("dojox.socket.Reconnect");
+	//		| var socket = dojox.socket({url:"/comet"});
+	//		| // add auto-reconnect support
+	//		| socket = dojox.socket.Reconnect(socket);
+	if(typeof argsOrUrl == "string"){
+		argsOrUrl = {url: argsOrUrl};
+	}
+	return WebSocket ? dojox.socket.WebSocket(argsOrUrl, true) : dojox.socket.LongPoll(argsOrUrl);
 };
-dojox.socket=Socket;
-Socket.WebSocket=function(_2,_3){
-var ws=new WebSocket(new dojo._Url(document.baseURI.replace(/^http/i,"ws"),_2.url));
-ws.on=function(_4,_5){
-ws.addEventListener(_4,_5,true);
+dojox.socket = Socket;
+
+Socket.WebSocket = function(args, fallback){
+	// summary:
+	//		A wrapper for WebSocket, than handles standard args and relative URLs
+	var ws = new WebSocket(new dojo._Url(document.baseURI.replace(/^http/i,'ws'), args.url));
+	ws.on = function(type, listener){
+		ws.addEventListener(type, listener, true);
+	};
+	var opened;
+	dojo.connect(ws, "onopen", function(event){
+		opened = true;
+	});
+	dojo.connect(ws, "onclose", function(event){
+		if(opened){
+			return;
+		}
+		if(fallback){
+			Socket.replace(ws, dojox.socket.LongPoll(args), true);
+		}
+	});
+	return ws;
 };
-var _6;
-dojo.connect(ws,"onopen",function(_7){
-_6=true;
+Socket.replace = function(socket, newSocket, listenForOpen){
+	// make the original socket a proxy for the new socket
+	socket.send = dojo.hitch(newSocket, "send");
+	socket.close = dojo.hitch(newSocket, "close");
+	if(listenForOpen){
+		proxyEvent("open");
+	}
+	// redirect the events as well
+	dojo.forEach(["message", "close", "error"], proxyEvent);
+	function proxyEvent(type){
+		(newSocket.addEventListener || newSocket.on).call(newSocket, type, function(event){
+			var newEvent = document.createEvent("MessageEvent");
+			newEvent.initMessageEvent(event.type, false, false, event.data, event.origin, event.lastEventId, event.source);
+			socket.dispatchEvent(newEvent);
+		}, true);
+	}
+};
+Socket.LongPoll = function(/*dojo.__XhrArgs*/ args){
+	// summary:
+	//		Provides a simple long-poll based comet-style socket/connection to a server and returns an
+	// 		object implementing the WebSocket interface:
+	//		http://dev.w3.org/html5/websockets/#websocket
+	//	args:
+	//		This uses the same arguments as the other I/O functions in Dojo, with this addition:
+	//	args.interval:
+	//		Indicates the amount of time (in milliseconds) after a response was received
+	//		before another request is made. By default, a request is made immediately
+	//		after getting a response. The interval can be increased to reduce load on the
+	//		server or to do simple time-based polling where the server always responds
+	// 		immediately.
+	//	args.transport:
+	//		Provide an alternate transport like dojo.io.script.get
+	// returns:
+	// 		An object that implements the WebSocket API
+	// example:
+	//		| dojo.require("dojox.socket.LongPoll");
+	//		| var socket = dojox.socket.LongPoll({url:"/comet"});
+	//		or:
+	//		| dojo.require("dojox.socket.LongPoll");
+	//		| dojox.socket.LongPoll.add();
+	//		| var socket = dojox.socket({url:"/comet"});
+
+var cancelled = false,
+		first = true,
+		timeoutId,
+		connections = [];
+	
+	// create the socket object
+	var socket = {
+		send: function(data){
+			// summary:
+			// 		Send some data using XHR or provided transport
+			var sendArgs = dojo.delegate(args);
+			sendArgs.rawBody = data;
+			clearTimeout(timeoutId);
+			var deferred = first ? (first = false) || socket.firstRequest(sendArgs) :
+				socket.transport(sendArgs);
+			connections.push(deferred);
+			deferred.then(function(response){
+				// got a response
+				socket.readyState = 1;
+				// remove the current connection
+				connections.splice(dojo.indexOf(connections, deferred), 1);
+				// reconnect to listen for the next message if there are no active connections,
+				// we queue it up in case one of the onmessage handlers has a message to send
+				if(!connections.length){
+					timeoutId = setTimeout(connect, args.interval);
+				}
+				if(response){
+					// now send the message along to listeners
+					fire("message", {data: response}, deferred);
+				}
+			}, function(error){
+				connections.splice(dojo.indexOf(connections, deferred), 1);
+				// an error occurred, fire the appropriate event listeners
+				if(!cancelled){
+					fire("error", {error:error}, deferred);
+					if(!connections.length){
+						socket.readyState = 3;
+						fire("close", {wasClean:false}, deferred);
+					}
+				}
+			});
+			return deferred;
+		},
+		close: function(){
+			// summary:
+			// 		Close the connection
+			socket.readyState = 2;
+			cancelled = true;
+			for(var i = 0; i < connections.length; i++){
+				connections[i].cancel();
+			}
+			socket.readyState = 3;
+			fire("close", {wasClean:true});
+		},
+		transport: args.transport || dojo.xhrPost,
+		args: args,
+		url: args.url,
+		readyState: 0,
+		CONNECTING: 0,
+		OPEN: 1,
+		CLOSING: 2,
+		CLOSED: 3,
+		dispatchEvent: function(event){
+			fire(event.type, event);
+		},
+		on: function(type, callback){
+			return dojo.connect(this, "on" + type, callback);
+		},
+		firstRequest: function(args){
+			// summary:
+			// 		This allows for special handling for the first request. This is useful for
+			//		providing information to disambiguate between the first request and
+			//		subsequent long-poll requests so the server can properly setup a
+			// 		connection on the first connection or reject a request for an expired
+			// 		connection if the request is not expecting to be the first for a connection.
+			//		This method can be overriden. The default behavior is to include a Pragma
+			//		header with a value of "start-long-poll"
+			var headers = (args.headers || (args.headers = {}));
+			headers.Pragma = "start-long-poll";
+			try{
+				return this.transport(args);
+			}finally{
+				// cleanup the header so it is not used on subsequent requests
+				delete headers.Pragma;
+			}
+		}
+	};
+	function connect(){
+		if(socket.readyState == 0){
+			// we fire the open event now because we really don't know when the "socket"
+			// is truly open, and this gives us a to do a send() and get it included in the
+			// HTTP request
+			fire("open",{});
+		}
+		// make the long-poll connection, to wait for response from the server
+		if(!connections.length){
+			socket.send();
+		}
+	}
+	function fire(type, object, deferred){
+		if(socket["on" + type]){
+			var event = document.createEvent("HTMLEvents");
+			event.initEvent(type, false, false);
+			dojo.mixin(event, object);
+			event.ioArgs = deferred && deferred.ioArgs;
+			socket["on" + type](event);
+		}
+	}
+	// provide an alias for Dojo's connect method
+	socket.connect = socket.on;
+	// do the initial connection
+	setTimeout(connect);
+	return socket;
+};
+return Socket;
 });
-dojo.connect(ws,"onclose",function(_8){
-if(_6){
-return;
-}
-if(_3){
-Socket.replace(ws,dojox.socket.LongPoll(_2),true);
-}
-});
-return ws;
-};
-Socket.replace=function(_9,_a,_b){
-_9.send=dojo.hitch(_a,"send");
-_9.close=dojo.hitch(_a,"close");
-if(_b){
-_c("open");
-}
-dojo.forEach(["message","close","error"],_c);
-function _c(_d){
-(_a.addEventListener||_a.on).call(_a,_d,function(_e){
-var _f=document.createEvent("MessageEvent");
-_f.initMessageEvent(_e.type,false,false,_e.data,_e.origin,_e.lastEventId,_e.source);
-_9.dispatchEvent(_f);
-},true);
-};
-};
-Socket.LongPoll=function(_10){
-var _11=false,_12=true,_13,_14=[];
-var _15={send:function(_16){
-var _17=dojo.delegate(_10);
-_17.rawBody=_16;
-clearTimeout(_13);
-var _18=_12?(_12=false)||_15.firstRequest(_17):_15.transport(_17);
-_14.push(_18);
-_18.then(function(_19){
-_15.readyState=1;
-_14.splice(dojo.indexOf(_14,_18),1);
-if(!_14.length){
-_13=setTimeout(_21,_10.interval);
-}
-if(_19){
-_1b("message",{data:_19},_18);
-}
-},function(_1a){
-_14.splice(dojo.indexOf(_14,_18),1);
-if(!_11){
-_1b("error",{error:_1a},_18);
-if(!_14.length){
-_15.readyState=3;
-_1b("close",{wasClean:false},_18);
-}
-}
-});
-return _18;
-},close:function(){
-_15.readyState=2;
-_11=true;
-for(var i=0;i<_14.length;i++){
-_14[i].cancel();
-}
-_15.readyState=3;
-_1b("close",{wasClean:true});
-},transport:_10.transport||dojo.xhrPost,args:_10,url:_10.url,readyState:0,CONNECTING:0,OPEN:1,CLOSING:2,CLOSED:3,dispatchEvent:function(_1c){
-_1b(_1c.type,_1c);
-},on:function(_1d,_1e){
-return dojo.connect(this,"on"+_1d,_1e);
-},firstRequest:function(_1f){
-var _20=(_1f.headers||(_1f.headers={}));
-_20.Pragma="start-long-poll";
-try{
-return this.transport(_1f);
-}
-finally{
-delete _20.Pragma;
-}
-}};
-function _21(){
-if(_15.readyState==0){
-_1b("open",{});
-}
-if(!_14.length){
-_15.send();
-}
-};
-function _1b(_22,_23,_24){
-if(_15["on"+_22]){
-var _25=document.createEvent("HTMLEvents");
-_25.initEvent(_22,false,false);
-dojo.mixin(_25,_23);
-_25.ioArgs=_24&&_24.ioArgs;
-_15["on"+_22](_25);
-}
-};
-_15.connect=_15.on;
-setTimeout(_21);
-return _15;
-};
-}

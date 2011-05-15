@@ -1,15 +1,9 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dijit/_base/window", ["dojo", "dijit", "dojo/window"], function(dojo, dijit) {
 
-
-if(!dojo._hasResource["dijit._base.window"]){
-dojo._hasResource["dijit._base.window"]=true;
-dojo.provide("dijit._base.window");
-dojo.require("dojo.window");
-dijit.getDocumentWindow=function(_1){
-return dojo.window.get(_1);
+dijit.getDocumentWindow = function(doc){
+	return dojo.window.get(doc);
 };
-}
+
+
+return dijit;
+});

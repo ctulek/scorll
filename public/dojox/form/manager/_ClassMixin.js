@@ -1,31 +1,70 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.form.manager._ClassMixin"]){
-dojo._hasResource["dojox.form.manager._ClassMixin"]=true;
 dojo.provide("dojox.form.manager._ClassMixin");
+
 dojo.require("dojox.form.manager._Mixin");
+
 (function(){
-var fm=dojox.form.manager,aa=fm.actionAdapter,ia=fm.inspectorAdapter;
-dojo.declare("dojox.form.manager._ClassMixin",null,{gatherClassState:function(_1,_2){
-var _3=this.inspect(ia(function(_4,_5){
-return dojo.hasClass(_5,_1);
-}),_2);
-return _3;
-},addClass:function(_6,_7){
-this.inspect(aa(function(_8,_9){
-dojo.addClass(_9,_6);
-}),_7);
-return this;
-},removeClass:function(_a,_b){
-this.inspect(aa(function(_c,_d){
-dojo.removeClass(_d,_a);
-}),_b);
-return this;
-}});
+	var fm = dojox.form.manager,
+		aa = fm.actionAdapter,
+		ia = fm.inspectorAdapter;
+
+	dojo.declare("dojox.form.manager._ClassMixin", null, {
+		// summary:
+		//		Form manager's mixin for testing/assigning/removing
+		//		classes of controlled elements.
+		// description:
+		//		This mixin provides unified way to check/add/remove a class
+		//		of controlled elements.
+		//		It should be used together with dojox.form.manager.Mixin.
+
+		gatherClassState: function(className, names){
+			// summary:
+			//		Gather the presence of a certain class in all controlled elements.
+			// className: String:
+			//		The class name to test for.
+			// names: Object?:
+			//		If it is an array, it is a list of names to be processed.
+			//		If it is an object, dictionary keys are names to be processed.
+			//		If it is omitted, all known form elements are to be processed.
+
+			var result = this.inspect(ia(function(name, node){
+				return dojo.hasClass(node, className);
+			}), names);
+
+			return result;	// Object
+		},
+
+		addClass: function(className, names){
+			// summary:
+			//		Add a class to nodes according to the supplied set of names
+			// className: String:
+			//		Class name to add.
+			// names: Object?:
+			//		If it is an array, it is a list of names to be processed.
+			//		If it is an object, dictionary keys are names to be processed.
+			//		If it is omitted, all known form elements are to be processed.
+
+			this.inspect(aa(function(name, node){
+				dojo.addClass(node, className);
+			}), names);
+
+			return this;	// self
+		},
+
+		removeClass: function(className, names){
+			// summary:
+			//		Remove a class from nodes according to the supplied set of names
+			// className: String:
+			//		Class name to remove.
+			// names: Object?:
+			//		If it is an array, it is a list of names to be processed.
+			//		If it is an object, dictionary keys are names to be processed.
+			//		If it is omitted, all known form elements are to be processed.
+
+			this.inspect(aa(function(name, node){
+				dojo.removeClass(node, className);
+			}), names);
+
+			return this;	// self
+		}
+	});
 })();
-}

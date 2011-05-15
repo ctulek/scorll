@@ -1,255 +1,207 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.collections.BinaryTree"]){
-dojo._hasResource["dojox.collections.BinaryTree"]=true;
 dojo.provide("dojox.collections.BinaryTree");
 dojo.require("dojox.collections._base");
-dojox.collections.BinaryTree=function(_1){
-function _2(_3,_4,_5){
-this.value=_3||null;
-this.right=_4||null;
-this.left=_5||null;
-this.clone=function(){
-var c=new _2();
-if(this.value.value){
-c.value=this.value.clone();
-}else{
-c.value=this.value;
+
+dojox.collections.BinaryTree=function(data){
+	function node(data, rnode, lnode){
+		this.value=data||null;
+		this.right=rnode||null;
+		this.left=lnode||null;
+		this.clone=function(){
+			var c=new node();
+			if(this.value.value){
+				c.value=this.value.clone();
+			}else{
+				c.value=this.value;
+			}
+			if(this.left!=null){
+				c.left=this.left.clone();
+			}
+			if(this.right!=null){
+				c.right=this.right.clone();
+			}
+			return c;
+		}
+		this.compare=function(n){
+			if(this.value>n.value){ return 1; }
+			if(this.value<n.value){ return -1; }
+			return 0;
+		}
+		this.compareData=function(d){
+			if(this.value>d){ return 1; }
+			if(this.value<d){ return -1; }
+			return 0;
+		}
+	}
+
+	function inorderTraversalBuildup(current, a){
+		if(current){
+			inorderTraversalBuildup(current.left, a);
+			a.push(current.value);
+			inorderTraversalBuildup(current.right, a);
+		}
+	}
+
+	function preorderTraversal(current, sep){
+		var s="";
+		if (current){
+			s=current.value.toString() + sep;
+			s+=preorderTraversal(current.left, sep);
+			s+=preorderTraversal(current.right, sep);
+		}
+		return s;
+	}
+	function inorderTraversal(current, sep){
+		var s="";
+		if (current){
+			s=inorderTraversal(current.left, sep);
+			s+=current.value.toString() + sep;
+			s+=inorderTraversal(current.right, sep);
+		}
+		return s;
+	}
+	function postorderTraversal(current, sep){
+		var s="";
+		if (current){
+			s=postorderTraversal(current.left, sep);
+			s+=postorderTraversal(current.right, sep);
+			s+=current.value.toString() + sep;
+		}
+		return s;
+	}
+	
+	function searchHelper(current, data){
+		if(!current){ return null; }
+		var i=current.compareData(data);
+		if(i==0){ return current; }
+		if(i>0){ return searchHelper(current.left, data); }
+		else{ return searchHelper(current.right, data); }
+	}
+
+	this.add=function(data){
+		var n=new node(data);
+		var i;
+		var current=root;
+		var parent=null;
+		while(current){
+			i=current.compare(n);
+			if(i==0){ return; }
+			parent=current;
+			if(i>0){ current=current.left; }
+			else{ current=current.right; }
+		}
+		this.count++;
+		if(!parent){
+			root=n;
+		}else{
+			i=parent.compare(n);
+			if(i>0){
+				parent.left=n;
+			}else{
+				parent.right=n;
+			}
+		}
+	};
+	this.clear=function(){
+		root=null;
+		this.count=0;
+	};
+	this.clone=function(){
+		var c=new dojox.collections.BinaryTree();
+		var itr=this.getIterator();
+		while(!itr.atEnd()){
+			c.add(itr.get());
+		}
+		return c;
+	};
+	this.contains=function(data){
+		return this.search(data) != null;
+	};
+	this.deleteData=function(data){
+		var current=root;
+		var parent=null;
+		var i=current.compareData(data);
+		while(i!=0&&current!=null){
+			if(i>0){
+				parent=current;
+				current=current.left;
+			}else if(i<0){
+				parent=current;
+				current=current.right;
+			}
+			i=current.compareData(data);
+		}
+		if(!current){ return; }
+		this.count--;
+		if(!current.right){
+			if(!parent){
+				root=current.left;
+			}else{
+				i=parent.compare(current);
+				if(i>0){ parent.left=current.left; }
+				else if(i<0){ parent.right=current.left; }
+			}
+		}
+		else if(!current.right.left){
+			if(!parent){
+				root=current.right;
+			}else{
+				i=parent.compare(current);
+				if(i>0){ parent.left=current.right; }
+				else if(i<0){ parent.right=current.right; }
+			}
+		}
+		else{
+			var leftmost=current.right.left;
+			var lmParent=current.right;
+			while(leftmost.left!=null){
+				lmParent=leftmost;
+				leftmost=leftmost.left;
+			}
+			lmParent.left=leftmost.right;
+			leftmost.left=current.left;
+			leftmost.right=current.right;
+			if(!parent){
+				root=leftmost;
+			}else{
+				i=parent.compare(current);
+				if(i>0){ parent.left=leftmost; }
+				else if(i<0){ parent.right=leftmost; }
+			}
+		}
+	};
+	this.getIterator=function(){
+		var a=[];
+		inorderTraversalBuildup(root, a);
+		return new dojox.collections.Iterator(a);
+	};
+	this.search=function(data){
+		return searchHelper(root, data);
+	};
+	this.toString=function(order, sep){
+		if(!order){ order=dojox.collections.BinaryTree.TraversalMethods.Inorder; }
+		if(!sep){ sep=","; }
+		var s="";
+		switch(order){
+			case dojox.collections.BinaryTree.TraversalMethods.Preorder:
+				s=preorderTraversal(root, sep);
+				break;
+			case dojox.collections.BinaryTree.TraversalMethods.Inorder:
+				s=inorderTraversal(root, sep);
+				break;
+			case dojox.collections.BinaryTree.TraversalMethods.Postorder:
+				s=postorderTraversal(root, sep);
+				break;
+		};
+		if(s.length==0){ return ""; }
+		else{ return s.substring(0, s.length - sep.length); }
+	};
+
+	this.count=0;
+	var root=this.root=null;
+	if(data){
+		this.add(data);
+	}
 }
-if(this.left!=null){
-c.left=this.left.clone();
-}
-if(this.right!=null){
-c.right=this.right.clone();
-}
-return c;
+dojox.collections.BinaryTree.TraversalMethods={
+	Preorder: 1, Inorder: 2, Postorder: 3
 };
-this.compare=function(n){
-if(this.value>n.value){
-return 1;
-}
-if(this.value<n.value){
-return -1;
-}
-return 0;
-};
-this.compareData=function(d){
-if(this.value>d){
-return 1;
-}
-if(this.value<d){
-return -1;
-}
-return 0;
-};
-};
-function _6(_7,a){
-if(_7){
-_6(_7.left,a);
-a.push(_7.value);
-_6(_7.right,a);
-}
-};
-function _8(_9,_a){
-var s="";
-if(_9){
-s=_9.value.toString()+_a;
-s+=_8(_9.left,_a);
-s+=_8(_9.right,_a);
-}
-return s;
-};
-function _b(_c,_d){
-var s="";
-if(_c){
-s=_b(_c.left,_d);
-s+=_c.value.toString()+_d;
-s+=_b(_c.right,_d);
-}
-return s;
-};
-function _e(_f,sep){
-var s="";
-if(_f){
-s=_e(_f.left,sep);
-s+=_e(_f.right,sep);
-s+=_f.value.toString()+sep;
-}
-return s;
-};
-function _10(_11,_12){
-if(!_11){
-return null;
-}
-var i=_11.compareData(_12);
-if(i==0){
-return _11;
-}
-if(i>0){
-return _10(_11.left,_12);
-}else{
-return _10(_11.right,_12);
-}
-};
-this.add=function(_13){
-var n=new _2(_13);
-var i;
-var _14=_15;
-var _16=null;
-while(_14){
-i=_14.compare(n);
-if(i==0){
-return;
-}
-_16=_14;
-if(i>0){
-_14=_14.left;
-}else{
-_14=_14.right;
-}
-}
-this.count++;
-if(!_16){
-_15=n;
-}else{
-i=_16.compare(n);
-if(i>0){
-_16.left=n;
-}else{
-_16.right=n;
-}
-}
-};
-this.clear=function(){
-_15=null;
-this.count=0;
-};
-this.clone=function(){
-var c=new dojox.collections.BinaryTree();
-var itr=this.getIterator();
-while(!itr.atEnd()){
-c.add(itr.get());
-}
-return c;
-};
-this.contains=function(_17){
-return this.search(_17)!=null;
-};
-this.deleteData=function(_18){
-var _19=_15;
-var _1a=null;
-var i=_19.compareData(_18);
-while(i!=0&&_19!=null){
-if(i>0){
-_1a=_19;
-_19=_19.left;
-}else{
-if(i<0){
-_1a=_19;
-_19=_19.right;
-}
-}
-i=_19.compareData(_18);
-}
-if(!_19){
-return;
-}
-this.count--;
-if(!_19.right){
-if(!_1a){
-_15=_19.left;
-}else{
-i=_1a.compare(_19);
-if(i>0){
-_1a.left=_19.left;
-}else{
-if(i<0){
-_1a.right=_19.left;
-}
-}
-}
-}else{
-if(!_19.right.left){
-if(!_1a){
-_15=_19.right;
-}else{
-i=_1a.compare(_19);
-if(i>0){
-_1a.left=_19.right;
-}else{
-if(i<0){
-_1a.right=_19.right;
-}
-}
-}
-}else{
-var _1b=_19.right.left;
-var _1c=_19.right;
-while(_1b.left!=null){
-_1c=_1b;
-_1b=_1b.left;
-}
-_1c.left=_1b.right;
-_1b.left=_19.left;
-_1b.right=_19.right;
-if(!_1a){
-_15=_1b;
-}else{
-i=_1a.compare(_19);
-if(i>0){
-_1a.left=_1b;
-}else{
-if(i<0){
-_1a.right=_1b;
-}
-}
-}
-}
-}
-};
-this.getIterator=function(){
-var a=[];
-_6(_15,a);
-return new dojox.collections.Iterator(a);
-};
-this.search=function(_1d){
-return _10(_15,_1d);
-};
-this.toString=function(_1e,sep){
-if(!_1e){
-_1e=dojox.collections.BinaryTree.TraversalMethods.Inorder;
-}
-if(!sep){
-sep=",";
-}
-var s="";
-switch(_1e){
-case dojox.collections.BinaryTree.TraversalMethods.Preorder:
-s=_8(_15,sep);
-break;
-case dojox.collections.BinaryTree.TraversalMethods.Inorder:
-s=_b(_15,sep);
-break;
-case dojox.collections.BinaryTree.TraversalMethods.Postorder:
-s=_e(_15,sep);
-break;
-}
-if(s.length==0){
-return "";
-}else{
-return s.substring(0,s.length-sep.length);
-}
-};
-this.count=0;
-var _15=this.root=null;
-if(_1){
-this.add(_1);
-}
-};
-dojox.collections.BinaryTree.TraversalMethods={Preorder:1,Inorder:2,Postorder:3};
-}

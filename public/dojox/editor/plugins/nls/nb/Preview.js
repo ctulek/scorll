@@ -1,1 +1,3 @@
-({"preview":"Forhåndsvis"})
+({
+	"preview": "Forhåndsvis"
+})

@@ -1,1 +1,4 @@
-({"showBlockNodes":"عرض عناصر كتلة HTML"})
+({
+	"showBlockNodes": "عرض عناصر كتلة HTML"
+})
+

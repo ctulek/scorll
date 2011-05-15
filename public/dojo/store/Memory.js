@@ -1,61 +1,153 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojo/store/Memory", ["dojo", "dojo/store/util/QueryResults", "dojo/store/util/SimpleQueryEngine"], function(dojo) {
 
+dojo.declare("dojo.store.Memory", null, {
+	// summary:
+	//		This is a basic in-memory object store. It implements dojo.store.api.Store.
+	constructor: function(/*dojo.store.Memory*/ options){
+		// summary:
+		//		Creates a memory object store.
+		// options:
+		//		This provides any configuration information that will be mixed into the store.
+		// 		This should generally include the data property to provide the starting set of data.
+		this.index = {};
+		dojo.mixin(this, options);
+		this.setData(this.data || []);
+	},
+	// data: Array
+	//		The array of all the objects in the memory store
+	data:null,
 
-if(!dojo._hasResource["dojo.store.Memory"]){
-dojo._hasResource["dojo.store.Memory"]=true;
-dojo.provide("dojo.store.Memory");
-dojo.require("dojo.store.util.QueryResults");
-dojo.require("dojo.store.util.SimpleQueryEngine");
-dojo.declare("dojo.store.Memory",null,{constructor:function(_1){
-this.index={};
-dojo.mixin(this,_1);
-this.setData(this.data||[]);
-},data:null,idProperty:"id",index:null,queryEngine:dojo.store.util.SimpleQueryEngine,get:function(id){
-return this.index[id];
-},getIdentity:function(_2){
-return _2[this.idProperty];
-},put:function(_3,_4){
-var id=_4&&_4.id||_3[this.idProperty]||Math.random();
-this.index[id]=_3;
-var _5=this.data,_6=this.idProperty;
-for(var i=0,l=_5.length;i<l;i++){
-if(_5[i][_6]==id){
-_5[i]=_3;
-return id;
-}
-}
-this.data.push(_3);
-return id;
-},add:function(_7,_8){
-if(this.index[_8&&_8.id||_7[this.idProperty]]){
-throw new Error("Object already exists");
-}
-return this.put(_7,_8);
-},remove:function(id){
-delete this.index[id];
-var _9=this.data,_a=this.idProperty;
-for(var i=0,l=_9.length;i<l;i++){
-if(_9[i][_a]==id){
-_9.splice(i,1);
-return;
-}
-}
-},query:function(_b,_c){
-return dojo.store.util.QueryResults(this.queryEngine(_b,_c)(this.data));
-},setData:function(_d){
-if(_d.items){
-this.idProperty=_d.identifier;
-_d=this.data=_d.items;
-}else{
-this.data=_d;
-}
-for(var i=0,l=_d.length;i<l;i++){
-var _e=_d[i];
-this.index[_e[this.idProperty]]=_e;
-}
-}});
-}
+	// idProperty: String
+	//		Indicates the property to use as the identity property. The values of this
+	//		property should be unique.
+	idProperty: "id",
+
+	// index: Object
+	//		An index of data by id
+	index:null,
+
+	// queryEngine: Function
+	//		Defines the query engine to use for querying the data store
+	queryEngine: dojo.store.util.SimpleQueryEngine,
+	get: function(id){
+		//	summary:
+		//		Retrieves an object by its identity
+		//	id: Number
+		//		The identity to use to lookup the object
+		//	returns: Object
+		//		The object in the store that matches the given id.
+		return this.index[id];
+	},
+	getIdentity: function(object){
+		// 	summary:
+		//		Returns an object's identity
+		// 	object: Object
+		//		The object to get the identity from
+		//	returns: Number
+		return object[this.idProperty];
+	},
+	put: function(object, options){
+		// 	summary:
+		//		Stores an object
+		// 	object: Object
+		//		The object to store.
+		// 	options: dojo.store.api.Store.PutDirectives??
+		//		Additional metadata for storing the data.  Includes an "id"
+		//		property if a specific id is to be used.
+		//	returns: Number
+		var id = options && options.id || object[this.idProperty] || Math.random();
+		this.index[id] = object;
+		var data = this.data,
+			idProperty = this.idProperty;
+		for(var i = 0, l = data.length; i < l; i++){
+			if(data[i][idProperty] == id){
+				data[i] = object;
+				return id;
+			}
+		}
+		this.data.push(object);
+		return id;
+	},
+	add: function(object, options){
+		// 	summary:
+		//		Creates an object, throws an error if the object already exists
+		// 	object: Object
+		//		The object to store.
+		// 	options: dojo.store.api.Store.PutDirectives??
+		//		Additional metadata for storing the data.  Includes an "id"
+		//		property if a specific id is to be used.
+		//	returns: Number
+		if(this.index[options && options.id || object[this.idProperty]]){
+			throw new Error("Object already exists");
+		}
+		return this.put(object, options);
+	},
+	remove: function(id){
+		// 	summary:
+		//		Deletes an object by its identity
+		// 	id: Number
+		//		The identity to use to delete the object
+		delete this.index[id];
+		var data = this.data,
+			idProperty = this.idProperty;
+		for(var i = 0, l = data.length; i < l; i++){
+			if(data[i][idProperty] == id){
+				data.splice(i, 1);
+				return;
+			}
+		}
+	},
+	query: function(query, options){
+		// 	summary:
+		//		Queries the store for objects.
+		// 	query: Object
+		//		The query to use for retrieving objects from the store.
+		//	options: dojo.store.api.Store.QueryOptions?
+		//		The optional arguments to apply to the resultset.
+		//	returns: dojo.store.api.Store.QueryResults
+		//		The results of the query, extended with iterative methods.
+		//
+		// 	example:
+		// 		Given the following store:
+		//
+		// 	|	var store = new dojo.store.Memory({
+		// 	|		data: [
+		// 	|			{id: 1, name: "one", prime: false },
+		//	|			{id: 2, name: "two", even: true, prime: true},
+		//	|			{id: 3, name: "three", prime: true},
+		//	|			{id: 4, name: "four", even: true, prime: false},
+		//	|			{id: 5, name: "five", prime: true}
+		//	|		]
+		//	|	});
+		//
+		//	...find all items where "prime" is true:
+		//
+		//	|	var results = store.query({ prime: true });
+		//
+		//	...or find all items where "even" is true:
+		//
+		//	|	var results = store.query({ even: true });
+		return dojo.store.util.QueryResults(this.queryEngine(query, options)(this.data));
+	},
+	setData: function(data){
+		// 	summary:
+		//		Sets the given data as the source for this store, and indexes it
+		//	data: Object[]
+		//		An array of objects to use as the source of data.
+		if(data.items){
+			// just for convenience with the data format IFRS expects
+			this.idProperty = data.identifier;
+			data = this.data = data.items;
+		}else{
+			this.data = data;
+		}
+
+		for(var i = 0, l = data.length; i < l; i++){
+			var object = data[i];
+			this.index[object[this.idProperty]] = object;
+		}
+	}
+});
+
+return dojo.store.Memory;
+});

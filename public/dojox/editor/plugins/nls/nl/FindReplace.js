@@ -1,1 +1,23 @@
-({"replaceDialogText":"${0} vervangingen.","eofDialogTextFind":"gevonden","eofDialogText":"Laatste positie ${0}","backwards":"Terug","replaceButton":"Vervangen","replaceLabel":"Vervangen door:","matchCase":"Hoofdlettergevoelig","findTooltip":"Geef de zoektekst op","replaceTooltip":"Geef de vervangende tekst op","replaceAllButton":"Alle vervangen","eofDialogTextReplace":"vervangen","findReplace":"Zoeken en vervangen","backwardsTooltip":"Terugwaarts naar tekst zoeken","replaceAllButtonTooltip":"Gehele tekst vervangen","replaceButtonTooltip":"Tekst vervangen","findLabel":"Zoeken:","findButton":"Zoeken:","matchCaseTooltip":"Hoofdlettergevoelig","findButtonTooltip":"Tekst zoeken","replaceAll":"Alle posities"})
+({
+	"findLabel": "Zoeken:",
+	"findTooltip": "Geef de zoektekst op",
+	"replaceLabel": "Vervangen door:",
+	"replaceTooltip": "Geef de vervangende tekst op",
+	"findReplace": "Zoeken en vervangen",
+	"matchCase": "Hoofdlettergevoelig",
+	"matchCaseTooltip": "Hoofdlettergevoelig",
+	"backwards": "Terug",
+	"backwardsTooltip": "Terugwaarts naar tekst zoeken",
+	"replaceAll": "Alle posities",
+	"replaceAllButton": "Alle vervangen",
+	"replaceAllButtonTooltip": "Gehele tekst vervangen",
+	"findButton": "Zoeken:",
+	"findButtonTooltip": "Tekst zoeken",
+	"replaceButton": "Vervangen",
+	"replaceButtonTooltip": "Tekst vervangen",
+	"replaceDialogText": "${0} vervangingen.",
+	"eofDialogText": "Laatste positie ${0}",
+	"eofDialogTextFind": "gevonden",
+	"eofDialogTextReplace": "vervangen"
+})
+

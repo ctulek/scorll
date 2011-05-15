@@ -1,1 +1,17 @@
-({"cancel":"Annulla","toDic":"Aggiungi al dizionario","skip":"Ignora","iMsg":"Nessun suggerimento ortografico","replaceAll":"Sostituisci tutto","widgetLabel":"Controllo ortografico batch","skipAll":"Ignora tutto","suggestions":"Suggerimenti","iSkipAll":"Ignora tutto","replaceWith":"Sostituisci con","msg":"Nessun errore di ortografia trovato","replace":"Sostituisci","unfound":"Non trovato","iSkip":"Ignora"})
+({
+	widgetLabel: "Controllo ortografico batch",
+	unfound: "Non trovato",
+	skip: "Ignora",
+	skipAll: "Ignora tutto",
+	toDic: "Aggiungi al dizionario",
+	suggestions: "Suggerimenti",
+	replace: "Sostituisci",
+	replaceWith: "Sostituisci con",
+	replaceAll: "Sostituisci tutto",
+	cancel: "Annulla",
+	msg: "Nessun errore di ortografia trovato",
+	iSkip: "Ignora",
+	iSkipAll: "Ignora tutto",
+	iMsg: "Nessun suggerimento ortografico"
+})
+

@@ -1,1 +1,12 @@
-({"saturationPickerTitle":"Επιλογή κορεσμού","valueLabel":"τ","blueLabel":"μ","saturationLabel":"κ","greenLabel":"π","redLabel":"κ","hueLabel":"α","hexLabel":"16-αδικό","huePickerTitle":"Επιλογή απόχρωσης","degLabel":"°"})
+({
+redLabel: "κ",
+greenLabel: "π",
+blueLabel: "μ",
+hueLabel: "α",
+saturationLabel: "κ",
+valueLabel: "τ", /* aka intensity or brightness */
+hexLabel: "16-αδικό",
+huePickerTitle: "Επιλογή απόχρωσης",
+saturationPickerTitle: "Επιλογή κορεσμού"
+})
+

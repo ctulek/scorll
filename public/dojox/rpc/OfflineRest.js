@@ -1,201 +1,256 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojox/rpc/OfflineRest", ["dojo", "dojox", "dojox/data/ClientFilter", "dojox/rpc/Rest", "dojox/storage"], function(dojo, dojox) {
+// summary:
+// 		Makes the REST service be able to store changes in local
+// 		storage so it can be used offline automatically.
+	var Rest = dojox.rpc.Rest;
+	var namespace = "dojox_rpc_OfflineRest";
+	var loaded;
+	var index = Rest._index;
+	dojox.storage.manager.addOnLoad(function(){
+		// now that we are loaded we need to save everything in the index
+		loaded = dojox.storage.manager.available;
+		for(var i in index){
+			saveObject(index[i], i);
+		}
+	});
+	var dontSave;
+	function getStorageKey(key){
+		// returns a key that is safe to use in storage
+		return key.replace(/[^0-9A-Za-z_]/g,'_');
+	}
+	function saveObject(object,id){
+		// save the object into local storage
+		
+		if(loaded && !dontSave && (id || (object && object.__id))){
+			dojox.storage.put(
+					getStorageKey(id||object.__id),
+					typeof object=='object'?dojox.json.ref.toJson(object):object, // makeshift technique to determine if the object is json object or not
+					function(){},
+					namespace);
+		}
+	}
+	function isNetworkError(error){
+		//	determine if the error was a network error and should be saved offline
+		// 	or if it was a server error and not a result of offline-ness
+		return error instanceof Error && (error.status == 503 || error.status > 12000 ||  !error.status); // TODO: Make the right error determination
+	}
+	function sendChanges(){
+		// periodical try to save our dirty data
+		if(loaded){
+			var dirty = dojox.storage.get("dirty",namespace);
+			if(dirty){
+				for (var dirtyId in dirty){
+					commitDirty(dirtyId,dirty);
+				}
+			}
+		}
+	}
+	var OfflineRest;
+	function sync(){
+		OfflineRest.sendChanges();
+		OfflineRest.downloadChanges();
+	}
+	var syncId = setInterval(sync,15000);
+	dojo.connect(document, "ononline", sync);
+	OfflineRest = dojox.rpc.OfflineRest = {
+		turnOffAutoSync: function(){
+			clearInterval(syncId);
+		},
+		sync: sync,
+		sendChanges: sendChanges,
+		downloadChanges: function(){
+			
+		},
+		addStore: function(/*data-store*/store,/*query?*/baseQuery){
+			// summary:
+			//		Adds a store to the monitored store for local storage
+			//	store:
+			//		Store to add
+			//	baseQuery:
+			//		This is the base query to should be used to load the items for
+			//		the store. Generally you want to load all the items that should be
+			//		available when offline.
+			OfflineRest.stores.push(store);
+			store.fetch({queryOptions:{cache:true},query:baseQuery,onComplete:function(results,args){
+				store._localBaseResults = results;
+				store._localBaseFetch = args;
+			}});
+						
+		}
+	};
+	OfflineRest.stores = [];
+	var defaultGet = Rest._get;
+	Rest._get = function(service, id){
+		// We specifically do NOT want the paging information to be used by the default handler,
+		// this is because online apps want to minimize the data transfer,
+		// but an offline app wants the opposite, as much data as possible transferred to
+		// the client side
+		try{
+			// if we are reloading the application with local dirty data in an online environment
+			//	we want to make sure we save the changes first, so that we get up-to-date
+			//	information from the server
+			sendChanges();
+			if(window.navigator && navigator.onLine===false){
+				// we force an error if we are offline in firefox, otherwise it will silently load it from the cache
+				throw new Error();
+			}
+			var dfd = defaultGet(service, id);
+		}catch(e){
+			dfd = new dojo.Deferred();
+			dfd.errback(e);
+		}
+		var sync = dojox.rpc._sync;
+		dfd.addCallback(function(result){
+			saveObject(result, service._getRequest(id).url);
+			return result;
+		});
+		dfd.addErrback(function(error){
+			if(loaded){
+				// if the storage is loaded, we can go ahead and get the object out of storage
+				if(isNetworkError(error)){
+					var loadedObjects = {};
+					// network error, load from local storage
+					var byId = function(id,backup){
+						if(loadedObjects[id]){
+							return backup;
+						}
+						var result = dojo.fromJson(dojox.storage.get(getStorageKey(id),namespace)) || backup;
+						
+						loadedObjects[id] = result;
+						for(var i in result){
+							var val = result[i]; // resolve references if we can
+							id = val && val.$ref;
+							if (id){
+								if(id.substring && id.substring(0,4) == "cid:"){
+									// strip the cid scheme, we should be able to resolve it locally
+									id = id.substring(4);
+								}
+								result[i] = byId(id,val);
+							}
+						}
+						if (result instanceof Array){
+							//remove any deleted items
+							for (i = 0;i<result.length;i++){
+								if (result[i]===undefined){
+									result.splice(i--,1);
+								}
+							}
+						}
+						return result;
+					};
+					dontSave = true; // we don't want to be resaving objects when loading from local storage
+					//TODO: Should this reuse something from dojox.rpc.Rest
+					var result = byId(service._getRequest(id).url);
+					
+					if(!result){// if it is not found we have to just return the error
+						return error;
+					}
+					dontSave = false;
+					return result;
+				}
+				else{
+					return error; // server error, let the error propagate
+				}
+			}
+			else{
+				if(sync){
+					return new Error("Storage manager not loaded, can not continue");
+				}
+				// we are not loaded, so we need to defer until we are loaded
+				dfd = new dojo.Deferred();
+				dfd.addCallback(arguments.callee);
+				dojox.storage.manager.addOnLoad(function(){
+					dfd.callback();
+				});
+				return dfd;
+			}
+		});
+		return dfd;
+	};
+	function changeOccurred(method, absoluteId, contentId, serializedContent, service){
+		if(method=='delete'){
+			dojox.storage.remove(getStorageKey(absoluteId),namespace);
+		}
+		else{
+			// both put and post should store the actual object
+			dojox.storage.put(getStorageKey(contentId), serializedContent, function(){
+			},namespace);
+		}
+		var store = service && service._store;
+		// record all the updated queries
+		if(store){
+			store.updateResultSet(store._localBaseResults, store._localBaseFetch);
+			dojox.storage.put(getStorageKey(service._getRequest(store._localBaseFetch.query).url),dojox.json.ref.toJson(store._localBaseResults),function(){
+				},namespace);
+			
+		}
+		
+	}
+	dojo.addOnLoad(function(){
+		dojo.connect(dojox.data, "restListener", function(message){
+			var channel = message.channel;
+			var method = message.event.toLowerCase();
+			var service = dojox.rpc.JsonRest && dojox.rpc.JsonRest.getServiceAndId(channel).service;
+			changeOccurred(
+				method,
+				channel,
+				method == "post" ? channel + message.result.id : channel,
+				dojo.toJson(message.result),
+				service
+			);
+			
+		});
+	});
+	//FIXME: Should we make changes after a commit to see if the server rejected the change
+	// or should we come up with a revert mechanism?
+	var defaultChange = Rest._change;
+	Rest._change = function(method,service,id,serializedContent){
+		if(!loaded){
+			return defaultChange.apply(this,arguments);
+		}
+		var absoluteId = service._getRequest(id).url;
+		changeOccurred(method, absoluteId, dojox.rpc.JsonRest._contentId, serializedContent, service);
+		var dirty = dojox.storage.get("dirty",namespace) || {};
+		if (method=='put' || method=='delete'){
+			// these supersede so we can overwrite anything using this id
+			var dirtyId = absoluteId;
+		}
+		else{
+			dirtyId = 0;
+			for (var i in dirty){
+				if(!isNaN(parseInt(i))){
+					dirtyId = i;
+				}
+			} // get the last dirtyId to make a unique id for non-idempotent methods
+			dirtyId++;
+		}
+		dirty[dirtyId] = {method:method,id:absoluteId,content:serializedContent};
+		return commitDirty(dirtyId,dirty);
+	};
+	function commitDirty(dirtyId, dirty){
+		var dirtyItem = dirty[dirtyId];
+		var serviceAndId = dojox.rpc.JsonRest.getServiceAndId(dirtyItem.id);
+		var deferred = defaultChange(dirtyItem.method,serviceAndId.service,serviceAndId.id,dirtyItem.content);
+		// add it to our list of dirty objects
+		dirty[dirtyId] = dirtyItem;
+		dojox.storage.put("dirty",dirty,function(){},namespace);
+		deferred.addBoth(function(result){
+			if (isNetworkError(result)){
+				// if a network error (offlineness) was the problem, we leave it
+				// dirty, and return to indicate successfulness
+				return null;
+			}
+			// it was successful or the server rejected it, we remove it from the dirty list
+			var dirty = dojox.storage.get("dirty",namespace) || {};
+			delete dirty[dirtyId];
+			dojox.storage.put("dirty",dirty,function(){},namespace);
+			return result;
+		});
+		return deferred;
+	}
+		
+	dojo.connect(index,"onLoad",saveObject);
+	dojo.connect(index,"onUpdate",saveObject);
 
-
-if(!dojo._hasResource["dojox.rpc.OfflineRest"]){
-dojo._hasResource["dojox.rpc.OfflineRest"]=true;
-dojo.provide("dojox.rpc.OfflineRest");
-dojo.require("dojox.data.ClientFilter");
-dojo.require("dojox.rpc.Rest");
-dojo.require("dojox.storage");
-var Rest=dojox.rpc.Rest;
-var namespace="dojox_rpc_OfflineRest";
-var loaded;
-var index=Rest._index;
-dojox.storage.manager.addOnLoad(function(){
-loaded=dojox.storage.manager.available;
-for(var i in index){
-saveObject(index[i],i);
-}
+	return dojox.rpc.OfflineRest;
 });
-var dontSave;
-function getStorageKey(_1){
-return _1.replace(/[^0-9A-Za-z_]/g,"_");
-};
-function saveObject(_2,id){
-if(loaded&&!dontSave&&(id||(_2&&_2.__id))){
-dojox.storage.put(getStorageKey(id||_2.__id),typeof _2=="object"?dojox.json.ref.toJson(_2):_2,function(){
-},namespace);
-}
-};
-function isNetworkError(_3){
-return _3 instanceof Error&&(_3.status==503||_3.status>12000||!_3.status);
-};
-function sendChanges(){
-if(loaded){
-var _4=dojox.storage.get("dirty",namespace);
-if(_4){
-for(var _5 in _4){
-commitDirty(_5,_4);
-}
-}
-}
-};
-var OfflineRest;
-function sync(){
-OfflineRest.sendChanges();
-OfflineRest.downloadChanges();
-};
-var syncId=setInterval(sync,15000);
-dojo.connect(document,"ononline",sync);
-OfflineRest=dojox.rpc.OfflineRest={turnOffAutoSync:function(){
-clearInterval(syncId);
-},sync:sync,sendChanges:sendChanges,downloadChanges:function(){
-},addStore:function(_6,_7){
-OfflineRest.stores.push(_6);
-_6.fetch({queryOptions:{cache:true},query:_7,onComplete:function(_8,_9){
-_6._localBaseResults=_8;
-_6._localBaseFetch=_9;
-}});
-}};
-OfflineRest.stores=[];
-var defaultGet=Rest._get;
-Rest._get=function(_a,id){
-try{
-sendChanges();
-if(window.navigator&&navigator.onLine===false){
-throw new Error();
-}
-var _b=defaultGet(_a,id);
-}
-catch(e){
-_b=new dojo.Deferred();
-_b.errback(e);
-}
-var _c=dojox.rpc._sync;
-_b.addCallback(function(_d){
-saveObject(_d,_a._getRequest(id).url);
-return _d;
-});
-_b.addErrback(function(_e){
-if(loaded){
-if(isNetworkError(_e)){
-var _f={};
-var _10=function(id,_11){
-if(_f[id]){
-return _11;
-}
-var _12=dojo.fromJson(dojox.storage.get(getStorageKey(id),namespace))||_11;
-_f[id]=_12;
-for(var i in _12){
-var val=_12[i];
-id=val&&val.$ref;
-if(id){
-if(id.substring&&id.substring(0,4)=="cid:"){
-id=id.substring(4);
-}
-_12[i]=_10(id,val);
-}
-}
-if(_12 instanceof Array){
-for(i=0;i<_12.length;i++){
-if(_12[i]===undefined){
-_12.splice(i--,1);
-}
-}
-}
-return _12;
-};
-dontSave=true;
-var _13=_10(_a._getRequest(id).url);
-if(!_13){
-return _e;
-}
-dontSave=false;
-return _13;
-}else{
-return _e;
-}
-}else{
-if(_c){
-return new Error("Storage manager not loaded, can not continue");
-}
-_b=new dojo.Deferred();
-_b.addCallback(arguments.callee);
-dojox.storage.manager.addOnLoad(function(){
-_b.callback();
-});
-return _b;
-}
-});
-return _b;
-};
-function changeOccurred(_14,_15,_16,_17,_18){
-if(_14=="delete"){
-dojox.storage.remove(getStorageKey(_15),namespace);
-}else{
-dojox.storage.put(getStorageKey(_16),_17,function(){
-},namespace);
-}
-var _19=_18&&_18._store;
-if(_19){
-_19.updateResultSet(_19._localBaseResults,_19._localBaseFetch);
-dojox.storage.put(getStorageKey(_18._getRequest(_19._localBaseFetch.query).url),dojox.json.ref.toJson(_19._localBaseResults),function(){
-},namespace);
-}
-};
-dojo.addOnLoad(function(){
-dojo.connect(dojox.data,"restListener",function(_1a){
-var _1b=_1a.channel;
-var _1c=_1a.event.toLowerCase();
-var _1d=dojox.rpc.JsonRest&&dojox.rpc.JsonRest.getServiceAndId(_1b).service;
-changeOccurred(_1c,_1b,_1c=="post"?_1b+_1a.result.id:_1b,dojo.toJson(_1a.result),_1d);
-});
-});
-var defaultChange=Rest._change;
-Rest._change=function(_1e,_1f,id,_20){
-if(!loaded){
-return defaultChange.apply(this,arguments);
-}
-var _21=_1f._getRequest(id).url;
-changeOccurred(_1e,_21,dojox.rpc.JsonRest._contentId,_20,_1f);
-var _22=dojox.storage.get("dirty",namespace)||{};
-if(_1e=="put"||_1e=="delete"){
-var _23=_21;
-}else{
-_23=0;
-for(var i in _22){
-if(!isNaN(parseInt(i))){
-_23=i;
-}
-}
-_23++;
-}
-_22[_23]={method:_1e,id:_21,content:_20};
-return commitDirty(_23,_22);
-};
-function commitDirty(_24,_25){
-var _26=_25[_24];
-var _27=dojox.rpc.JsonRest.getServiceAndId(_26.id);
-var _28=defaultChange(_26.method,_27.service,_27.id,_26.content);
-_25[_24]=_26;
-dojox.storage.put("dirty",_25,function(){
-},namespace);
-_28.addBoth(function(_29){
-if(isNetworkError(_29)){
-return null;
-}
-var _2a=dojox.storage.get("dirty",namespace)||{};
-delete _2a[_24];
-dojox.storage.put("dirty",_2a,function(){
-},namespace);
-return _29;
-});
-return _28;
-};
-dojo.connect(index,"onLoad",saveObject);
-dojo.connect(index,"onUpdate",saveObject);
-}

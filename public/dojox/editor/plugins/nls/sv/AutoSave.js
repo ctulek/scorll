@@ -1,1 +1,14 @@
-({"saveLabel":"Spara","saveSettingdialogTitle":"Spara automatiskt","saveSettingdialogButtonOk":"Ange intervall","saveMessageSuccess":"Sparades ${0}","saveSettingdialogButtonCancel":"Avbryt","saveSettingdialogDescription":"Ange intervall för automatiskt sparande","saveSettingLabelOn":"Ange intervall för automatiskt sparande...","saveSettingdialogParamLabel":"min.","saveSettingdialogParamName":"Intervall för automatiskt sparande","saveMessageFail":"Kunde inte sparas ${0}","saveSettingLabelOff":"Avaktivera automatiskt sparande"})
+({
+	"saveLabel": "Spara",
+	"saveSettingLabelOn": "Ange intervall för automatiskt sparande...",
+	"saveSettingLabelOff": "Avaktivera automatiskt sparande",
+	"saveSettingdialogTitle": "Spara automatiskt",
+	"saveSettingdialogDescription": "Ange intervall för automatiskt sparande",
+	"saveSettingdialogParamName": "Intervall för automatiskt sparande",
+	"saveSettingdialogParamLabel": "min.",
+	"saveSettingdialogButtonOk": "Ange intervall",
+	"saveSettingdialogButtonCancel": "Avbryt",
+	"saveMessageSuccess": "Sparades ${0}",
+	"saveMessageFail": "Kunde inte sparas ${0}"
+})
+

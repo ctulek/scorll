@@ -1,1 +1,17 @@
-({"cancel":"Mégse","toDic":"Hozzáadás a szótárhoz","skip":"Kihagyja","iMsg":"Nincsenek helyesírási javaslatok","replaceAll":"Mindent lecserél","widgetLabel":"Kötegelt helyesírás-ellenőrzés","skipAll":"Mindet kihagyja","suggestions":"Javaslatok","iSkipAll":"Összes hasonlót kihagyja","replaceWith":"Csere erre","msg":"Nem található helyesírási hiba","replace":"Csere","unfound":"Nem található","iSkip":"Ezt kihagyja"})
+({
+	widgetLabel: "Kötegelt helyesírás-ellenőrzés",
+	unfound: "Nem található",
+	skip: "Kihagyja",
+	skipAll: "Mindet kihagyja",
+	toDic: "Hozzáadás a szótárhoz",
+	suggestions: "Javaslatok",
+	replace: "Csere",
+	replaceWith: "Csere erre",
+	replaceAll: "Mindent lecserél",
+	cancel: "Mégse",
+	msg: "Nem található helyesírási hiba",
+	iSkip: "Ezt kihagyja",
+	iSkipAll: "Összes hasonlót kihagyja",
+	iMsg: "Nincsenek helyesírási javaslatok"
+})
+

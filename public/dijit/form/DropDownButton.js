@@ -1,12 +1,6 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dijit/form/DropDownButton", ["dojo", "dijit", "dijit/form/Button"], function(dojo, dijit) {
 
 
-if(!dojo._hasResource["dijit.form.DropDownButton"]){
-dojo._hasResource["dijit.form.DropDownButton"]=true;
-dojo.provide("dijit.form.DropDownButton");
-dojo.require("dijit.form.Button");
-}
+
+return dijit.form.DropDownButton;
+});

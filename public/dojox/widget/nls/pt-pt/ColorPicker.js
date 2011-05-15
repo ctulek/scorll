@@ -1,1 +1,10 @@
-({"redLabel":"e","valueLabel":"val","hueLabel":"t","saturationPickerTitle":"Selector de saturação","huePickerTitle":"Selector de tonalidade","greenLabel":"v","blueLabel":"a","saturationLabel":"s","hexLabel":"hex","degLabel":"°"})
+({
+redLabel: "e",
+greenLabel: "v",
+blueLabel: "a",
+hueLabel: "t",
+valueLabel: "val", /* aka intensity or brightness */
+huePickerTitle: "Selector de tonalidade",
+saturationPickerTitle: "Selector de saturação"
+})
+

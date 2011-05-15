@@ -1,7 +1,7 @@
 html
     head
         title Scorll
-        link(rel="stylesheet", rel="stylesheet", href="dijit/themes/claro/claro.css")
+        link(rel="stylesheet", rel="stylesheet", href="/release/r1/dijit/themes/claro/claro.css")
         link(type="text/css", rel="stylesheet", href="/css/main.css") 
         link(type="text/css", rel="stylesheet", href="/css/stage.css") 
     body.claro
@@ -14,7 +14,8 @@ html
                     script(type="dojo/connect", event="onClick", args="evt")
                         | dijit.byId("newAssetDialog").show();
         div#newAssetDialog(dojoType="dijit.Dialog", title="Add New Asset", style="width: 300px;")
-        script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        script(src="/release/r1/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        script(src="/release/r1/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
         script(src="/socket.io/socket.io.js")
         script(type="text/javascript", language="javascript")
             // <![CDATA[

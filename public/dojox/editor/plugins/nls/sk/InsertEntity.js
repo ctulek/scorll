@@ -1,1 +1,4 @@
-({"insertEntity":"Vložiť symbol"})
+({
+	insertEntity: "Vložiť symbol"
+})
+

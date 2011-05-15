@@ -1,110 +1,218 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.mobile.app.ListSelector"]){
-dojo._hasResource["dojox.mobile.app.ListSelector"]=true;
 dojo.provide("dojox.mobile.app.ListSelector");
 dojo.experimental("dojox.mobile.app.ListSelector");
+
 dojo.require("dojox.mobile.app._Widget");
 dojo.require("dojo.fx");
-dojo.declare("dojox.mobile.app.ListSelector",dojox.mobile.app._Widget,{data:null,controller:null,onChoose:null,destroyOnHide:false,_setDataAttr:function(_1){
-this.data=_1;
-if(this.data){
-this.render();
-}
-},postCreate:function(){
-dojo.addClass(this.domNode,"listSelector");
-var _2=this;
-this.connect(this.domNode,"onclick",function(_3){
-if(!dojo.hasClass(_3.target,"listSelectorRow")){
-return;
-}
-if(_2.onChoose){
-_2.onChoose(_2.data[_3.target._idx].value);
-}
-_2.hide();
+
+dojo.declare("dojox.mobile.app.ListSelector", dojox.mobile.app._Widget, {
+
+	// data: Array
+	//    The array of items to display.  Each element in the array
+	//    should have both a label and value attribute, e.g.
+	//    [{label: "Open", value: 1} , {label: "Delete", value: 2}]
+	data: null,
+
+	// controller: Object
+	//    The current SceneController widget.
+	controller: null,
+
+	// onChoose: Function
+	//    The callback function for when an item is selected
+	onChoose: null,
+
+	destroyOnHide: false,
+
+	_setDataAttr: function(data){
+		this.data = data;
+	
+		if(this.data){
+			this.render();
+		}
+	},
+
+	postCreate: function(){
+		dojo.addClass(this.domNode, "listSelector");
+	
+		var _this = this;
+	
+		this.connect(this.domNode, "onclick", function(event){
+			if(!dojo.hasClass(event.target, "listSelectorRow")){
+				return;
+			}
+	
+			if(_this.onChoose){
+				_this.onChoose(_this.data[event.target._idx].value);
+			}
+			_this.hide();
+		});
+
+		this.connect(this.domNode, "onmousedown", function(event){
+			if(!dojo.hasClass(event.target, "listSelectorRow")){
+				return;
+			}
+			dojo.addClass(event.target, "listSelectorRow-selected");
+		});
+
+		this.connect(this.domNode, "onmouseup", function(event){
+			if(!dojo.hasClass(event.target, "listSelectorRow")){
+				return;
+			}
+			dojo.removeClass(event.target, "listSelectorRow-selected");
+		});
+
+		this.connect(this.domNode, "onmouseout", function(event){
+			if(!dojo.hasClass(event.target, "listSelectorRow")){
+				return;
+			}
+			dojo.removeClass(event.target, "listSelectorRow-selected");
+		});
+	
+		var viewportSize = this.controller.getWindowSize();
+	
+		this.mask = dojo.create("div", {"class": "dialogUnderlayWrapper",
+			innerHTML: "<div class=\"dialogUnderlay\"></div>"
+		}, this.controller.assistant.domNode);
+	
+		this.connect(this.mask, "onclick", function(){
+			_this.onChoose && _this.onChoose();
+			_this.hide();
+		});
+	},
+
+	show: function(fromNode){
+
+		// Using dojo.fx here. Must figure out how to do this with CSS animations!!
+		var startPos;
+	
+		var windowSize = this.controller.getWindowSize();
+		var fromNodePos;
+		if(fromNode){
+			fromNodePos = dojo._abs(fromNode);
+			startPos = fromNodePos;
+		}else{
+			startPos.x = windowSize.w / 2;
+			startPos.y = 200;
+		}
+		console.log("startPos = ", startPos);
+	
+		dojo.style(this.domNode, {
+			opacity: 0,
+			display: "",
+			width: Math.floor(windowSize.w * 0.8) + "px"
+		});
+	
+		var maxWidth = 0;
+		dojo.query(">", this.domNode).forEach(function(node){
+			dojo.style(node, {
+				"float": "left"
+			});
+			maxWidth = Math.max(maxWidth, dojo.marginBox(node).w);
+			dojo.style(node, {
+				"float": "none"
+			});
+		});
+		maxWidth = Math.min(maxWidth, Math.round(windowSize.w * 0.8))
+					+ dojo.style(this.domNode, "paddingLeft")
+					+ dojo.style(this.domNode, "paddingRight")
+					+ 1;
+	
+		dojo.style(this.domNode, "width", maxWidth + "px");
+		var targetHeight = dojo.marginBox(this.domNode).h;
+	
+		var _this = this;
+	
+	
+		var targetY = fromNodePos ?
+				Math.max(30, fromNodePos.y - targetHeight - 10) :
+				this.getScroll().y + 30;
+	
+		console.log("fromNodePos = ", fromNodePos, " targetHeight = ", targetHeight,
+				" targetY = " + targetY, " startPos ", startPos);
+	
+	
+		var anim1 = dojo.animateProperty({
+			node: this.domNode,
+			duration: 400,
+			properties: {
+				width: {start: 1, end: maxWidth},
+				height: {start: 1, end: targetHeight},
+				top: {start: startPos.y, end: targetY},
+				left: {start: startPos.x, end: (windowSize.w/2 - maxWidth/2)},
+				opacity: {start: 0, end: 1},
+				fontSize: {start: 1}
+			},
+			onEnd: function(){
+				dojo.style(_this.domNode, "width", "inherit");
+			}
+		});
+		var anim2 = dojo.fadeIn({
+			node: this.mask,
+			duration: 400
+		});
+		dojo.fx.combine([anim1, anim2]).play();
+
+	},
+
+	hide: function(){
+		// Using dojo.fx here. Must figure out how to do this with CSS animations!!
+	
+		var _this = this;
+	
+		var anim1 = dojo.animateProperty({
+			node: this.domNode,
+			duration: 500,
+			properties: {
+				width: {end: 1},
+				height: {end: 1},
+				opacity: {end: 0},
+				fontSize: {end: 1}
+			},
+			onEnd: function(){
+				if(_this.get("destroyOnHide")){
+					_this.destroy();
+				}
+			}
+		});
+	
+		var anim2 = dojo.fadeOut({
+			node: this.mask,
+			duration: 400
+		});
+		dojo.fx.combine([anim1, anim2]).play();
+	},
+
+	render: function(){
+		// summary:
+		//    Renders
+	
+		dojo.empty(this.domNode);
+		dojo.style(this.domNode, "opacity", 0);
+	
+		var row;
+	
+		for(var i = 0; i < this.data.length; i++){
+			// Create each row and add any custom classes. Also set the _idx property.
+			row = dojo.create("div", {
+				"class": "listSelectorRow " + (this.data[i].className || ""),
+				innerHTML: this.data[i].label
+			}, this.domNode);
+	
+			row._idx = i;
+	
+			if(i == 0){
+				dojo.addClass(row, "first");
+			}
+			if(i == this.data.length - 1){
+				dojo.addClass(row, "last");
+			}
+	
+		}
+	},
+
+
+	destroy: function(){
+		this.inherited(arguments);
+		dojo.destroy(this.mask);
+	}
+
 });
-this.connect(this.domNode,"onmousedown",function(_4){
-if(!dojo.hasClass(_4.target,"listSelectorRow")){
-return;
-}
-dojo.addClass(_4.target,"listSelectorRow-selected");
-});
-this.connect(this.domNode,"onmouseup",function(_5){
-if(!dojo.hasClass(_5.target,"listSelectorRow")){
-return;
-}
-dojo.removeClass(_5.target,"listSelectorRow-selected");
-});
-this.connect(this.domNode,"onmouseout",function(_6){
-if(!dojo.hasClass(_6.target,"listSelectorRow")){
-return;
-}
-dojo.removeClass(_6.target,"listSelectorRow-selected");
-});
-var _7=this.controller.getWindowSize();
-this.mask=dojo.create("div",{"class":"dialogUnderlayWrapper",innerHTML:"<div class=\"dialogUnderlay\"></div>"},this.controller.assistant.domNode);
-this.connect(this.mask,"onclick",function(){
-_2.onChoose&&_2.onChoose();
-_2.hide();
-});
-},show:function(_8){
-var _9;
-var _a=this.controller.getWindowSize();
-var _b;
-if(_8){
-_b=dojo._abs(_8);
-_9=_b;
-}else{
-_9.x=_a.w/2;
-_9.y=200;
-}
-dojo.style(this.domNode,{opacity:0,display:"",width:Math.floor(_a.w*0.8)+"px"});
-var _c=0;
-dojo.query(">",this.domNode).forEach(function(_d){
-dojo.style(_d,{"float":"left"});
-_c=Math.max(_c,dojo.marginBox(_d).w);
-dojo.style(_d,{"float":"none"});
-});
-_c=Math.min(_c,Math.round(_a.w*0.8))+dojo.style(this.domNode,"paddingLeft")+dojo.style(this.domNode,"paddingRight")+1;
-dojo.style(this.domNode,"width",_c+"px");
-var _e=dojo.marginBox(this.domNode).h;
-var _f=this;
-var _10=_b?Math.max(30,_b.y-_e-10):this.getScroll().y+30;
-var _11=dojo.animateProperty({node:this.domNode,duration:400,properties:{width:{start:1,end:_c},height:{start:1,end:_e},top:{start:_9.y,end:_10},left:{start:_9.x,end:(_a.w/2-_c/2)},opacity:{start:0,end:1},fontSize:{start:1}},onEnd:function(){
-dojo.style(_f.domNode,"width","inherit");
-}});
-var _12=dojo.fadeIn({node:this.mask,duration:400});
-dojo.fx.combine([_11,_12]).play();
-},hide:function(){
-var _13=this;
-var _14=dojo.animateProperty({node:this.domNode,duration:500,properties:{width:{end:1},height:{end:1},opacity:{end:0},fontSize:{end:1}},onEnd:function(){
-if(_13.get("destroyOnHide")){
-_13.destroy();
-}
-}});
-var _15=dojo.fadeOut({node:this.mask,duration:400});
-dojo.fx.combine([_14,_15]).play();
-},render:function(){
-dojo.empty(this.domNode);
-dojo.style(this.domNode,"opacity",0);
-var row;
-for(var i=0;i<this.data.length;i++){
-row=dojo.create("div",{"class":"listSelectorRow "+(this.data[i].className||""),innerHTML:this.data[i].label},this.domNode);
-row._idx=i;
-if(i==0){
-dojo.addClass(row,"first");
-}
-if(i==this.data.length-1){
-dojo.addClass(row,"last");
-}
-}
-},destroy:function(){
-this.inherited(arguments);
-dojo.destroy(this.mask);
-}});
-}

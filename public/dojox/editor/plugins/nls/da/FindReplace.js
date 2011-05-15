@@ -1,1 +1,23 @@
-({"replaceDialogText":"Erstattet ${0} forekomster.","eofDialogTextFind":"fundet","eofDialogText":"Sidste forekomst ${0}","backwards":"Tilbage","replaceButton":"Erstat","replaceLabel":"Erstat med:","matchCase":"Store/små bogstaver","findTooltip":"Indtast tekst, der skal søges efter","replaceTooltip":"Indtast tekst, der skal erstattes med","replaceAllButton":"Erstat alle","eofDialogTextReplace":"erstattet","findReplace":"Søg og erstat","backwardsTooltip":"Søg baglæns efter tekst","replaceAllButtonTooltip":"Erstat alle forekomster i teksten","replaceButtonTooltip":"Erstat teksten","findLabel":"Søg efter:","findButton":"Søg","matchCaseTooltip":"Store/små bogstaver","findButtonTooltip":"Find teksten","replaceAll":"Alle forekomster"})
+({
+	"findLabel": "Søg efter:",
+	"findTooltip": "Indtast tekst, der skal søges efter",
+	"replaceLabel": "Erstat med:",
+	"replaceTooltip": "Indtast tekst, der skal erstattes med",
+	"findReplace": "Søg og erstat",
+	"matchCase": "Store/små bogstaver",
+	"matchCaseTooltip": "Store/små bogstaver",
+	"backwards": "Tilbage",
+	"backwardsTooltip": "Søg baglæns efter tekst",
+	"replaceAll": "Alle forekomster",
+	"replaceAllButton": "Erstat alle",
+	"replaceAllButtonTooltip": "Erstat alle forekomster i teksten",
+	"findButton": "Søg",
+	"findButtonTooltip": "Find teksten",
+	"replaceButton": "Erstat",
+	"replaceButtonTooltip": "Erstat teksten",
+	"replaceDialogText": "Erstattet ${0} forekomster.",
+	"eofDialogText": "Sidste forekomst ${0}",
+	"eofDialogTextFind": "fundet",
+	"eofDialogTextReplace": "erstattet"
+})
+

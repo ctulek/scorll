@@ -1,593 +1,1108 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.charting.Chart"]){
-dojo._hasResource["dojox.charting.Chart"]=true;
 dojo.provide("dojox.charting.Chart");
+
 dojo.require("dojox.gfx");
 dojo.require("dojox.lang.functional");
 dojo.require("dojox.lang.functional.fold");
 dojo.require("dojox.lang.functional.reversed");
+
 dojo.require("dojox.charting.Element");
 dojo.require("dojox.charting.Theme");
 dojo.require("dojox.charting.Series");
 dojo.require("dojox.charting.axis2d.common");
+
+/*=====
+dojox.charting.__ChartCtorArgs = function(margins, stroke, fill, delayInMs){
+	//	summary:
+	//		The keyword arguments that can be passed in a Chart constructor.
+	//
+	//	margins: Object?
+	//		Optional margins for the chart, in the form of { l, t, r, b}.
+	//	stroke: dojox.gfx.Stroke?
+	//		An optional outline/stroke for the chart.
+	//	fill: dojox.gfx.Fill?
+	//		An optional fill for the chart.
+	//	delayInMs: Number
+	//		Delay in ms for delayedRender(). Default: 200.
+	this.margins = margins;
+	this.stroke = stroke;
+	this.fill = fill;
+	this.delayInMs = delayInMs;
+}
+ =====*/
 (function(){
-var df=dojox.lang.functional,dc=dojox.charting,g=dojox.gfx,_1=df.lambda("item.clear()"),_2=df.lambda("item.purgeGroup()"),_3=df.lambda("item.destroy()"),_4=df.lambda("item.dirty = false"),_5=df.lambda("item.dirty = true"),_6=df.lambda("item.name");
-dojo.declare("dojox.charting.Chart",null,{constructor:function(_7,_8){
-if(!_8){
-_8={};
-}
-this.margins=_8.margins?_8.margins:{l:10,t:10,r:10,b:10};
-this.stroke=_8.stroke;
-this.fill=_8.fill;
-this.delayInMs=_8.delayInMs||200;
-this.title=_8.title;
-this.titleGap=_8.titleGap;
-this.titlePos=_8.titlePos;
-this.titleFont=_8.titleFont;
-this.titleFontColor=_8.titleFontColor;
-this.chartTitle=null;
-this.theme=null;
-this.axes={};
-this.stack=[];
-this.plots={};
-this.series=[];
-this.runs={};
-this.dirty=true;
-this.coords=null;
-this.node=dojo.byId(_7);
-var _9=dojo.marginBox(_7);
-this.surface=g.createSurface(this.node,_9.w||400,_9.h||300);
-},destroy:function(){
-dojo.forEach(this.series,_3);
-dojo.forEach(this.stack,_3);
-df.forIn(this.axes,_3);
-if(this.chartTitle&&this.chartTitle.tagName){
-dojo.destroy(this.chartTitle);
-}
-this.surface.destroy();
-},getCoords:function(){
-if(!this.coords){
-this.coords=dojo.coords(this.node,true);
-}
-return this.coords;
-},setTheme:function(_a){
-this.theme=_a.clone();
-this.dirty=true;
-return this;
-},addAxis:function(_b,_c){
-var _d,_e=_c&&_c.type||"Default";
-if(typeof _e=="string"){
-if(!dc.axis2d||!dc.axis2d[_e]){
-throw Error("Can't find axis: "+_e+" - didn't you forget to dojo"+".require() it?");
-}
-_d=new dc.axis2d[_e](this,_c);
-}else{
-_d=new _e(this,_c);
-}
-_d.name=_b;
-_d.dirty=true;
-if(_b in this.axes){
-this.axes[_b].destroy();
-}
-this.axes[_b]=_d;
-this.dirty=true;
-return this;
-},getAxis:function(_f){
-return this.axes[_f];
-},removeAxis:function(_10){
-if(_10 in this.axes){
-this.axes[_10].destroy();
-delete this.axes[_10];
-this.dirty=true;
-}
-return this;
-},addPlot:function(_11,_12){
-var _13,_14=_12&&_12.type||"Default";
-if(typeof _14=="string"){
-if(!dc.plot2d||!dc.plot2d[_14]){
-throw Error("Can't find plot: "+_14+" - didn't you forget to dojo"+".require() it?");
-}
-_13=new dc.plot2d[_14](this,_12);
-}else{
-_13=new _14(this,_12);
-}
-_13.name=_11;
-_13.dirty=true;
-if(_11 in this.plots){
-this.stack[this.plots[_11]].destroy();
-this.stack[this.plots[_11]]=_13;
-}else{
-this.plots[_11]=this.stack.length;
-this.stack.push(_13);
-}
-this.dirty=true;
-return this;
-},removePlot:function(_15){
-if(_15 in this.plots){
-var _16=this.plots[_15];
-delete this.plots[_15];
-this.stack[_16].destroy();
-this.stack.splice(_16,1);
-df.forIn(this.plots,function(idx,_17,_18){
-if(idx>_16){
-_18[_17]=idx-1;
-}
-});
-var ns=dojo.filter(this.series,function(run){
-return run.plot!=_15;
-});
-if(ns.length<this.series.length){
-dojo.forEach(this.series,function(run){
-if(run.plot==_15){
-run.destroy();
-}
-});
-this.runs={};
-dojo.forEach(ns,function(run,_19){
-this.runs[run.plot]=_19;
-},this);
-this.series=ns;
-}
-this.dirty=true;
-}
-return this;
-},getPlotOrder:function(){
-return df.map(this.stack,_6);
-},setPlotOrder:function(_1a){
-var _1b={},_1c=df.filter(_1a,function(_1d){
-if(!(_1d in this.plots)||(_1d in _1b)){
-return false;
-}
-_1b[_1d]=1;
-return true;
-},this);
-if(_1c.length<this.stack.length){
-df.forEach(this.stack,function(_1e){
-var _1f=_1e.name;
-if(!(_1f in _1b)){
-_1c.push(_1f);
-}
-});
-}
-var _20=df.map(_1c,function(_21){
-return this.stack[this.plots[_21]];
-},this);
-df.forEach(_20,function(_22,i){
-this.plots[_22.name]=i;
-},this);
-this.stack=_20;
-this.dirty=true;
-return this;
-},movePlotToFront:function(_23){
-if(_23 in this.plots){
-var _24=this.plots[_23];
-if(_24){
-var _25=this.getPlotOrder();
-_25.splice(_24,1);
-_25.unshift(_23);
-return this.setPlotOrder(_25);
-}
-}
-return this;
-},movePlotToBack:function(_26){
-if(_26 in this.plots){
-var _27=this.plots[_26];
-if(_27<this.stack.length-1){
-var _28=this.getPlotOrder();
-_28.splice(_27,1);
-_28.push(_26);
-return this.setPlotOrder(_28);
-}
-}
-return this;
-},addSeries:function(_29,_2a,_2b){
-var run=new dc.Series(this,_2a,_2b);
-run.name=_29;
-if(_29 in this.runs){
-this.series[this.runs[_29]].destroy();
-this.series[this.runs[_29]]=run;
-}else{
-this.runs[_29]=this.series.length;
-this.series.push(run);
-}
-this.dirty=true;
-if(!("ymin" in run)&&"min" in run){
-run.ymin=run.min;
-}
-if(!("ymax" in run)&&"max" in run){
-run.ymax=run.max;
-}
-return this;
-},removeSeries:function(_2c){
-if(_2c in this.runs){
-var _2d=this.runs[_2c];
-delete this.runs[_2c];
-this.series[_2d].destroy();
-this.series.splice(_2d,1);
-df.forIn(this.runs,function(idx,_2e,_2f){
-if(idx>_2d){
-_2f[_2e]=idx-1;
-}
-});
-this.dirty=true;
-}
-return this;
-},updateSeries:function(_30,_31){
-if(_30 in this.runs){
-var run=this.series[this.runs[_30]];
-run.update(_31);
-this._invalidateDependentPlots(run.plot,false);
-this._invalidateDependentPlots(run.plot,true);
-}
-return this;
-},getSeriesOrder:function(_32){
-return df.map(df.filter(this.series,function(run){
-return run.plot==_32;
-}),_6);
-},setSeriesOrder:function(_33){
-var _34,_35={},_36=df.filter(_33,function(_37){
-if(!(_37 in this.runs)||(_37 in _35)){
-return false;
-}
-var run=this.series[this.runs[_37]];
-if(_34){
-if(run.plot!=_34){
-return false;
-}
-}else{
-_34=run.plot;
-}
-_35[_37]=1;
-return true;
-},this);
-df.forEach(this.series,function(run){
-var _38=run.name;
-if(!(_38 in _35)&&run.plot==_34){
-_36.push(_38);
-}
-});
-var _39=df.map(_36,function(_3a){
-return this.series[this.runs[_3a]];
-},this);
-this.series=_39.concat(df.filter(this.series,function(run){
-return run.plot!=_34;
-}));
-df.forEach(this.series,function(run,i){
-this.runs[run.name]=i;
-},this);
-this.dirty=true;
-return this;
-},moveSeriesToFront:function(_3b){
-if(_3b in this.runs){
-var _3c=this.runs[_3b],_3d=this.getSeriesOrder(this.series[_3c].plot);
-if(_3b!=_3d[0]){
-_3d.splice(_3c,1);
-_3d.unshift(_3b);
-return this.setSeriesOrder(_3d);
-}
-}
-return this;
-},moveSeriesToBack:function(_3e){
-if(_3e in this.runs){
-var _3f=this.runs[_3e],_40=this.getSeriesOrder(this.series[_3f].plot);
-if(_3e!=_40[_40.length-1]){
-_40.splice(_3f,1);
-_40.push(_3e);
-return this.setSeriesOrder(_40);
-}
-}
-return this;
-},resize:function(_41,_42){
-var box;
-switch(arguments.length){
-case 1:
-box=dojo.mixin({},_41);
-dojo.marginBox(this.node,box);
-break;
-case 2:
-box={w:_41,h:_42};
-dojo.marginBox(this.node,box);
-break;
-}
-box=dojo.marginBox(this.node);
-this.surface.setDimensions(box.w,box.h);
-this.dirty=true;
-this.coords=null;
-return this.render();
-},getGeometry:function(){
-var ret={};
-df.forIn(this.axes,function(_43){
-if(_43.initialized()){
-ret[_43.name]={name:_43.name,vertical:_43.vertical,scaler:_43.scaler,ticks:_43.ticks};
-}
-});
-return ret;
-},setAxisWindow:function(_44,_45,_46,_47){
-var _48=this.axes[_44];
-if(_48){
-_48.setWindow(_45,_46);
-dojo.forEach(this.stack,function(_49){
-if(_49.hAxis==_44||_49.vAxis==_44){
-_49.zoom=_47;
-}
-});
-}
-return this;
-},setWindow:function(sx,sy,dx,dy,_4a){
-if(!("plotArea" in this)){
-this.calculateGeometry();
-}
-df.forIn(this.axes,function(_4b){
-var _4c,_4d,_4e=_4b.getScaler().bounds,s=_4e.span/(_4e.upper-_4e.lower);
-if(_4b.vertical){
-_4c=sy;
-_4d=dy/s/_4c;
-}else{
-_4c=sx;
-_4d=dx/s/_4c;
-}
-_4b.setWindow(_4c,_4d);
-});
-dojo.forEach(this.stack,function(_4f){
-_4f.zoom=_4a;
-});
-return this;
-},zoomIn:function(_50,_51){
-var _52=this.axes[_50];
-if(_52){
-var _53,_54,_55=_52.getScaler().bounds;
-var _56=Math.min(_51[0],_51[1]);
-var _57=Math.max(_51[0],_51[1]);
-_56=_51[0]<_55.lower?_55.lower:_56;
-_57=_51[1]>_55.upper?_55.upper:_57;
-_53=(_55.upper-_55.lower)/(_57-_56);
-_54=_56-_55.lower;
-this.setAxisWindow(_50,_53,_54);
-this.render();
-}
-},calculateGeometry:function(){
-if(this.dirty){
-return this.fullGeometry();
-}
-var _58=dojo.filter(this.stack,function(_59){
-return _59.dirty||(_59.hAxis&&this.axes[_59.hAxis].dirty)||(_59.vAxis&&this.axes[_59.vAxis].dirty);
-},this);
-_5a(_58,this.plotArea);
-return this;
-},fullGeometry:function(){
-this._makeDirty();
-dojo.forEach(this.stack,_1);
-if(!this.theme){
-this.setTheme(new dojox.charting.Theme(dojox.charting._def));
-}
-dojo.forEach(this.series,function(run){
-if(!(run.plot in this.plots)){
-if(!dc.plot2d||!dc.plot2d.Default){
-throw Error("Can't find plot: Default - didn't you forget to dojo"+".require() it?");
-}
-var _5b=new dc.plot2d.Default(this,{});
-_5b.name=run.plot;
-this.plots[run.plot]=this.stack.length;
-this.stack.push(_5b);
-}
-this.stack[this.plots[run.plot]].addSeries(run);
-},this);
-dojo.forEach(this.stack,function(_5c){
-if(_5c.hAxis){
-_5c.setAxis(this.axes[_5c.hAxis]);
-}
-if(_5c.vAxis){
-_5c.setAxis(this.axes[_5c.vAxis]);
-}
-},this);
-var dim=this.dim=this.surface.getDimensions();
-dim.width=g.normalizedLength(dim.width);
-dim.height=g.normalizedLength(dim.height);
-df.forIn(this.axes,_1);
-_5a(this.stack,dim);
-var _5d=this.offsets={l:0,r:0,t:0,b:0};
-df.forIn(this.axes,function(_5e){
-df.forIn(_5e.getOffsets(),function(o,i){
-_5d[i]+=o;
-});
-});
-if(this.title){
-this.titleGap=(this.titleGap==0)?0:this.titleGap||this.theme.chart.titleGap||20;
-this.titlePos=this.titlePos||this.theme.chart.titlePos||"top";
-this.titleFont=this.titleFont||this.theme.chart.titleFont;
-this.titleFontColor=this.titleFontColor||this.theme.chart.titleFontColor||"black";
-var _5f=g.normalizedLength(g.splitFontString(this.titleFont).size);
-_5d[this.titlePos=="top"?"t":"b"]+=(_5f+this.titleGap);
-}
-df.forIn(this.margins,function(o,i){
-_5d[i]+=o;
-});
-this.plotArea={width:dim.width-_5d.l-_5d.r,height:dim.height-_5d.t-_5d.b};
-df.forIn(this.axes,_1);
-_5a(this.stack,this.plotArea);
-return this;
-},render:function(){
-if(this.theme){
-this.theme.clear();
-}
-if(this.dirty){
-return this.fullRender();
-}
-this.calculateGeometry();
-df.forEachRev(this.stack,function(_60){
-_60.render(this.dim,this.offsets);
-},this);
-df.forIn(this.axes,function(_61){
-_61.render(this.dim,this.offsets);
-},this);
-this._makeClean();
-if(this.surface.render){
-this.surface.render();
-}
-return this;
-},fullRender:function(){
-this.fullGeometry();
-var _62=this.offsets,dim=this.dim,_63;
-dojo.forEach(this.series,_2);
-df.forIn(this.axes,_2);
-dojo.forEach(this.stack,_2);
-if(this.chartTitle&&this.chartTitle.tagName){
-dojo.destroy(this.chartTitle);
-}
-this.surface.clear();
-this.chartTitle=null;
-var t=this.theme,_64=t.plotarea&&t.plotarea.fill,_65=t.plotarea&&t.plotarea.stroke,_63={x:_62.l-1,y:_62.t-1,width:dim.width-_62.l-_62.r+2,height:dim.height-_62.t-_62.b+2};
-if(_64){
-_64=dc.Element.prototype._shapeFill(dc.Element.prototype._plotFill(_64,dim,_62),_63);
-this.surface.createRect(_63).setFill(_64);
-}
-if(_65){
-this.surface.createRect({x:_62.l,y:_62.t,width:dim.width-_62.l-_62.r+1,height:dim.height-_62.t-_62.b+1}).setStroke(_65);
-}
-df.foldr(this.stack,function(z,_66){
-return _66.render(dim,_62),0;
-},0);
-_64=this.fill!==undefined?this.fill:(t.chart&&t.chart.fill);
-_65=this.stroke!==undefined?this.stroke:(t.chart&&t.chart.stroke);
-if(_64=="inherit"){
-var _67=this.node,_64=new dojo.Color(dojo.style(_67,"backgroundColor"));
-while(_64.a==0&&_67!=document.documentElement){
-_64=new dojo.Color(dojo.style(_67,"backgroundColor"));
-_67=_67.parentNode;
-}
-}
-if(_64){
-_64=dc.Element.prototype._plotFill(_64,dim,_62);
-if(_62.l){
-_63={width:_62.l,height:dim.height+1};
-this.surface.createRect(_63).setFill(dc.Element.prototype._shapeFill(_64,_63));
-}
-if(_62.r){
-_63={x:dim.width-_62.r,width:_62.r+1,height:dim.height+2};
-this.surface.createRect(_63).setFill(dc.Element.prototype._shapeFill(_64,_63));
-}
-if(_62.t){
-_63={width:dim.width+1,height:_62.t};
-this.surface.createRect(_63).setFill(dc.Element.prototype._shapeFill(_64,_63));
-}
-if(_62.b){
-_63={y:dim.height-_62.b,width:dim.width+1,height:_62.b+2};
-this.surface.createRect(_63).setFill(dc.Element.prototype._shapeFill(_64,_63));
-}
-}
-if(_65){
-this.surface.createRect({width:dim.width-1,height:dim.height-1}).setStroke(_65);
-}
-if(this.title){
-var _68=(g.renderer=="canvas"),_69=_68||!dojo.isIE&&!dojo.isOpera?"html":"gfx",_6a=g.normalizedLength(g.splitFontString(this.titleFont).size);
-this.chartTitle=dc.axis2d.common.createText[_69](this,this.surface,dim.width/2,this.titlePos=="top"?_6a+this.margins.t:dim.height-this.margins.b,"middle",this.title,this.titleFont,this.titleFontColor);
-}
-df.forIn(this.axes,function(_6b){
-_6b.render(dim,_62);
-});
-this._makeClean();
-if(this.surface.render){
-this.surface.render();
-}
-return this;
-},delayedRender:function(){
-if(!this._delayedRenderHandle){
-this._delayedRenderHandle=setTimeout(dojo.hitch(this,function(){
-clearTimeout(this._delayedRenderHandle);
-this._delayedRenderHandle=null;
-this.render();
-}),this.delayInMs);
-}
-return this;
-},connectToPlot:function(_6c,_6d,_6e){
-return _6c in this.plots?this.stack[this.plots[_6c]].connect(_6d,_6e):null;
-},fireEvent:function(_6f,_70,_71){
-if(_6f in this.runs){
-var _72=this.series[this.runs[_6f]].plot;
-if(_72 in this.plots){
-var _73=this.stack[this.plots[_72]];
-if(_73){
-_73.fireEvent(_6f,_70,_71);
-}
-}
-}
-return this;
-},_makeClean:function(){
-dojo.forEach(this.axes,_4);
-dojo.forEach(this.stack,_4);
-dojo.forEach(this.series,_4);
-this.dirty=false;
-},_makeDirty:function(){
-dojo.forEach(this.axes,_5);
-dojo.forEach(this.stack,_5);
-dojo.forEach(this.series,_5);
-this.dirty=true;
-},_invalidateDependentPlots:function(_74,_75){
-if(_74 in this.plots){
-var _76=this.stack[this.plots[_74]],_77,_78=_75?"vAxis":"hAxis";
-if(_76[_78]){
-_77=this.axes[_76[_78]];
-if(_77&&_77.dependOnData()){
-_77.dirty=true;
-dojo.forEach(this.stack,function(p){
-if(p[_78]&&p[_78]==_76[_78]){
-p.dirty=true;
-}
-});
-}
-}else{
-_76.dirty=true;
-}
-}
-}});
-function _79(_7a){
-return {min:_7a.hmin,max:_7a.hmax};
-};
-function _7b(_7c){
-return {min:_7c.vmin,max:_7c.vmax};
-};
-function _7d(_7e,h){
-_7e.hmin=h.min;
-_7e.hmax=h.max;
-};
-function _7f(_80,v){
-_80.vmin=v.min;
-_80.vmax=v.max;
-};
-function _81(_82,_83){
-if(_82&&_83){
-_82.min=Math.min(_82.min,_83.min);
-_82.max=Math.max(_82.max,_83.max);
-}
-return _82||_83;
-};
-function _5a(_84,_85){
-var _86={},_87={};
-dojo.forEach(_84,function(_88){
-var _89=_86[_88.name]=_88.getSeriesStats();
-if(_88.hAxis){
-_87[_88.hAxis]=_81(_87[_88.hAxis],_79(_89));
-}
-if(_88.vAxis){
-_87[_88.vAxis]=_81(_87[_88.vAxis],_7b(_89));
-}
-});
-dojo.forEach(_84,function(_8a){
-var _8b=_86[_8a.name];
-if(_8a.hAxis){
-_7d(_8b,_87[_8a.hAxis]);
-}
-if(_8a.vAxis){
-_7f(_8b,_87[_8a.vAxis]);
-}
-_8a.initializeScalers(_85,_8b);
-});
-};
+	var df = dojox.lang.functional, dc = dojox.charting, g = dojox.gfx,
+		clear = df.lambda("item.clear()"),
+		purge = df.lambda("item.purgeGroup()"),
+		destroy = df.lambda("item.destroy()"),
+		makeClean = df.lambda("item.dirty = false"),
+		makeDirty = df.lambda("item.dirty = true"),
+		getName = df.lambda("item.name");
+
+	dojo.declare("dojox.charting.Chart", null, {
+		//	summary:
+		//		The main chart object in dojox.charting.  This will create a two dimensional
+		//		chart based on dojox.gfx.
+		//
+		//	description:
+		//		dojox.charting.Chart is the primary object used for any kind of charts.  It
+		//		is simple to create--just pass it a node reference, which is used as the
+		//		container for the chart--and a set of optional keyword arguments and go.
+		//
+		//		Note that like most of dojox.gfx, most of dojox.charting.Chart's methods are
+		//		designed to return a reference to the chart itself, to allow for functional
+		//		chaining.  This makes defining everything on a Chart very easy to do.
+		//
+		//	example:
+		//		Create an area chart, with smoothing.
+		//	|	new dojox.charting.Chart(node))
+		//	|		.addPlot("default", { type: "Areas", tension: "X" })
+		//	|		.setTheme(dojox.charting.themes.Shrooms)
+		//	|		.addSeries("Series A", [1, 2, 0.5, 1.5, 1, 2.8, 0.4])
+		//	|		.addSeries("Series B", [2.6, 1.8, 2, 1, 1.4, 0.7, 2])
+		//	|		.addSeries("Series C", [6.3, 1.8, 3, 0.5, 4.4, 2.7, 2])
+		//	|		.render();
+		//
+		//	example:
+		//		The form of data in a data series can take a number of forms: a simple array,
+		//		an array of objects {x,y}, or something custom (as determined by the plot).
+		//		Here's an example of a Candlestick chart, which expects an object of
+		//		{ open, high, low, close }.
+		//	|	new dojox.charting.Chart(node))
+		//	|		.addPlot("default", {type: "Candlesticks", gap: 1})
+		//	|		.addAxis("x", {fixLower: "major", fixUpper: "major", includeZero: true})
+		//	|		.addAxis("y", {vertical: true, fixLower: "major", fixUpper: "major", natural: true})
+		//	|		.addSeries("Series A", [
+		//	|				{ open: 20, close: 16, high: 22, low: 8 },
+		//	|				{ open: 16, close: 22, high: 26, low: 6, mid: 18 },
+		//	|				{ open: 22, close: 18, high: 22, low: 11, mid: 21 },
+		//	|				{ open: 18, close: 29, high: 32, low: 14, mid: 27 },
+		//	|				{ open: 29, close: 24, high: 29, low: 13, mid: 27 },
+		//	|				{ open: 24, close: 8, high: 24, low: 5 },
+		//	|				{ open: 8, close: 16, high: 22, low: 2 },
+		//	|				{ open: 16, close: 12, high: 19, low: 7 },
+		//	|				{ open: 12, close: 20, high: 22, low: 8 },
+		//	|				{ open: 20, close: 16, high: 22, low: 8 },
+		//	|				{ open: 16, close: 22, high: 26, low: 6, mid: 18 },
+		//	|				{ open: 22, close: 18, high: 22, low: 11, mid: 21 },
+		//	|				{ open: 18, close: 29, high: 32, low: 14, mid: 27 },
+		//	|				{ open: 29, close: 24, high: 29, low: 13, mid: 27 },
+		//	|				{ open: 24, close: 8, high: 24, low: 5 },
+		//	|				{ open: 8, close: 16, high: 22, low: 2 },
+		//	|				{ open: 16, close: 12, high: 19, low: 7 },
+		//	|				{ open: 12, close: 20, high: 22, low: 8 },
+		//	|				{ open: 20, close: 16, high: 22, low: 8 },
+		//	|				{ open: 16, close: 22, high: 26, low: 6 },
+		//	|				{ open: 22, close: 18, high: 22, low: 11 },
+		//	|				{ open: 18, close: 29, high: 32, low: 14 },
+		//	|				{ open: 29, close: 24, high: 29, low: 13 },
+		//	|				{ open: 24, close: 8, high: 24, low: 5 },
+		//	|				{ open: 8, close: 16, high: 22, low: 2 },
+		//	|				{ open: 16, close: 12, high: 19, low: 7 },
+		//	|				{ open: 12, close: 20, high: 22, low: 8 },
+		//	|				{ open: 20, close: 16, high: 22, low: 8 }
+		//	|			],
+		//	|			{ stroke: { color: "green" }, fill: "lightgreen" }
+		//	|		)
+		//	|		.render();
+		//
+		//	theme: dojox.charting.Theme?
+		//		An optional theme to use for styling the chart.
+		//	axes: dojox.charting.Axis{}?
+		//		A map of axes for use in plotting a chart.
+		//	stack: dojox.charting.plot2d.Base[]
+		//		A stack of plotters.
+		//	plots: dojox.charting.plot2d.Base{}
+		//		A map of plotter indices
+		//	series: dojox.charting.Series[]
+		//		The stack of data runs used to create plots.
+		//	runs: dojox.charting.Series{}
+		//		A map of series indices
+		//	margins: Object?
+		//		The margins around the chart. Default is { l:10, t:10, r:10, b:10 }.
+		//	stroke: dojox.gfx.Stroke?
+		//		The outline of the chart (stroke in vector graphics terms).
+		//	fill: dojox.gfx.Fill?
+		//		The color for the chart.
+		//	node: DOMNode
+		//		The container node passed to the constructor.
+		//	surface: dojox.gfx.Surface
+		//		The main graphics surface upon which a chart is drawn.
+		//	dirty: Boolean
+		//		A boolean flag indicating whether or not the chart needs to be updated/re-rendered.
+		//	coords: Object
+		//		The coordinates on a page of the containing node, as returned from dojo.coords.
+
+		constructor: function(/* DOMNode */node, /* dojox.charting.__ChartCtorArgs? */kwArgs){
+			//	summary:
+			//		The constructor for a new Chart.  Initializes all parameters used for a chart.
+			//	returns: dojox.charting.Chart
+			//		The newly created chart.
+
+			// initialize parameters
+			if(!kwArgs){ kwArgs = {}; }
+			this.margins   = kwArgs.margins ? kwArgs.margins : {l: 10, t: 10, r: 10, b: 10};
+			this.stroke    = kwArgs.stroke;
+			this.fill      = kwArgs.fill;
+			this.delayInMs = kwArgs.delayInMs || 200;
+			this.title     = kwArgs.title;
+			this.titleGap  = kwArgs.titleGap;
+			this.titlePos  = kwArgs.titlePos;
+			this.titleFont = kwArgs.titleFont;
+			this.titleFontColor = kwArgs.titleFontColor;
+			this.chartTitle = null;
+
+			// default initialization
+			this.theme = null;
+			this.axes = {};		// map of axes
+			this.stack = [];	// stack of plotters
+			this.plots = {};	// map of plotter indices
+			this.series = [];	// stack of data runs
+			this.runs = {};		// map of data run indices
+			this.dirty = true;
+			this.coords = null;
+
+			// create a surface
+			this.node = dojo.byId(node);
+			var box = dojo.marginBox(node);
+			this.surface = g.createSurface(this.node, box.w || 400, box.h || 300);
+		},
+		destroy: function(){
+			//	summary:
+			//		Cleanup when a chart is to be destroyed.
+			//	returns: void
+			dojo.forEach(this.series, destroy);
+			dojo.forEach(this.stack,  destroy);
+			df.forIn(this.axes, destroy);
+            if(this.chartTitle && this.chartTitle.tagName){
+                // destroy title if it is a DOM node
+			    dojo.destroy(this.chartTitle);
+            }
+			this.surface.destroy();
+		},
+		getCoords: function(){
+			//	summary:
+			//		Get the coordinates and dimensions of the containing DOMNode, as
+			//		returned by dojo.coords.
+			//	returns: Object
+			//		The resulting coordinates of the chart.  See dojo.coords for details.
+			if(!this.coords){
+				this.coords = dojo.coords(this.node, true);
+			}
+			return this.coords;	//	Object
+		},
+		setTheme: function(theme){
+			//	summary:
+			//		Set a theme of the chart.
+			//	theme: dojox.charting.Theme
+			//		The theme to be used for visual rendering.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			this.theme = theme.clone();
+			this.dirty = true;
+			return this;	//	dojox.charting.Chart
+		},
+		addAxis: function(name, kwArgs){
+			//	summary:
+			//		Add an axis to the chart, for rendering.
+			//	name: String
+			//		The name of the axis.
+			//	kwArgs: dojox.charting.axis2d.__AxisCtorArgs?
+			//		An optional keyword arguments object for use in defining details of an axis.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+            var axis, axisType = kwArgs && kwArgs.type || "Default";
+            if(typeof axisType == "string"){
+                if(!dc.axis2d || !dc.axis2d[axisType]){
+                    throw Error("Can't find axis: " + axisType + " - didn't you forget to dojo" + ".require() it?");
+                }
+                axis = new dc.axis2d[axisType](this, kwArgs);
+            }else{
+                axis = new axisType(this, kwArgs);
+            }
+			axis.name = name;
+			axis.dirty = true;
+			if(name in this.axes){
+				this.axes[name].destroy();
+			}
+			this.axes[name] = axis;
+			this.dirty = true;
+			return this;	//	dojox.charting.Chart
+		},
+		getAxis: function(name){
+			//	summary:
+			//		Get the given axis, by name.
+			//	name: String
+			//		The name the axis was defined by.
+			//	returns: dojox.charting.axis2d.Default
+			//		The axis as stored in the chart's axis map.
+			return this.axes[name];	//	dojox.charting.axis2d.Default
+		},
+		removeAxis: function(name){
+			//	summary:
+			//		Remove the axis that was defined using name.
+			//	name: String
+			//		The axis name, as defined in addAxis.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.axes){
+				// destroy the axis
+				this.axes[name].destroy();
+				delete this.axes[name];
+				// mark the chart as dirty
+				this.dirty = true;
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		addPlot: function(name, kwArgs){
+			//	summary:
+			//		Add a new plot to the chart, defined by name and using the optional keyword arguments object.
+			//		Note that dojox.charting assumes the main plot to be called "default"; if you do not have
+			//		a plot called "default" and attempt to add data series to the chart without specifying the
+			//		plot to be rendered on, you WILL get errors.
+			//	name: String
+			//		The name of the plot to be added to the chart.  If you only plan on using one plot, call it "default".
+			//	kwArgs: dojox.charting.plot2d.__PlotCtorArgs
+			//		An object with optional parameters for the plot in question.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			var plot, plotType = kwArgs && kwArgs.type || "Default";
+            if(typeof plotType == "string"){
+                if(!dc.plot2d || !dc.plot2d[plotType]){
+                    throw Error("Can't find plot: " + plotType + " - didn't you forget to dojo" + ".require() it?");
+                }
+                plot = new dc.plot2d[plotType](this, kwArgs);
+            }else{
+                plot = new plotType(this, kwArgs);
+            }
+			plot.name = name;
+			plot.dirty = true;
+			if(name in this.plots){
+				this.stack[this.plots[name]].destroy();
+				this.stack[this.plots[name]] = plot;
+			}else{
+				this.plots[name] = this.stack.length;
+				this.stack.push(plot);
+			}
+			this.dirty = true;
+			return this;	//	dojox.charting.Chart
+		},
+		removePlot: function(name){
+			//	summary:
+			//		Remove the plot defined using name from the chart's plot stack.
+			//	name: String
+			//		The name of the plot as defined using addPlot.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.plots){
+				// get the index and remove the name
+				var index = this.plots[name];
+				delete this.plots[name];
+				// destroy the plot
+				this.stack[index].destroy();
+				// remove the plot from the stack
+				this.stack.splice(index, 1);
+				// update indices to reflect the shift
+				df.forIn(this.plots, function(idx, name, plots){
+					if(idx > index){
+						plots[name] = idx - 1;
+					}
+				});
+                // remove all related series
+                var ns = dojo.filter(this.series, function(run){ return run.plot != name; });
+                if(ns.length < this.series.length){
+                    // kill all removed series
+                    dojo.forEach(this.series, function(run){
+                        if(run.plot == name){
+                            run.destroy();
+                        }
+                    });
+                    // rebuild all necessary data structures
+                    this.runs = {};
+                    dojo.forEach(ns, function(run, index){
+                        this.runs[run.plot] = index;
+                    }, this);
+                    this.series = ns;
+                }
+				// mark the chart as dirty
+				this.dirty = true;
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		getPlotOrder: function(){
+			//	summary:
+			//		Returns an array of plot names in the current order
+			//		(the top-most plot is the first).
+			//	returns: Array
+			return df.map(this.stack, getName); // Array
+		},
+		setPlotOrder: function(newOrder){
+			//	summary:
+			//		Sets new order of plots. newOrder cannot add or remove
+			//		plots. Wrong names, or dups are ignored.
+			//	newOrder: Array:
+			//		Array of plot names compatible with getPlotOrder().
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			var names = {},
+				order = df.filter(newOrder, function(name){
+					if(!(name in this.plots) || (name in names)){
+						return false;
+					}
+					names[name] = 1;
+					return true;
+				}, this);
+			if(order.length < this.stack.length){
+				df.forEach(this.stack, function(plot){
+					var name = plot.name;
+					if(!(name in names)){
+						order.push(name);
+					}
+				});
+			}
+			var newStack = df.map(order, function(name){
+					return this.stack[this.plots[name]];
+				}, this);
+			df.forEach(newStack, function(plot, i){
+				this.plots[plot.name] = i;
+			}, this);
+			this.stack = newStack;
+			this.dirty = true;
+			return this;	//	dojox.charting.Chart
+		},
+		movePlotToFront: function(name){
+			//	summary:
+			//		Moves a given plot to front.
+			//	name: String:
+			//		Plot's name to move.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.plots){
+				var index = this.plots[name];
+				if(index){
+					var newOrder = this.getPlotOrder();
+					newOrder.splice(index, 1);
+					newOrder.unshift(name);
+					return this.setPlotOrder(newOrder);	//	dojox.charting.Chart
+				}
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		movePlotToBack: function(name){
+			//	summary:
+			//		Moves a given plot to back.
+			//	name: String:
+			//		Plot's name to move.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.plots){
+				var index = this.plots[name];
+				if(index < this.stack.length - 1){
+					var newOrder = this.getPlotOrder();
+					newOrder.splice(index, 1);
+					newOrder.push(name);
+					return this.setPlotOrder(newOrder);	//	dojox.charting.Chart
+				}
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		addSeries: function(name, data, kwArgs){
+			//	summary:
+			//		Add a data series to the chart for rendering.
+			//	name: String:
+			//		The name of the data series to be plotted.
+			//	data: Array|Object:
+			//		The array of data points (either numbers or objects) that
+			//		represents the data to be drawn. Or it can be an object. In
+			//		the latter case, it should have a property "data" (an array),
+			//		destroy(), and setSeriesObject().
+			//	kwArgs: dojox.charting.__SeriesCtorArgs?:
+			//		An optional keyword arguments object that will be mixed into
+			//		the resultant series object.
+			//	returns: dojox.charting.Chart:
+			//		A reference to the current chart for functional chaining.
+			var run = new dc.Series(this, data, kwArgs);
+			run.name = name;
+			if(name in this.runs){
+				this.series[this.runs[name]].destroy();
+				this.series[this.runs[name]] = run;
+			}else{
+				this.runs[name] = this.series.length;
+				this.series.push(run);
+			}
+			this.dirty = true;
+			// fix min/max
+			if(!("ymin" in run) && "min" in run){ run.ymin = run.min; }
+			if(!("ymax" in run) && "max" in run){ run.ymax = run.max; }
+			return this;	//	dojox.charting.Chart
+		},
+		removeSeries: function(name){
+			//	summary:
+			//		Remove the series defined by name from the chart.
+			//	name: String
+			//		The name of the series as defined by addSeries.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.runs){
+				// get the index and remove the name
+				var index = this.runs[name];
+				delete this.runs[name];
+				// destroy the run
+				this.series[index].destroy();
+				// remove the run from the stack of series
+				this.series.splice(index, 1);
+				// update indices to reflect the shift
+				df.forIn(this.runs, function(idx, name, runs){
+					if(idx > index){
+						runs[name] = idx - 1;
+					}
+				});
+				this.dirty = true;
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		updateSeries: function(name, data){
+			//	summary:
+			//		Update the given series with a new set of data points.
+			//	name: String
+			//		The name of the series as defined in addSeries.
+			//	data: Array|Object:
+			//		The array of data points (either numbers or objects) that
+			//		represents the data to be drawn. Or it can be an object. In
+			//		the latter case, it should have a property "data" (an array),
+			//		destroy(), and setSeriesObject().
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.runs){
+				var run = this.series[this.runs[name]];
+				run.update(data);
+				this._invalidateDependentPlots(run.plot, false);
+				this._invalidateDependentPlots(run.plot, true);
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		getSeriesOrder: function(plotName){
+			//	summary:
+			//		Returns an array of series names in the current order
+			//		(the top-most series is the first) within a plot.
+			//	plotName: String:
+			//		Plot's name.
+			//	returns: Array
+			return df.map(df.filter(this.series, function(run){
+					return run.plot == plotName;
+				}), getName);
+		},
+		setSeriesOrder: function(newOrder){
+			//	summary:
+			//		Sets new order of series within a plot. newOrder cannot add
+			//		or remove series. Wrong names, or dups are ignored.
+			//	newOrder: Array:
+			//		Array of series names compatible with getPlotOrder(). All
+			//		series should belong to the same plot.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			var plotName, names = {},
+				order = df.filter(newOrder, function(name){
+					if(!(name in this.runs) || (name in names)){
+						return false;
+					}
+					var run = this.series[this.runs[name]];
+					if(plotName){
+						if(run.plot != plotName){
+							return false;
+						}
+					}else{
+						plotName = run.plot;
+					}
+					names[name] = 1;
+					return true;
+				}, this);
+			df.forEach(this.series, function(run){
+				var name = run.name;
+				if(!(name in names) && run.plot == plotName){
+					order.push(name);
+				}
+			});
+			var newSeries = df.map(order, function(name){
+					return this.series[this.runs[name]];
+				}, this);
+			this.series = newSeries.concat(df.filter(this.series, function(run){
+				return run.plot != plotName;
+			}));
+			df.forEach(this.series, function(run, i){
+				this.runs[run.name] = i;
+			}, this);
+			this.dirty = true;
+			return this;	//	dojox.charting.Chart
+		},
+		moveSeriesToFront: function(name){
+			//	summary:
+			//		Moves a given series to front of a plot.
+			//	name: String:
+			//		Series' name to move.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.runs){
+				var index = this.runs[name],
+					newOrder = this.getSeriesOrder(this.series[index].plot);
+				if(name != newOrder[0]){
+					newOrder.splice(index, 1);
+					newOrder.unshift(name);
+					return this.setSeriesOrder(newOrder);	//	dojox.charting.Chart
+				}
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		moveSeriesToBack: function(name){
+			//	summary:
+			//		Moves a given series to back of a plot.
+			//	name: String:
+			//		Series' name to move.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(name in this.runs){
+				var index = this.runs[name],
+					newOrder = this.getSeriesOrder(this.series[index].plot);
+				if(name != newOrder[newOrder.length - 1]){
+					newOrder.splice(index, 1);
+					newOrder.push(name);
+					return this.setSeriesOrder(newOrder);	//	dojox.charting.Chart
+				}
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		resize: function(width, height){
+			//	summary:
+			//		Resize the chart to the dimensions of width and height.
+			//	description:
+			//		Resize the chart and its surface to the width and height dimensions.
+			//		If no width/height or box is provided, resize the surface to the marginBox of the chart.
+			//	width: Number
+			//		The new width of the chart.
+			//	height: Number
+			//		The new height of the chart.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			var box;
+			switch(arguments.length){
+				// case 0, do not resize the div, just the surface
+				case 1:
+					// argument, override node box
+					box = dojo.mixin({}, width);
+					dojo.marginBox(this.node, box);
+					break;
+				case 2:
+					box = {w: width, h: height};
+					// argument, override node box
+					dojo.marginBox(this.node, box);
+					break;
+			}
+			// in all cases take back the computed box
+			box = dojo.marginBox(this.node);
+			// and set it on the surface
+			this.surface.setDimensions(box.w, box.h);
+			this.dirty = true;
+			this.coords = null;
+			return this.render();	//	dojox.charting.Chart
+		},
+		getGeometry: function(){
+			//	summary:
+			//		Returns a map of information about all axes in a chart and what they represent
+			//		in terms of scaling (see dojox.charting.axis2d.Default.getScaler).
+			//	returns: Object
+			//		An map of geometry objects, a one-to-one mapping of axes.
+			var ret = {};
+			df.forIn(this.axes, function(axis){
+				if(axis.initialized()){
+					ret[axis.name] = {
+						name:		axis.name,
+						vertical:	axis.vertical,
+						scaler:		axis.scaler,
+						ticks:		axis.ticks
+					};
+				}
+			});
+			return ret;	//	Object
+		},
+		setAxisWindow: function(name, scale, offset, zoom){
+			//	summary:
+			//		Zooms an axis and all dependent plots. Can be used to zoom in 1D.
+			//	name: String
+			//		The name of the axis as defined by addAxis.
+			//	scale: Number
+			//		The scale on the target axis.
+			//	offset: Number
+			//		Any offest, as measured by axis tick
+			//	zoom: Boolean|Object?
+			//		The chart zooming animation trigger.  This is null by default,
+			//		e.g. {duration: 1200}, or just set true.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			var axis = this.axes[name];
+			if(axis){
+				axis.setWindow(scale, offset);
+				dojo.forEach(this.stack,function(plot){
+					if(plot.hAxis == name || plot.vAxis == name){
+						plot.zoom = zoom;
+					}
+				})
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		setWindow: function(sx, sy, dx, dy, zoom){
+			//	summary:
+			//		Zooms in or out any plots in two dimensions.
+			//	sx: Number
+			//		The scale for the x axis.
+			//	sy: Number
+			//		The scale for the y axis.
+			//	dx: Number
+			//		The pixel offset on the x axis.
+			//	dy: Number
+			//		The pixel offset on the y axis.
+			//	zoom: Boolean|Object?
+			//		The chart zooming animation trigger.  This is null by default,
+			//		e.g. {duration: 1200}, or just set true.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(!("plotArea" in this)){
+				this.calculateGeometry();
+			}
+			df.forIn(this.axes, function(axis){
+				var scale, offset, bounds = axis.getScaler().bounds,
+					s = bounds.span / (bounds.upper - bounds.lower);
+				if(axis.vertical){
+					scale  = sy;
+					offset = dy / s / scale;
+				}else{
+					scale  = sx;
+					offset = dx / s / scale;
+				}
+				axis.setWindow(scale, offset);
+			});
+			dojo.forEach(this.stack, function(plot){ plot.zoom = zoom; });
+			return this;	//	dojox.charting.Chart
+		},
+		zoomIn:	function(name, range){
+			//	summary:
+			//		Zoom the chart to a specific range on one axis.  This calls render()
+			//		directly as a convenience method.
+			//	name: String
+			//		The name of the axis as defined by addAxis.
+			//	range: Array
+			//		The end points of the zoom range, measured in axis ticks.
+			var axis = this.axes[name];
+			if(axis){
+				var scale, offset, bounds = axis.getScaler().bounds;
+				var lower = Math.min(range[0],range[1]);
+				var upper = Math.max(range[0],range[1]);
+				lower = range[0] < bounds.lower ? bounds.lower : lower;
+				upper = range[1] > bounds.upper ? bounds.upper : upper;
+				scale = (bounds.upper - bounds.lower) / (upper - lower);
+				offset = lower - bounds.lower;
+				this.setAxisWindow(name, scale, offset);
+				this.render();
+			}
+		},
+		calculateGeometry: function(){
+			//	summary:
+			//		Calculate the geometry of the chart based on the defined axes of
+			//		a chart.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(this.dirty){
+				return this.fullGeometry();
+			}
+
+			// calculate geometry
+			var dirty = dojo.filter(this.stack, function(plot){
+					return plot.dirty ||
+						(plot.hAxis && this.axes[plot.hAxis].dirty) ||
+						(plot.vAxis && this.axes[plot.vAxis].dirty);
+				}, this);
+			calculateAxes(dirty, this.plotArea);
+
+			return this;	//	dojox.charting.Chart
+		},
+		fullGeometry: function(){
+			//	summary:
+			//		Calculate the full geometry of the chart.  This includes passing
+			//		over all major elements of a chart (plots, axes, series, container)
+			//		in order to ensure proper rendering.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			this._makeDirty();
+
+			// clear old values
+			dojo.forEach(this.stack, clear);
+
+			// rebuild new connections, and add defaults
+
+			// set up a theme
+			if(!this.theme){
+				this.setTheme(new dojox.charting.Theme(dojox.charting._def));
+			}
+
+			// assign series
+			dojo.forEach(this.series, function(run){
+				if(!(run.plot in this.plots)){
+                    if(!dc.plot2d || !dc.plot2d.Default){
+                        throw Error("Can't find plot: Default - didn't you forget to dojo" + ".require() it?");
+                    }
+					var plot = new dc.plot2d.Default(this, {});
+					plot.name = run.plot;
+					this.plots[run.plot] = this.stack.length;
+					this.stack.push(plot);
+				}
+				this.stack[this.plots[run.plot]].addSeries(run);
+			}, this);
+			// assign axes
+			dojo.forEach(this.stack, function(plot){
+				if(plot.hAxis){
+					plot.setAxis(this.axes[plot.hAxis]);
+				}
+				if(plot.vAxis){
+					plot.setAxis(this.axes[plot.vAxis]);
+				}
+			}, this);
+
+			// calculate geometry
+
+			// 1st pass
+			var dim = this.dim = this.surface.getDimensions();
+			dim.width  = g.normalizedLength(dim.width);
+			dim.height = g.normalizedLength(dim.height);
+			df.forIn(this.axes, clear);
+			calculateAxes(this.stack, dim);
+
+			// assumption: we don't have stacked axes yet
+			var offsets = this.offsets = { l: 0, r: 0, t: 0, b: 0 };
+			df.forIn(this.axes, function(axis){
+				df.forIn(axis.getOffsets(), function(o, i){ offsets[i] += o; });
+			});
+			// add title area
+			if(this.title){
+				this.titleGap = (this.titleGap==0) ? 0 : this.titleGap || this.theme.chart.titleGap || 20;
+				this.titlePos = this.titlePos || this.theme.chart.titlePos || "top";
+				this.titleFont = this.titleFont || this.theme.chart.titleFont;
+				this.titleFontColor = this.titleFontColor || this.theme.chart.titleFontColor || "black";
+				var tsize = g.normalizedLength(g.splitFontString(this.titleFont).size);
+				offsets[this.titlePos=="top" ? "t":"b"] += (tsize + this.titleGap);
+			}
+			// add margins
+			df.forIn(this.margins, function(o, i){ offsets[i] += o; });
+
+			// 2nd pass with realistic dimensions
+			this.plotArea = {
+				width: dim.width - offsets.l - offsets.r,
+				height: dim.height - offsets.t - offsets.b
+			};
+			df.forIn(this.axes, clear);
+			calculateAxes(this.stack, this.plotArea);
+
+			return this;	//	dojox.charting.Chart
+		},
+		render: function(){
+			//	summary:
+			//		Render the chart according to the current information defined.  This should
+			//		be the last call made when defining/creating a chart, or if data within the
+			//		chart has been changed.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(this.theme){
+				this.theme.clear();
+			}
+
+			if(this.dirty){
+				return this.fullRender();
+			}
+
+			this.calculateGeometry();
+
+			// go over the stack backwards
+			df.forEachRev(this.stack, function(plot){ plot.render(this.dim, this.offsets); }, this);
+
+			// go over axes
+			df.forIn(this.axes, function(axis){ axis.render(this.dim, this.offsets); }, this);
+
+			this._makeClean();
+
+			// BEGIN FOR HTML CANVAS
+			if(this.surface.render){ this.surface.render(); };
+			// END FOR HTML CANVAS
+
+			return this;	//	dojox.charting.Chart
+		},
+		fullRender: function(){
+			//	summary:
+			//		Force a full rendering of the chart, including full resets on the chart itself.
+			//		You should not call this method directly unless absolutely necessary.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+
+			// calculate geometry
+			this.fullGeometry();
+			var offsets = this.offsets, dim = this.dim, rect;
+
+			// get required colors
+			//var requiredColors = df.foldl(this.stack, "z + plot.getRequiredColors()", 0);
+			//this.theme.defineColors({num: requiredColors, cache: false});
+
+			// clear old shapes
+			dojo.forEach(this.series, purge);
+			df.forIn(this.axes, purge);
+			dojo.forEach(this.stack,  purge);
+            if(this.chartTitle && this.chartTitle.tagName){
+                // destroy title if it is a DOM node
+			    dojo.destroy(this.chartTitle);
+            }
+			this.surface.clear();
+            this.chartTitle = null;
+
+			// generate shapes
+
+			// draw a plot background
+			var t = this.theme,
+				fill   = t.plotarea && t.plotarea.fill,
+				stroke = t.plotarea && t.plotarea.stroke,
+				rect = {
+					x: offsets.l - 1, y: offsets.t - 1,
+					width:  dim.width  - offsets.l - offsets.r + 2,
+					height: dim.height - offsets.t - offsets.b + 2
+				};
+			if(fill){
+				fill = dc.Element.prototype._shapeFill(dc.Element.prototype._plotFill(fill, dim, offsets), rect);
+				this.surface.createRect(rect).setFill(fill);
+			}
+			if(stroke){
+				this.surface.createRect({
+					x: offsets.l, y: offsets.t,
+					width:  dim.width  - offsets.l - offsets.r + 1,
+					height: dim.height - offsets.t - offsets.b + 1
+				}).setStroke(stroke);
+			}
+
+			// go over the stack backwards
+			df.foldr(this.stack, function(z, plot){ return plot.render(dim, offsets), 0; }, 0);
+
+			// pseudo-clipping: matting
+			fill   = this.fill   !== undefined ? this.fill   : (t.chart && t.chart.fill);
+			stroke = this.stroke !== undefined ? this.stroke : (t.chart && t.chart.stroke);
+
+			//	TRT: support for "inherit" as a named value in a theme.
+			if(fill == "inherit"){
+				//	find the background color of the nearest ancestor node, and use that explicitly.
+				var node = this.node, fill = new dojo.Color(dojo.style(node, "backgroundColor"));
+				while(fill.a==0 && node!=document.documentElement){
+					fill = new dojo.Color(dojo.style(node, "backgroundColor"));
+					node = node.parentNode;
+				}
+			}
+
+			if(fill){
+				fill = dc.Element.prototype._plotFill(fill, dim, offsets);
+				if(offsets.l){	// left
+					rect = {
+						width:  offsets.l,
+						height: dim.height + 1
+					};
+					this.surface.createRect(rect).setFill(dc.Element.prototype._shapeFill(fill, rect));
+				}
+				if(offsets.r){	// right
+					rect = {
+						x: dim.width - offsets.r,
+						width:  offsets.r + 1,
+						height: dim.height + 2
+					};
+					this.surface.createRect(rect).setFill(dc.Element.prototype._shapeFill(fill, rect));
+				}
+				if(offsets.t){	// top
+					rect = {
+						width:  dim.width + 1,
+						height: offsets.t
+					};
+					this.surface.createRect(rect).setFill(dc.Element.prototype._shapeFill(fill, rect));
+				}
+				if(offsets.b){	// bottom
+					rect = {
+						y: dim.height - offsets.b,
+						width:  dim.width + 1,
+						height: offsets.b + 2
+					};
+					this.surface.createRect(rect).setFill(dc.Element.prototype._shapeFill(fill, rect));
+				}
+			}
+			if(stroke){
+				this.surface.createRect({
+					width:  dim.width - 1,
+					height: dim.height - 1
+				}).setStroke(stroke);
+			}
+
+			//create title: Whether to make chart title as a widget which extends dojox.charting.Element?
+			if(this.title){
+				var forceHtmlLabels = (g.renderer == "canvas"),
+					labelType = forceHtmlLabels || !dojo.isIE && !dojo.isOpera ? "html" : "gfx",
+					tsize = g.normalizedLength(g.splitFontString(this.titleFont).size);
+				this.chartTitle = dc.axis2d.common.createText[labelType](
+					this,
+					this.surface,
+					dim.width/2,
+					this.titlePos=="top" ? tsize + this.margins.t : dim.height - this.margins.b,
+					"middle",
+					this.title,
+					this.titleFont,
+					this.titleFontColor
+				);
+			}
+
+			// go over axes
+			df.forIn(this.axes, function(axis){ axis.render(dim, offsets); });
+
+			this._makeClean();
+
+			// BEGIN FOR HTML CANVAS
+			if(this.surface.render){ this.surface.render(); };
+			// END FOR HTML CANVAS
+
+			return this;	//	dojox.charting.Chart
+		},
+		delayedRender: function(){
+			//	summary:
+			//		Delayed render, which is used to collect multiple updates
+			//		within a delayInMs time window.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+
+			if(!this._delayedRenderHandle){
+				this._delayedRenderHandle = setTimeout(
+					dojo.hitch(this, function(){
+						clearTimeout(this._delayedRenderHandle);
+						this._delayedRenderHandle = null;
+						this.render();
+					}),
+					this.delayInMs
+				);
+			}
+
+			return this;	//	dojox.charting.Chart
+		},
+		connectToPlot: function(name, object, method){
+			//	summary:
+			//		A convenience method to connect a function to a plot.
+			//	name: String
+			//		The name of the plot as defined by addPlot.
+			//	object: Object
+			//		The object to be connected.
+			//	method: Function
+			//		The function to be executed.
+			//	returns: Array
+			//		A handle to the connection, as defined by dojo.connect (see dojo.connect).
+			return name in this.plots ? this.stack[this.plots[name]].connect(object, method) : null;	//	Array
+		},
+		fireEvent: function(seriesName, eventName, index){
+			//	summary:
+			//		Fires a synthetic event for a series item.
+			//	seriesName: String:
+			//		Series name.
+			//	eventName: String:
+			//		Event name to simulate: onmouseover, onmouseout, onclick.
+			//	index: Number:
+			//		Valid data value index for the event.
+			//	returns: dojox.charting.Chart
+			//		A reference to the current chart for functional chaining.
+			if(seriesName in this.runs){
+				var plotName = this.series[this.runs[seriesName]].plot;
+				if(plotName in this.plots){
+					var plot = this.stack[this.plots[plotName]];
+					if(plot){
+						plot.fireEvent(seriesName, eventName, index);
+					}
+				}
+			}
+			return this;	//	dojox.charting.Chart
+		},
+		_makeClean: function(){
+			// reset dirty flags
+			dojo.forEach(this.axes,   makeClean);
+			dojo.forEach(this.stack,  makeClean);
+			dojo.forEach(this.series, makeClean);
+			this.dirty = false;
+		},
+		_makeDirty: function(){
+			// reset dirty flags
+			dojo.forEach(this.axes,   makeDirty);
+			dojo.forEach(this.stack,  makeDirty);
+			dojo.forEach(this.series, makeDirty);
+			this.dirty = true;
+		},
+		_invalidateDependentPlots: function(plotName, /* Boolean */ verticalAxis){
+			if(plotName in this.plots){
+				var plot = this.stack[this.plots[plotName]], axis,
+					axisName = verticalAxis ? "vAxis" : "hAxis";
+				if(plot[axisName]){
+					axis = this.axes[plot[axisName]];
+					if(axis && axis.dependOnData()){
+						axis.dirty = true;
+						// find all plots and mark them dirty
+						dojo.forEach(this.stack, function(p){
+							if(p[axisName] && p[axisName] == plot[axisName]){
+								p.dirty = true;
+							}
+						});
+					}
+				}else{
+					plot.dirty = true;
+				}
+			}
+		}
+	});
+
+	function hSection(stats){
+		return {min: stats.hmin, max: stats.hmax};
+	}
+
+	function vSection(stats){
+		return {min: stats.vmin, max: stats.vmax};
+	}
+
+	function hReplace(stats, h){
+		stats.hmin = h.min;
+		stats.hmax = h.max;
+	}
+
+	function vReplace(stats, v){
+		stats.vmin = v.min;
+		stats.vmax = v.max;
+	}
+
+	function combineStats(target, source){
+		if(target && source){
+			target.min = Math.min(target.min, source.min);
+			target.max = Math.max(target.max, source.max);
+		}
+		return target || source;
+	}
+
+	function calculateAxes(stack, plotArea){
+		var plots = {}, axes = {};
+		dojo.forEach(stack, function(plot){
+			var stats = plots[plot.name] = plot.getSeriesStats();
+			if(plot.hAxis){
+				axes[plot.hAxis] = combineStats(axes[plot.hAxis], hSection(stats));
+			}
+			if(plot.vAxis){
+				axes[plot.vAxis] = combineStats(axes[plot.vAxis], vSection(stats));
+			}
+		});
+		dojo.forEach(stack, function(plot){
+			var stats = plots[plot.name];
+			if(plot.hAxis){
+				hReplace(stats, axes[plot.hAxis]);
+			}
+			if(plot.vAxis){
+				vReplace(stats, axes[plot.vAxis]);
+			}
+			plot.initializeScalers(plotArea, stats);
+		});
+	}
 })();
-}

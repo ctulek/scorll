@@ -1,4 +1,4 @@
-
+/* === Search Button ==*/
 .mblDomButtonSearch_2 {
 	background-image: url(compat/search-button.png);
 	background-repeat: no-repeat;
@@ -6,6 +6,7 @@
 .mblDomButtonSearch_2 DIV {
 	display: none;
 }
+
 .dj_ie6 .mblDomButtonSearch_2 {
 	background-image: url(compat/search-button.gif);
 }

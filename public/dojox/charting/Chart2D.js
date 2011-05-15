@@ -1,16 +1,12 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.charting.Chart2D"]){
-dojo._hasResource["dojox.charting.Chart2D"]=true;
 dojo.provide("dojox.charting.Chart2D");
-dojo.deprecated("dojox.charting.Chart2D","Use dojo.charting.Chart instead and require all other components explicitly","2.0");
+
+dojo.deprecated("dojox.charting.Chart2D", "Use dojo.charting.Chart instead and require all other components explicitly", "2.0");
+
+// require all axes to support references by name
 dojo.require("dojox.charting.axis2d.Default");
 dojo.require("dojox.charting.axis2d.Invisible");
+
+// require all plots to support references by name
 dojo.require("dojox.charting.plot2d.Default");
 dojo.require("dojox.charting.plot2d.Lines");
 dojo.require("dojox.charting.plot2d.Areas");
@@ -32,6 +28,8 @@ dojo.require("dojox.charting.plot2d.Bubble");
 dojo.require("dojox.charting.plot2d.Candlesticks");
 dojo.require("dojox.charting.plot2d.OHLC");
 dojo.require("dojox.charting.plot2d.Spider");
+
+// require the main file
 dojo.require("dojox.charting.Chart");
-dojox.charting.Chart2D=dojox.charting.Chart;
-}
+
+dojox.charting.Chart2D = dojox.charting.Chart;

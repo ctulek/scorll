@@ -1,1 +1,14 @@
-({"saveLabel":"Gem","saveSettingdialogTitle":"Gem automatisk","saveSettingdialogButtonOk":"Angiv interval","saveMessageSuccess":"Gemt i ${0}","saveSettingdialogButtonCancel":"Annullér","saveSettingdialogDescription":"Angiv interval for automatisk lagring","saveSettingLabelOn":"Angiv interval for automatisk lagring...","saveSettingdialogParamLabel":"min.","saveSettingdialogParamName":"Interval for automatisk lagring","saveMessageFail":"Ikke gemt i ${0}","saveSettingLabelOff":"Deaktivér automatisk lagring"})
+({
+	"saveLabel": "Gem",
+	"saveSettingLabelOn": "Angiv interval for automatisk lagring...",
+	"saveSettingLabelOff": "Deaktivér automatisk lagring",
+	"saveSettingdialogTitle": "Gem automatisk",
+	"saveSettingdialogDescription": "Angiv interval for automatisk lagring",
+	"saveSettingdialogParamName": "Interval for automatisk lagring",
+	"saveSettingdialogParamLabel": "min.",
+	"saveSettingdialogButtonOk": "Angiv interval",
+	"saveSettingdialogButtonCancel": "Annullér",
+	"saveMessageSuccess": "Gemt i ${0}",
+	"saveMessageFail": "Ikke gemt i ${0}"
+})
+

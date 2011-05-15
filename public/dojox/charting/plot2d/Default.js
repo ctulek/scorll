@@ -1,183 +1,351 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.charting.plot2d.Default"]){
-dojo._hasResource["dojox.charting.plot2d.Default"]=true;
 dojo.provide("dojox.charting.plot2d.Default");
+
 dojo.require("dojox.charting.plot2d.common");
 dojo.require("dojox.charting.plot2d.Base");
+
 dojo.require("dojox.lang.utils");
 dojo.require("dojox.lang.functional");
 dojo.require("dojox.lang.functional.reversed");
 dojo.require("dojox.gfx.fx");
+
+/*=====
+dojo.declare("dojox.charting.plot2d.__DefaultCtorArgs", dojox.charting.plot2d.__PlotCtorArgs, {
+	//	summary:
+	//		The arguments used for any/most plots.
+
+	//	hAxis: String?
+	//		The horizontal axis name.
+	hAxis: "x",
+
+	//	vAxis: String?
+	//		The vertical axis name
+	vAxis: "y",
+
+	//	lines: Boolean?
+	//		Whether or not to draw lines on this plot.  Defaults to true.
+	lines:   true,
+
+	//	areas: Boolean?
+	//		Whether or not to draw areas on this plot. Defaults to false.
+	areas:   false,
+
+	//	markers: Boolean?
+	//		Whether or not to draw markers at data points on this plot. Default is false.
+	markers: false,
+
+	//	tension: Number|String?
+	//		Whether or not to apply 'tensioning' to the lines on this chart.
+	//		Options include a number, "X", "x", or "S"; if a number is used, the
+	//		simpler bezier curve calculations are used to draw the lines.  If X, x or S
+	//		is used, the more accurate smoothing algorithm is used.
+	tension: "",
+
+	//	animate: Boolean?
+	//		Whether or not to animate the chart to place.
+	animate: false,
+
+	//	stroke: dojox.gfx.Stroke?
+	//		An optional stroke to use for any series on the plot.
+	stroke:		{},
+
+	//	outline: dojox.gfx.Stroke?
+	//		An optional stroke used to outline any series on the plot.
+	outline:	{},
+
+	//	shadow: dojox.gfx.Stroke?
+	//		An optional stroke to use to draw any shadows for a series on a plot.
+	shadow:		{},
+
+	//	fill: dojox.gfx.Fill?
+	//		Any fill to be used for elements on the plot (such as areas).
+	fill:		{},
+
+	//	font: String?
+	//		A font definition to be used for labels and other text-based elements on the plot.
+	font:		"",
+
+	//	fontColor: String|dojo.Color?
+	//		The color to be used for any text-based elements on the plot.
+	fontColor:	"",
+
+	//	markerStroke: dojo.gfx.Stroke?
+	//		An optional stroke to use for any markers on the plot.
+	markerStroke:		{},
+
+	//	markerOutline: dojo.gfx.Stroke?
+	//		An optional outline to use for any markers on the plot.
+	markerOutline:		{},
+
+	//	markerShadow: dojo.gfx.Stroke?
+	//		An optional shadow to use for any markers on the plot.
+	markerShadow:		{},
+
+	//	markerFill: dojo.gfx.Fill?
+	//		An optional fill to use for any markers on the plot.
+	markerFill:			{},
+
+	//	markerFont: String?
+	//		An optional font definition to use for any markers on the plot.
+	markerFont:			"",
+
+	//	markerFontColor: String|dojo.Color?
+	//		An optional color to use for any marker text on the plot.
+	markerFontColor:	""
+});
+=====*/
 (function(){
-var df=dojox.lang.functional,du=dojox.lang.utils,dc=dojox.charting.plot2d.common,_1=df.lambda("item.purgeGroup()");
-var _2=1200;
-dojo.declare("dojox.charting.plot2d.Default",dojox.charting.plot2d.Base,{defaultParams:{hAxis:"x",vAxis:"y",lines:true,areas:false,markers:false,tension:"",animate:false},optionalParams:{stroke:{},outline:{},shadow:{},fill:{},font:"",fontColor:"",markerStroke:{},markerOutline:{},markerShadow:{},markerFill:{},markerFont:"",markerFontColor:""},constructor:function(_3,_4){
-this.opt=dojo.clone(this.defaultParams);
-du.updateWithObject(this.opt,_4);
-du.updateWithPattern(this.opt,_4,this.optionalParams);
-this.series=[];
-this.hAxis=this.opt.hAxis;
-this.vAxis=this.opt.vAxis;
-this.animate=this.opt.animate;
-},render:function(_5,_6){
-if(this.zoom&&!this.isDataDirty()){
-return this.performZoom(_5,_6);
-}
-this.resetEvents();
-this.dirty=this.isDirty();
-if(this.dirty){
-dojo.forEach(this.series,_1);
-this._eventSeries={};
-this.cleanGroup();
-this.group.setTransform(null);
-var s=this.group;
-df.forEachRev(this.series,function(_7){
-_7.cleanGroup(s);
-});
-}
-var t=this.chart.theme,_8,_9,_a,_b=this.events();
-for(var i=this.series.length-1;i>=0;--i){
-var _c=this.series[i];
-if(!this.dirty&&!_c.dirty){
-t.skip();
-this._reconnectEvents(_c.name);
-continue;
-}
-_c.cleanGroup();
-if(!_c.data.length){
-_c.dirty=false;
-t.skip();
-continue;
-}
-var _d=t.next(this.opt.areas?"area":"line",[this.opt,_c],true),s=_c.group,_e=[],_f=[],_10=null,_11,ht=this._hScaler.scaler.getTransformerFromModel(this._hScaler),vt=this._vScaler.scaler.getTransformerFromModel(this._vScaler),_12=this._eventSeries[_c.name]=new Array(_c.data.length);
-for(var j=0;j<_c.data.length;j++){
-if(_c.data[j]!=null){
-if(!_10){
-_10=[];
-_f.push(j);
-_e.push(_10);
-}
-_10.push(_c.data[j]);
-}else{
-_10=null;
-}
-}
-for(var seg=0;seg<_e.length;seg++){
-if(typeof _e[seg][0]=="number"){
-_11=dojo.map(_e[seg],function(v,i){
-return {x:ht(i+_f[seg]+1)+_6.l,y:_5.height-_6.b-vt(v)};
-},this);
-}else{
-_11=dojo.map(_e[seg],function(v,i){
-return {x:ht(v.x)+_6.l,y:_5.height-_6.b-vt(v.y)};
-},this);
-}
-var _13=this.opt.tension?dc.curve(_11,this.opt.tension):"";
-if(this.opt.areas&&_11.length>1){
-var _14=_d.series.fill;
-var _15=dojo.clone(_11);
-if(this.opt.tension){
-var _16="L"+_15[_15.length-1].x+","+(_5.height-_6.b)+" L"+_15[0].x+","+(_5.height-_6.b)+" L"+_15[0].x+","+_15[0].y;
-_c.dyn.fill=s.createPath(_13+" "+_16).setFill(_14).getFill();
-}else{
-_15.push({x:_11[_11.length-1].x,y:_5.height-_6.b});
-_15.push({x:_11[0].x,y:_5.height-_6.b});
-_15.push(_11[0]);
-_c.dyn.fill=s.createPolyline(_15).setFill(_14).getFill();
-}
-}
-if(this.opt.lines||this.opt.markers){
-_8=_d.series.stroke;
-if(_d.series.outline){
-_9=_c.dyn.outline=dc.makeStroke(_d.series.outline);
-_9.width=2*_9.width+_8.width;
-}
-}
-if(this.opt.markers){
-_c.dyn.marker=_d.symbol;
-}
-var _17=null,_18=null,_19=null;
-if(_8&&_d.series.shadow&&_11.length>1){
-var _1a=_d.series.shadow,_1b=dojo.map(_11,function(c){
-return {x:c.x+_1a.dx,y:c.y+_1a.dy};
-});
-if(this.opt.lines){
-if(this.opt.tension){
-_c.dyn.shadow=s.createPath(dc.curve(_1b,this.opt.tension)).setStroke(_1a).getStroke();
-}else{
-_c.dyn.shadow=s.createPolyline(_1b).setStroke(_1a).getStroke();
-}
-}
-if(this.opt.markers&&_d.marker.shadow){
-_1a=_d.marker.shadow;
-_19=dojo.map(_1b,function(c){
-return s.createPath("M"+c.x+" "+c.y+" "+_d.symbol).setStroke(_1a).setFill(_1a.color);
-},this);
-}
-}
-if(this.opt.lines&&_11.length>1){
-if(_9){
-if(this.opt.tension){
-_c.dyn.outline=s.createPath(_13).setStroke(_9).getStroke();
-}else{
-_c.dyn.outline=s.createPolyline(_11).setStroke(_9).getStroke();
-}
-}
-if(this.opt.tension){
-_c.dyn.stroke=s.createPath(_13).setStroke(_8).getStroke();
-}else{
-_c.dyn.stroke=s.createPolyline(_11).setStroke(_8).getStroke();
-}
-}
-if(this.opt.markers){
-_17=new Array(_11.length);
-_18=new Array(_11.length);
-_9=null;
-if(_d.marker.outline){
-_9=dc.makeStroke(_d.marker.outline);
-_9.width=2*_9.width+(_d.marker.stroke?_d.marker.stroke.width:0);
-}
-dojo.forEach(_11,function(c,i){
-var _1c="M"+c.x+" "+c.y+" "+_d.symbol;
-if(_9){
-_18[i]=s.createPath(_1c).setStroke(_9);
-}
-_17[i]=s.createPath(_1c).setStroke(_d.marker.stroke).setFill(_d.marker.fill);
-},this);
-_c.dyn.markerFill=_d.marker.fill;
-_c.dyn.markerStroke=_d.marker.stroke;
-if(_b){
-dojo.forEach(_17,function(s,i){
-var o={element:"marker",index:i+_f[seg],run:_c,shape:s,outline:_18[i]||null,shadow:_19&&_19[i]||null,cx:_11[i].x,cy:_11[i].y};
-if(typeof _e[seg][0]=="number"){
-o.x=i+_f[seg]+1;
-o.y=_e[seg][i];
-}else{
-o.x=_e[seg][i].x;
-o.y=_e[seg][i].y;
-}
-this._connectEvents(o);
-_12[i+_f[seg]]=o;
-},this);
-}else{
-delete this._eventSeries[_c.name];
-}
-}
-}
-_c.dirty=false;
-}
-if(this.animate){
-var _1d=this.group;
-dojox.gfx.fx.animateTransform(dojo.delegate({shape:_1d,duration:_2,transform:[{name:"translate",start:[0,_5.height-_6.b],end:[0,0]},{name:"scale",start:[1,0],end:[1,1]},{name:"original"}]},this.animate)).play();
-}
-this.dirty=false;
-return this;
-}});
+	var df = dojox.lang.functional, du = dojox.lang.utils,
+		dc = dojox.charting.plot2d.common,
+		purgeGroup = df.lambda("item.purgeGroup()");
+
+	var DEFAULT_ANIMATION_LENGTH = 1200;	// in ms
+
+	dojo.declare("dojox.charting.plot2d.Default", dojox.charting.plot2d.Base, {
+		defaultParams: {
+			hAxis: "x",		// use a horizontal axis named "x"
+			vAxis: "y",		// use a vertical axis named "y"
+			lines:   true,	// draw lines
+			areas:   false,	// draw areas
+			markers: false,	// draw markers
+			tension: "",	// draw curved lines (tension is "X", "x", or "S")
+			animate: false	// animate chart to place
+		},
+		optionalParams: {
+			// theme component
+			stroke:		{},
+			outline:	{},
+			shadow:		{},
+			fill:		{},
+			font:		"",
+			fontColor:	"",
+			markerStroke:		{},
+			markerOutline:		{},
+			markerShadow:		{},
+			markerFill:			{},
+			markerFont:			"",
+			markerFontColor:	""
+		},
+
+		constructor: function(chart, kwArgs){
+			//	summary:
+			//		Return a new plot.
+			//	chart: dojox.charting.Chart2D
+			//		The chart this plot belongs to.
+			//	kwArgs: dojox.charting.plot2d.__DefaultCtorArgs?
+			//		An optional arguments object to help define this plot.
+			this.opt = dojo.clone(this.defaultParams);
+            du.updateWithObject(this.opt, kwArgs);
+            du.updateWithPattern(this.opt, kwArgs, this.optionalParams);
+			this.series = [];
+			this.hAxis = this.opt.hAxis;
+			this.vAxis = this.opt.vAxis;
+
+			// animation properties
+			this.animate = this.opt.animate;
+		},
+
+		render: function(dim, offsets){
+			//	summary:
+			//		Render/draw everything on this plot.
+			//	dim: Object
+			//		An object of the form { width, height }
+			//	offsets: Object
+			//		An object of the form { l, r, t, b }
+			//	returns: dojox.charting.plot2d.Default
+			//		A reference to this plot for functional chaining.
+
+			// make sure all the series is not modified
+			if(this.zoom && !this.isDataDirty()){
+				return this.performZoom(dim, offsets);
+			}
+
+			this.resetEvents();
+			this.dirty = this.isDirty();
+			if(this.dirty){
+				dojo.forEach(this.series, purgeGroup);
+				this._eventSeries = {};
+				this.cleanGroup();
+				this.group.setTransform(null);
+				var s = this.group;
+				df.forEachRev(this.series, function(item){ item.cleanGroup(s); });
+			}
+			var t = this.chart.theme, stroke, outline, marker, events = this.events();
+
+			for(var i = this.series.length - 1; i >= 0; --i){
+				var run = this.series[i];
+				if(!this.dirty && !run.dirty){
+					t.skip();
+					this._reconnectEvents(run.name);
+					continue;
+				}
+				run.cleanGroup();
+				if(!run.data.length){
+					run.dirty = false;
+					t.skip();
+					continue;
+				}
+
+				var theme = t.next(this.opt.areas ? "area" : "line", [this.opt, run], true),
+					s = run.group, rsegments = [], startindexes = [], rseg = null, lpoly,
+					ht = this._hScaler.scaler.getTransformerFromModel(this._hScaler),
+					vt = this._vScaler.scaler.getTransformerFromModel(this._vScaler),
+					eventSeries = this._eventSeries[run.name] = new Array(run.data.length);
+
+                // split the run data into dense segments (each containing no nulls)
+                for(var j = 0; j < run.data.length; j++){
+                    if(run.data[j] != null){
+                        if(!rseg){
+                            rseg = [];
+                            startindexes.push(j);
+                            rsegments.push(rseg)
+                        }
+                        rseg.push(run.data[j]);
+                    }else{
+                        rseg = null;
+                    }
+                }
+
+                for(var seg = 0; seg < rsegments.length; seg++){
+					if(typeof rsegments[seg][0] == "number"){
+						lpoly = dojo.map(rsegments[seg], function(v, i){
+							return {
+								x: ht(i + startindexes[seg] + 1) + offsets.l,
+								y: dim.height - offsets.b - vt(v)
+							};
+						}, this);
+					}else{
+						lpoly = dojo.map(rsegments[seg], function(v, i){
+							return {
+								x: ht(v.x) + offsets.l,
+								y: dim.height - offsets.b - vt(v.y)
+							};
+						}, this);
+					}
+
+					var lpath = this.opt.tension ? dc.curve(lpoly, this.opt.tension) : "";
+
+					if(this.opt.areas && lpoly.length > 1){
+						var fill = theme.series.fill;
+						var apoly = dojo.clone(lpoly);
+						if(this.opt.tension){
+							var apath = "L" + apoly[apoly.length-1].x + "," + (dim.height - offsets.b) +
+								" L" + apoly[0].x + "," + (dim.height - offsets.b) +
+								" L" + apoly[0].x + "," + apoly[0].y;
+							run.dyn.fill = s.createPath(lpath + " " + apath).setFill(fill).getFill();
+						} else {
+							apoly.push({x: lpoly[lpoly.length - 1].x, y: dim.height - offsets.b});
+							apoly.push({x: lpoly[0].x, y: dim.height - offsets.b});
+							apoly.push(lpoly[0]);
+							run.dyn.fill = s.createPolyline(apoly).setFill(fill).getFill();
+						}
+					}
+					if(this.opt.lines || this.opt.markers){
+						// need a stroke
+						stroke = theme.series.stroke;
+						if(theme.series.outline){
+							outline = run.dyn.outline = dc.makeStroke(theme.series.outline);
+							outline.width = 2 * outline.width + stroke.width;
+						}
+					}
+					if(this.opt.markers){
+						run.dyn.marker = theme.symbol;
+					}
+					var frontMarkers = null, outlineMarkers = null, shadowMarkers = null;
+					if(stroke && theme.series.shadow && lpoly.length > 1){
+						var shadow = theme.series.shadow,
+							spoly = dojo.map(lpoly, function(c){
+								return {x: c.x + shadow.dx, y: c.y + shadow.dy};
+							});
+						if(this.opt.lines){
+							if(this.opt.tension){
+								run.dyn.shadow = s.createPath(dc.curve(spoly, this.opt.tension)).setStroke(shadow).getStroke();
+							} else {
+								run.dyn.shadow = s.createPolyline(spoly).setStroke(shadow).getStroke();
+							}
+						}
+						if(this.opt.markers && theme.marker.shadow){
+							shadow = theme.marker.shadow;
+							shadowMarkers = dojo.map(spoly, function(c){
+								return s.createPath("M" + c.x + " " + c.y + " " + theme.symbol).
+									setStroke(shadow).setFill(shadow.color);
+							}, this);
+						}
+					}
+					if(this.opt.lines && lpoly.length > 1){
+						if(outline){
+							if(this.opt.tension){
+								run.dyn.outline = s.createPath(lpath).setStroke(outline).getStroke();
+							} else {
+								run.dyn.outline = s.createPolyline(lpoly).setStroke(outline).getStroke();
+							}
+						}
+						if(this.opt.tension){
+							run.dyn.stroke = s.createPath(lpath).setStroke(stroke).getStroke();
+						} else {
+							run.dyn.stroke = s.createPolyline(lpoly).setStroke(stroke).getStroke();
+						}
+					}
+					if(this.opt.markers){
+						frontMarkers = new Array(lpoly.length);
+						outlineMarkers = new Array(lpoly.length);
+						outline = null;
+						if(theme.marker.outline){
+							outline = dc.makeStroke(theme.marker.outline);
+							outline.width = 2 * outline.width + (theme.marker.stroke ? theme.marker.stroke.width : 0);
+						}
+						dojo.forEach(lpoly, function(c, i){
+							var path = "M" + c.x + " " + c.y + " " + theme.symbol;
+							if(outline){
+								outlineMarkers[i] = s.createPath(path).setStroke(outline);
+							}
+							frontMarkers[i] = s.createPath(path).setStroke(theme.marker.stroke).setFill(theme.marker.fill);
+						}, this);
+						run.dyn.markerFill = theme.marker.fill;
+						run.dyn.markerStroke = theme.marker.stroke;
+						if(events){
+							dojo.forEach(frontMarkers, function(s, i){
+								var o = {
+									element: "marker",
+									index:   i + startindexes[seg],
+									run:     run,
+									shape:   s,
+									outline: outlineMarkers[i] || null,
+									shadow:  shadowMarkers && shadowMarkers[i] || null,
+									cx:      lpoly[i].x,
+									cy:      lpoly[i].y
+								};
+								if(typeof rsegments[seg][0] == "number"){
+									o.x = i + startindexes[seg] + 1;
+									o.y = rsegments[seg][i];
+								}else{
+									o.x = rsegments[seg][i].x;
+									o.y = rsegments[seg][i].y;
+								}
+								this._connectEvents(o);
+								eventSeries[i + startindexes[seg]] = o;
+							}, this);
+						}else{
+							delete this._eventSeries[run.name];
+						}
+					}
+                }
+				run.dirty = false;
+			}
+			if(this.animate){
+				// grow from the bottom
+				var plotGroup = this.group;
+				dojox.gfx.fx.animateTransform(dojo.delegate({
+					shape: plotGroup,
+					duration: DEFAULT_ANIMATION_LENGTH,
+					transform:[
+						{name:"translate", start: [0, dim.height - offsets.b], end: [0, 0]},
+						{name:"scale", start: [1, 0], end:[1, 1]},
+						{name:"original"}
+					]
+				}, this.animate)).play();
+			}
+			this.dirty = false;
+			return this;	//	dojox.charting.plot2d.Default
+		}
+	});
 })();
-}

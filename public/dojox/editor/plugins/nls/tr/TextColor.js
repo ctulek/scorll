@@ -1,1 +1,5 @@
-({"setButtonText":"Ayarla","cancelButtonText":"İptal"})
+({
+	"setButtonText": "Ayarla",
+	"cancelButtonText": "İptal"
+})
+

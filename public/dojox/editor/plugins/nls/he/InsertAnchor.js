@@ -1,1 +1,9 @@
-({"set":"הגדרה","insertAnchor":"הוספת עוגן ","title":"תכונות עוגן ","text":"תיאור:","cancel":"ביטול","anchor":"שם:"})
+({
+	insertAnchor: "הוספת עוגן ",
+	title: "תכונות עוגן ",
+	anchor: "שם:",
+	text: "תיאור:",
+	set: "הגדרה",
+	cancel: "ביטול"
+})
+

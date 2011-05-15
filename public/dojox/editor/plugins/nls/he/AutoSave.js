@@ -1,1 +1,14 @@
-({"saveLabel":"שמירה","saveSettingdialogTitle":"שמירה אוטומטית","saveSettingdialogButtonOk":"הגדרת מרווח  ","saveMessageSuccess":"נשמר ${0}","saveSettingdialogButtonCancel":"ביטול","saveSettingdialogDescription":"ציינו מרווח שמירה אוטומטית ","saveSettingLabelOn":"הגדרת מרווח שמירה אוטומטית...‏","saveSettingdialogParamLabel":"דות","saveSettingdialogParamName":"מרווח שמירה אוטומטית ","saveMessageFail":"כשל בשמירה ${0}","saveSettingLabelOff":"השבתת שמירה אוטומטית"})
+({
+	"saveLabel": "שמירה",
+	"saveSettingLabelOn": "הגדרת מרווח שמירה אוטומטית...‏",
+	"saveSettingLabelOff": "השבתת שמירה אוטומטית",
+	"saveSettingdialogTitle": "שמירה אוטומטית",
+	"saveSettingdialogDescription": "ציינו מרווח שמירה אוטומטית ",
+	"saveSettingdialogParamName": "מרווח שמירה אוטומטית ",
+	"saveSettingdialogParamLabel": "דות",
+	"saveSettingdialogButtonOk": "הגדרת מרווח  ",
+	"saveSettingdialogButtonCancel": "ביטול",
+	"saveMessageSuccess": "נשמר ${0}",
+	"saveMessageFail": "כשל בשמירה ${0}"
+})
+

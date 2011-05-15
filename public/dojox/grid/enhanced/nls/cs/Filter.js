@@ -1,1 +1,87 @@
-({"waiRemoveRuleButtonTemplate":"Odebrat pravidlo ${0}","addRuleButton":"Přidat pravidlo","a11yFilterBarDefButton":"Filtrovat...","falseLabel":"Nepravda","conditionAfter":"po","relationAny":"jakákoli pravidla","conditionNotStartWith":"nezačíná","relationMsgTail":"","defaultItemsName":"položek","conditionContains":"obsahuje","waiRelAny":"Porovnat jakákoli z těchto pravidel:","and":"a","waiClearButton":"Vymazat filtr","waiAddRuleButton":"Přidat nové pravidlo","conditionLargerEqual":"více nebo rovno","filterBarClearButton":"Vymazat filtr","statusTipRelPost":"pravidla.","cancelButton":"Storno","removeRuleButton":"Odebrat pravidlo","relationAll":"všechna pravidla","waiValueBoxTemplate":"Zadejte hodnotu do filtru pro pravidlo ${0}","conditionNotContain":"neobsahuje","filterButton":"Filtr","statusTipMsg":"Klepněte zde na panel filtrování, abyste filtrovali hodnoty v ${0}.","waiRelAll":"Porovnat všechna tato pravidla:","closeFilterBarBtn":"Zavřít panel filtrování","waiCancelButton":"Zrušit toto dialogové okno","waiFilterBarDefButton":"Filtrovat tabulku","statusTipTitleHasFilter":"Filtr","any":"jakékoli","waiFilterButton":"Odeslat filtr","conditionIsEmpty":"je prázdné","conditionEqual":"rovná se","columnSelectLabel":"Sloupec","conditionLessEqual":"méně nebo rovno","conditionNotEndWith":"nekončí","or":"nebo","clearFilterDialogTitle":"Vymazat filtr","conditionLarger":"více než","relationMsgFront":"Shoda","statusTipHeaderColumn":"Sloupec","conditionEndWith":"končí","clearButton":"Vymazat","statusTipTitle":"Panel filtrování","valueBoxLabel":"Hodnota","conditionRange":"rozsah","waiColumnSelectTemplate":"Sloupec pro pravidlo ${0}","all":"vše","conditionSelectLabel":"Podmínka","filterBarMsgHasFilterTemplate":"${0} z ${1} ${2} zobrazeno.","conditionStartsWith":"začíná","filterBarMsgNoFilterTemplate":"Není použitý žádný filtr","trueLabel":"Pravda","filterBarDefButton":"Definovat filtr","waiFilterBarClearButton":"Vymazat filtr","conditionBefore":"před","rangeTo":"do","rangeTemplate":"z ${0} do ${1}","anyColumnOption":"Jakýkoli sloupec","filterDefDialogTitle":"Filtr","ruleTitleTemplate":"Pravidlo ${0}","conditionNotEqual":"nerovná se","conditionIsNot":"není","statusTipRelPre":"Shoda","conditionIs":"je","clearFilterMsg":"Tímto se odebere filtr a zobrazí všechny dostupné záznamy.","statusTipHeaderCondition":"Pravidla","waiConditionSelectTemplate":"Podmínka pro pravidlo ${0}","statusTipTitleNoFilter":"Panel filtrování","anycolumn":"jakýkoli sloupec","conditionLess":"méně než"})
+({
+	"clearFilterDialogTitle": "Vymazat filtr",
+	"filterDefDialogTitle": "Filtr",
+	"ruleTitleTemplate": "Pravidlo ${0}",
+	
+	"conditionEqual": "rovná se",
+	"conditionNotEqual": "nerovná se",
+	"conditionLess": "méně než",
+	"conditionLessEqual": "méně nebo rovno",
+	"conditionLarger": "více než",
+	"conditionLargerEqual": "více nebo rovno",
+	"conditionContains": "obsahuje",
+	"conditionIs": "je",
+	"conditionStartsWith": "začíná",
+	"conditionEndWith": "končí",
+	"conditionNotContain": "neobsahuje",
+	"conditionIsNot": "není",
+	"conditionNotStartWith": "nezačíná",
+	"conditionNotEndWith": "nekončí",
+	"conditionBefore": "před",
+	"conditionAfter": "po",
+	"conditionRange": "rozsah",
+	"conditionIsEmpty": "je prázdné",
+	
+	"all": "vše",
+	"any": "jakékoli",
+	"relationAll": "všechna pravidla",
+	"waiRelAll": "Porovnat všechna tato pravidla:",
+	"relationAny": "jakákoli pravidla",
+	"waiRelAny": "Porovnat jakákoli z těchto pravidel:",
+	"relationMsgFront": "Shoda",
+	"relationMsgTail": "",
+	"and": "a",
+	"or": "nebo",
+	
+	"addRuleButton": "Přidat pravidlo",
+	"waiAddRuleButton": "Přidat nové pravidlo",
+	"removeRuleButton": "Odebrat pravidlo",
+	"waiRemoveRuleButtonTemplate": "Odebrat pravidlo ${0}",
+	
+	"cancelButton": "Storno",
+	"waiCancelButton": "Zrušit toto dialogové okno",
+	"clearButton": "Vymazat",
+	"waiClearButton": "Vymazat filtr",
+	"filterButton": "Filtr",
+	"waiFilterButton": "Odeslat filtr",
+	
+	"columnSelectLabel": "Sloupec",
+	"waiColumnSelectTemplate": "Sloupec pro pravidlo ${0}",
+	"conditionSelectLabel": "Podmínka",
+	"waiConditionSelectTemplate": "Podmínka pro pravidlo ${0}",
+	"valueBoxLabel": "Hodnota",
+	"waiValueBoxTemplate": "Zadejte hodnotu do filtru pro pravidlo ${0}",
+	
+	"rangeTo": "do",
+	"rangeTemplate": "z ${0} do ${1}",
+	
+	"statusTipHeaderColumn": "Sloupec",
+	"statusTipHeaderCondition": "Pravidla",
+	"statusTipTitle": "Panel filtrování",
+	"statusTipMsg": "Klepněte zde na panel filtrování, abyste filtrovali hodnoty v ${0}.",
+	"anycolumn": "jakýkoli sloupec",
+	"statusTipTitleNoFilter": "Panel filtrování",
+	"statusTipTitleHasFilter": "Filtr",
+	"statusTipRelPre": "Shoda",
+	"statusTipRelPost": "pravidla.",
+	
+	"defaultItemsName": "položek",
+	"filterBarMsgHasFilterTemplate": "${0} z ${1} ${2} zobrazeno.",
+	"filterBarMsgNoFilterTemplate": "Není použitý žádný filtr",
+	
+	"filterBarDefButton": "Definovat filtr",
+	"waiFilterBarDefButton": "Filtrovat tabulku",
+	"a11yFilterBarDefButton": "Filtrovat...",
+	"filterBarClearButton": "Vymazat filtr",
+	"waiFilterBarClearButton": "Vymazat filtr",
+	"closeFilterBarBtn": "Zavřít panel filtrování",
+	
+	"clearFilterMsg": "Tímto se odebere filtr a zobrazí všechny dostupné záznamy.",
+	"anyColumnOption": "Jakýkoli sloupec",
+	
+	"trueLabel": "Pravda",
+	"falseLabel": "Nepravda"
+})
+
+
+

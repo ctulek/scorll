@@ -1,217 +1,251 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.charting.scaler.linear"]){
-dojo._hasResource["dojox.charting.scaler.linear"]=true;
 dojo.provide("dojox.charting.scaler.linear");
 dojo.require("dojox.charting.scaler.common");
+
 (function(){
-var _1=3,dc=dojox.charting,_2=dc.scaler,_3=_2.common,_4=_3.findString,_5=_3.getNumericLabel;
-var _6=function(_7,_8,_9,_a,_b,_c,_d){
-_9=dojo.delegate(_9);
-if(!_a){
-if(_9.fixUpper=="major"){
-_9.fixUpper="minor";
-}
-if(_9.fixLower=="major"){
-_9.fixLower="minor";
-}
-}
-if(!_b){
-if(_9.fixUpper=="minor"){
-_9.fixUpper="micro";
-}
-if(_9.fixLower=="minor"){
-_9.fixLower="micro";
-}
-}
-if(!_c){
-if(_9.fixUpper=="micro"){
-_9.fixUpper="none";
-}
-if(_9.fixLower=="micro"){
-_9.fixLower="none";
-}
-}
-var _e=_4(_9.fixLower,["major"])?Math.floor(_9.min/_a)*_a:_4(_9.fixLower,["minor"])?Math.floor(_9.min/_b)*_b:_4(_9.fixLower,["micro"])?Math.floor(_9.min/_c)*_c:_9.min,_f=_4(_9.fixUpper,["major"])?Math.ceil(_9.max/_a)*_a:_4(_9.fixUpper,["minor"])?Math.ceil(_9.max/_b)*_b:_4(_9.fixUpper,["micro"])?Math.ceil(_9.max/_c)*_c:_9.max;
-if(_9.useMin){
-_7=_e;
-}
-if(_9.useMax){
-_8=_f;
-}
-var _10=(!_a||_9.useMin&&_4(_9.fixLower,["major"]))?_7:Math.ceil(_7/_a)*_a,_11=(!_b||_9.useMin&&_4(_9.fixLower,["major","minor"]))?_7:Math.ceil(_7/_b)*_b,_12=(!_c||_9.useMin&&_4(_9.fixLower,["major","minor","micro"]))?_7:Math.ceil(_7/_c)*_c,_13=!_a?0:(_9.useMax&&_4(_9.fixUpper,["major"])?Math.round((_8-_10)/_a):Math.floor((_8-_10)/_a))+1,_14=!_b?0:(_9.useMax&&_4(_9.fixUpper,["major","minor"])?Math.round((_8-_11)/_b):Math.floor((_8-_11)/_b))+1,_15=!_c?0:(_9.useMax&&_4(_9.fixUpper,["major","minor","micro"])?Math.round((_8-_12)/_c):Math.floor((_8-_12)/_c))+1,_16=_b?Math.round(_a/_b):0,_17=_c?Math.round(_b/_c):0,_18=_a?Math.floor(Math.log(_a)/Math.LN10):0,_19=_b?Math.floor(Math.log(_b)/Math.LN10):0,_1a=_d/(_8-_7);
-if(!isFinite(_1a)){
-_1a=1;
-}
-return {bounds:{lower:_e,upper:_f,from:_7,to:_8,scale:_1a,span:_d},major:{tick:_a,start:_10,count:_13,prec:_18},minor:{tick:_b,start:_11,count:_14,prec:_19},micro:{tick:_c,start:_12,count:_15,prec:0},minorPerMajor:_16,microPerMinor:_17,scaler:_2.linear};
-};
-dojo.mixin(dojox.charting.scaler.linear,{buildScaler:function(min,max,_1b,_1c){
-var h={fixUpper:"none",fixLower:"none",natural:false};
-if(_1c){
-if("fixUpper" in _1c){
-h.fixUpper=String(_1c.fixUpper);
-}
-if("fixLower" in _1c){
-h.fixLower=String(_1c.fixLower);
-}
-if("natural" in _1c){
-h.natural=Boolean(_1c.natural);
-}
-}
-if("min" in _1c){
-min=_1c.min;
-}
-if("max" in _1c){
-max=_1c.max;
-}
-if(_1c.includeZero){
-if(min>0){
-min=0;
-}
-if(max<0){
-max=0;
-}
-}
-h.min=min;
-h.useMin=true;
-h.max=max;
-h.useMax=true;
-if("from" in _1c){
-min=_1c.from;
-h.useMin=false;
-}
-if("to" in _1c){
-max=_1c.to;
-h.useMax=false;
-}
-if(max<=min){
-return _6(min,max,h,0,0,0,_1b);
-}
-var mag=Math.floor(Math.log(max-min)/Math.LN10),_1d=_1c&&("majorTickStep" in _1c)?_1c.majorTickStep:Math.pow(10,mag),_1e=0,_1f=0,_20;
-if(_1c&&("minorTickStep" in _1c)){
-_1e=_1c.minorTickStep;
-}else{
-do{
-_1e=_1d/10;
-if(!h.natural||_1e>0.9){
-_20=_6(min,max,h,_1d,_1e,0,_1b);
-if(_20.bounds.scale*_20.minor.tick>_1){
-break;
-}
-}
-_1e=_1d/5;
-if(!h.natural||_1e>0.9){
-_20=_6(min,max,h,_1d,_1e,0,_1b);
-if(_20.bounds.scale*_20.minor.tick>_1){
-break;
-}
-}
-_1e=_1d/2;
-if(!h.natural||_1e>0.9){
-_20=_6(min,max,h,_1d,_1e,0,_1b);
-if(_20.bounds.scale*_20.minor.tick>_1){
-break;
-}
-}
-return _6(min,max,h,_1d,0,0,_1b);
-}while(false);
-}
-if(_1c&&("microTickStep" in _1c)){
-_1f=_1c.microTickStep;
-_20=_6(min,max,h,_1d,_1e,_1f,_1b);
-}else{
-do{
-_1f=_1e/10;
-if(!h.natural||_1f>0.9){
-_20=_6(min,max,h,_1d,_1e,_1f,_1b);
-if(_20.bounds.scale*_20.micro.tick>_1){
-break;
-}
-}
-_1f=_1e/5;
-if(!h.natural||_1f>0.9){
-_20=_6(min,max,h,_1d,_1e,_1f,_1b);
-if(_20.bounds.scale*_20.micro.tick>_1){
-break;
-}
-}
-_1f=_1e/2;
-if(!h.natural||_1f>0.9){
-_20=_6(min,max,h,_1d,_1e,_1f,_1b);
-if(_20.bounds.scale*_20.micro.tick>_1){
-break;
-}
-}
-_1f=0;
-}while(false);
-}
-return _1f?_20:_6(min,max,h,_1d,_1e,0,_1b);
-},buildTicks:function(_21,_22){
-var _23,_24,_25,_26=_21.major.start,_27=_21.minor.start,_28=_21.micro.start;
-if(_22.microTicks&&_21.micro.tick){
-_23=_21.micro.tick,_24=_28;
-}else{
-if(_22.minorTicks&&_21.minor.tick){
-_23=_21.minor.tick,_24=_27;
-}else{
-if(_21.major.tick){
-_23=_21.major.tick,_24=_26;
-}else{
-return null;
-}
-}
-}
-var _29=1/_21.bounds.scale;
-if(_21.bounds.to<=_21.bounds.from||isNaN(_29)||!isFinite(_29)||_23<=0||isNaN(_23)||!isFinite(_23)){
-return null;
-}
-var _2a=[],_2b=[],_2c=[];
-while(_24<=_21.bounds.to+_29){
-if(Math.abs(_26-_24)<_23/2){
-_25={value:_26};
-if(_22.majorLabels){
-_25.label=_5(_26,_21.major.prec,_22);
-}
-_2a.push(_25);
-_26+=_21.major.tick;
-_27+=_21.minor.tick;
-_28+=_21.micro.tick;
-}else{
-if(Math.abs(_27-_24)<_23/2){
-if(_22.minorTicks){
-_25={value:_27};
-if(_22.minorLabels&&(_21.minMinorStep<=_21.minor.tick*_21.bounds.scale)){
-_25.label=_5(_27,_21.minor.prec,_22);
-}
-_2b.push(_25);
-}
-_27+=_21.minor.tick;
-_28+=_21.micro.tick;
-}else{
-if(_22.microTicks){
-_2c.push({value:_28});
-}
-_28+=_21.micro.tick;
-}
-}
-_24+=_23;
-}
-return {major:_2a,minor:_2b,micro:_2c};
-},getTransformerFromModel:function(_2d){
-var _2e=_2d.bounds.from,_2f=_2d.bounds.scale;
-return function(x){
-return (x-_2e)*_2f;
-};
-},getTransformerFromPlot:function(_30){
-var _31=_30.bounds.from,_32=_30.bounds.scale;
-return function(x){
-return x/_32+_31;
-};
-}});
+	var deltaLimit = 3,	// pixels
+		dc = dojox.charting, dcs = dc.scaler, dcsc = dcs.common,
+		findString = dcsc.findString,
+		getLabel = dcsc.getNumericLabel;
+	
+	var calcTicks = function(min, max, kwArgs, majorTick, minorTick, microTick, span){
+		kwArgs = dojo.delegate(kwArgs);
+		if(!majorTick){
+			if(kwArgs.fixUpper == "major"){ kwArgs.fixUpper = "minor"; }
+			if(kwArgs.fixLower == "major"){ kwArgs.fixLower = "minor"; }
+		}
+		if(!minorTick){
+			if(kwArgs.fixUpper == "minor"){ kwArgs.fixUpper = "micro"; }
+			if(kwArgs.fixLower == "minor"){ kwArgs.fixLower = "micro"; }
+		}
+		if(!microTick){
+			if(kwArgs.fixUpper == "micro"){ kwArgs.fixUpper = "none"; }
+			if(kwArgs.fixLower == "micro"){ kwArgs.fixLower = "none"; }
+		}
+		var lowerBound = findString(kwArgs.fixLower, ["major"]) ?
+				Math.floor(kwArgs.min / majorTick) * majorTick :
+					findString(kwArgs.fixLower, ["minor"]) ?
+						Math.floor(kwArgs.min / minorTick) * minorTick :
+							findString(kwArgs.fixLower, ["micro"]) ?
+								Math.floor(kwArgs.min / microTick) * microTick : kwArgs.min,
+			upperBound = findString(kwArgs.fixUpper, ["major"]) ?
+				Math.ceil(kwArgs.max / majorTick) * majorTick :
+					findString(kwArgs.fixUpper, ["minor"]) ?
+						Math.ceil(kwArgs.max / minorTick) * minorTick :
+							findString(kwArgs.fixUpper, ["micro"]) ?
+								Math.ceil(kwArgs.max / microTick) * microTick : kwArgs.max;
+								
+		if(kwArgs.useMin){ min = lowerBound; }
+		if(kwArgs.useMax){ max = upperBound; }
+		
+		var majorStart = (!majorTick || kwArgs.useMin && findString(kwArgs.fixLower, ["major"])) ?
+				min : Math.ceil(min / majorTick) * majorTick,
+			minorStart = (!minorTick || kwArgs.useMin && findString(kwArgs.fixLower, ["major", "minor"])) ?
+				min : Math.ceil(min / minorTick) * minorTick,
+			microStart = (! microTick || kwArgs.useMin && findString(kwArgs.fixLower, ["major", "minor", "micro"])) ?
+				min : Math.ceil(min / microTick) * microTick,
+			majorCount = !majorTick ? 0 : (kwArgs.useMax && findString(kwArgs.fixUpper, ["major"]) ?
+				Math.round((max - majorStart) / majorTick) :
+				Math.floor((max - majorStart) / majorTick)) + 1,
+			minorCount = !minorTick ? 0 : (kwArgs.useMax && findString(kwArgs.fixUpper, ["major", "minor"]) ?
+				Math.round((max - minorStart) / minorTick) :
+				Math.floor((max - minorStart) / minorTick)) + 1,
+			microCount = !microTick ? 0 : (kwArgs.useMax && findString(kwArgs.fixUpper, ["major", "minor", "micro"]) ?
+				Math.round((max - microStart) / microTick) :
+				Math.floor((max - microStart) / microTick)) + 1,
+			minorPerMajor  = minorTick ? Math.round(majorTick / minorTick) : 0,
+			microPerMinor  = microTick ? Math.round(minorTick / microTick) : 0,
+			majorPrecision = majorTick ? Math.floor(Math.log(majorTick) / Math.LN10) : 0,
+			minorPrecision = minorTick ? Math.floor(Math.log(minorTick) / Math.LN10) : 0,
+			scale = span / (max - min);
+		if(!isFinite(scale)){ scale = 1; }
+		
+		return {
+			bounds: {
+				lower:	lowerBound,
+				upper:	upperBound,
+				from:	min,
+				to:		max,
+				scale:	scale,
+				span:	span
+			},
+			major: {
+				tick:	majorTick,
+				start:	majorStart,
+				count:	majorCount,
+				prec:	majorPrecision
+			},
+			minor: {
+				tick:	minorTick,
+				start:	minorStart,
+				count:	minorCount,
+				prec:	minorPrecision
+			},
+			micro: {
+				tick:	microTick,
+				start:	microStart,
+				count:	microCount,
+				prec:	0
+			},
+			minorPerMajor:	minorPerMajor,
+			microPerMinor:	microPerMinor,
+			scaler:			dcs.linear
+		};
+	};
+	
+	dojo.mixin(dojox.charting.scaler.linear, {
+		buildScaler: function(/*Number*/ min, /*Number*/ max, /*Number*/ span, /*Object*/ kwArgs){
+			var h = {fixUpper: "none", fixLower: "none", natural: false};
+			if(kwArgs){
+				if("fixUpper" in kwArgs){ h.fixUpper = String(kwArgs.fixUpper); }
+				if("fixLower" in kwArgs){ h.fixLower = String(kwArgs.fixLower); }
+				if("natural"  in kwArgs){ h.natural  = Boolean(kwArgs.natural); }
+			}
+			
+			// update bounds
+			if("min" in kwArgs){ min = kwArgs.min; }
+			if("max" in kwArgs){ max = kwArgs.max; }
+			if(kwArgs.includeZero){
+				if(min > 0){ min = 0; }
+				if(max < 0){ max = 0; }
+			}
+			h.min = min;
+			h.useMin = true;
+			h.max = max;
+			h.useMax = true;
+			
+			if("from" in kwArgs){
+				min = kwArgs.from;
+				h.useMin = false;
+			}
+			if("to" in kwArgs){
+				max = kwArgs.to;
+				h.useMax = false;
+			}
+			
+			// check for erroneous condition
+			if(max <= min){
+				return calcTicks(min, max, h, 0, 0, 0, span);	// Object
+			}
+			
+			var mag = Math.floor(Math.log(max - min) / Math.LN10),
+				major = kwArgs && ("majorTickStep" in kwArgs) ? kwArgs.majorTickStep : Math.pow(10, mag),
+				minor = 0, micro = 0, ticks;
+				
+			// calculate minor ticks
+			if(kwArgs && ("minorTickStep" in kwArgs)){
+				minor = kwArgs.minorTickStep;
+			}else{
+				do{
+					minor = major / 10;
+					if(!h.natural || minor > 0.9){
+						ticks = calcTicks(min, max, h, major, minor, 0, span);
+						if(ticks.bounds.scale * ticks.minor.tick > deltaLimit){ break; }
+					}
+					minor = major / 5;
+					if(!h.natural || minor > 0.9){
+						ticks = calcTicks(min, max, h, major, minor, 0, span);
+						if(ticks.bounds.scale * ticks.minor.tick > deltaLimit){ break; }
+					}
+					minor = major / 2;
+					if(!h.natural || minor > 0.9){
+						ticks = calcTicks(min, max, h, major, minor, 0, span);
+						if(ticks.bounds.scale * ticks.minor.tick > deltaLimit){ break; }
+					}
+					return calcTicks(min, max, h, major, 0, 0, span);	// Object
+				}while(false);
+			}
+	
+			// calculate micro ticks
+			if(kwArgs && ("microTickStep" in kwArgs)){
+				micro = kwArgs.microTickStep;
+				ticks = calcTicks(min, max, h, major, minor, micro, span);
+			}else{
+				do{
+					micro = minor / 10;
+					if(!h.natural || micro > 0.9){
+						ticks = calcTicks(min, max, h, major, minor, micro, span);
+						if(ticks.bounds.scale * ticks.micro.tick > deltaLimit){ break; }
+					}
+					micro = minor / 5;
+					if(!h.natural || micro > 0.9){
+						ticks = calcTicks(min, max, h, major, minor, micro, span);
+						if(ticks.bounds.scale * ticks.micro.tick > deltaLimit){ break; }
+					}
+					micro = minor / 2;
+					if(!h.natural || micro > 0.9){
+						ticks = calcTicks(min, max, h, major, minor, micro, span);
+						if(ticks.bounds.scale * ticks.micro.tick > deltaLimit){ break; }
+					}
+					micro = 0;
+				}while(false);
+			}
+	
+			return micro ? ticks : calcTicks(min, max, h, major, minor, 0, span);	// Object
+		},
+		buildTicks: function(/*Object*/ scaler, /*Object*/ kwArgs){
+			var step, next, tick,
+				nextMajor = scaler.major.start,
+				nextMinor = scaler.minor.start,
+				nextMicro = scaler.micro.start;
+			if(kwArgs.microTicks && scaler.micro.tick){
+				step = scaler.micro.tick, next = nextMicro;
+			}else if(kwArgs.minorTicks && scaler.minor.tick){
+				step = scaler.minor.tick, next = nextMinor;
+			}else if(scaler.major.tick){
+				step = scaler.major.tick, next = nextMajor;
+			}else{
+				// no ticks
+				return null;
+			}
+			// make sure that we have finite bounds
+			var revScale = 1 / scaler.bounds.scale;
+			if(scaler.bounds.to <= scaler.bounds.from || isNaN(revScale) || !isFinite(revScale) ||
+					step <= 0 || isNaN(step) || !isFinite(step)){
+				// no ticks
+				return null;
+			}
+			// loop over all ticks
+			var majorTicks = [], minorTicks = [], microTicks = [];
+			while(next <= scaler.bounds.to + revScale){
+				if(Math.abs(nextMajor - next) < step / 2){
+					// major tick
+					tick = {value: nextMajor};
+					if(kwArgs.majorLabels){
+						tick.label = getLabel(nextMajor, scaler.major.prec, kwArgs);
+					}
+					majorTicks.push(tick);
+					nextMajor += scaler.major.tick;
+					nextMinor += scaler.minor.tick;
+					nextMicro += scaler.micro.tick;
+				}else if(Math.abs(nextMinor - next) < step / 2){
+					// minor tick
+					if(kwArgs.minorTicks){
+						tick = {value: nextMinor};
+						if(kwArgs.minorLabels && (scaler.minMinorStep <= scaler.minor.tick * scaler.bounds.scale)){
+							tick.label = getLabel(nextMinor, scaler.minor.prec, kwArgs);
+						}
+						minorTicks.push(tick);
+					}
+					nextMinor += scaler.minor.tick;
+					nextMicro += scaler.micro.tick;
+				}else{
+					// micro tick
+					if(kwArgs.microTicks){
+						microTicks.push({value: nextMicro});
+					}
+					nextMicro += scaler.micro.tick;
+				}
+				next += step;
+			}
+			return {major: majorTicks, minor: minorTicks, micro: microTicks};	// Object
+		},
+		getTransformerFromModel: function(/*Object*/ scaler){
+			var offset = scaler.bounds.from, scale = scaler.bounds.scale;
+			return function(x){ return (x - offset) * scale; };	// Function
+		},
+		getTransformerFromPlot: function(/*Object*/ scaler){
+			var offset = scaler.bounds.from, scale = scaler.bounds.scale;
+			return function(x){ return x / scale + offset; };	// Function
+		}
+	});
 })();
-}

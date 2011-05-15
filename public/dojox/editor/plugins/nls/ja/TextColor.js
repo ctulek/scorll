@@ -1,1 +1,4 @@
-({"setButtonText":"設定","cancelButtonText":"キャンセル"})
+({
+	"setButtonText": "設定",
+	"cancelButtonText": "キャンセル"
+})

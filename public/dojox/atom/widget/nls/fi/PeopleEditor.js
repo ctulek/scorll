@@ -1,1 +1,6 @@
-({"add":"Lisää","addAuthor":"Lisää tekijä","addContributor":"Lisää lisääjä"})
+({
+	add: "Lisää",
+	addAuthor: "Lisää tekijä",
+	addContributor: "Lisää lisääjä"
+})
+

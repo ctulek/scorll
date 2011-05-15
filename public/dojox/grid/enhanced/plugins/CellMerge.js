@@ -1,155 +1,266 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.grid.enhanced.plugins.CellMerge"]){
-dojo._hasResource["dojox.grid.enhanced.plugins.CellMerge"]=true;
 dojo.provide("dojox.grid.enhanced.plugins.CellMerge");
+
 dojo.require("dojox.grid.enhanced._Plugin");
-dojo.declare("dojox.grid.enhanced.plugins.CellMerge",dojox.grid.enhanced._Plugin,{name:"cellMerge",constructor:function(_1,_2){
-this.grid=_1;
-this._records=[];
-this._merged={};
-if(_2&&dojo.isObject(_2)){
-this._setupConfig(_2.mergedCells);
-}
-this._initEvents();
-this._mixinGrid();
-},mergeCells:function(_3,_4,_5,_6){
-var _7=this._createRecord({"row":_3,"start":_4,"end":_5,"major":_6});
-if(_7){
-this._updateRows(_7);
-}
-return _7;
-},unmergeCells:function(_8){
-var _9;
-if(_8&&(_9=dojo.indexOf(this._records,_8))>=0){
-this._records.splice(_9,1);
-this._updateRows(_8);
-}
-},getMergedCells:function(){
-var _a=[];
-for(var i in this._merged){
-_a=_a.concat(this._merged[i]);
-}
-return _a;
-},getMergedCellsByRow:function(_b){
-return this._merged[_b]||[];
-},_setupConfig:function(_c){
-dojo.forEach(_c,this._createRecord,this);
-},_initEvents:function(){
-dojo.forEach(this.grid.views.views,function(_d){
-this.connect(_d,"onAfterRow",dojo.hitch(this,"_onAfterRow",_d.index));
-},this);
-},_mixinGrid:function(){
-var g=this.grid;
-g.mergeCells=dojo.hitch(this,"mergeCells");
-g.unmergeCells=dojo.hitch(this,"unmergeCells");
-g.getMergedCells=dojo.hitch(this,"getMergedCells");
-g.getMergedCellsByRow=dojo.hitch(this,"getMergedCellsByRow");
-},_getWidth:function(_e){
-var _f=this.grid.layout.cells[_e].getHeaderNode();
-return dojo.position(_f).w;
-},_onAfterRow:function(_10,_11,_12){
-try{
-if(_11<0){
-return;
-}
-var _13=[],i,j,len=this._records.length,_14=this.grid.layout.cells;
-for(i=0;i<len;++i){
-var _15=this._records[i];
-var _16=this.grid._by_idx[_11];
-if(_15.view==_10&&_15.row(_11,_16&&_16.item,this.grid.store)){
-var res={record:_15,hiddenCells:[],totalWidth:0,majorNode:_14[_15.major].getNode(_11),majorHeaderNode:_14[_15.major].getHeaderNode()};
-for(j=_15.start;j<=_15.end;++j){
-var w=this._getWidth(j,_11);
-res.totalWidth+=w;
-if(j!=_15.major){
-res.hiddenCells.push(_14[j].getNode(_11));
-}
-}
-if(_12.length!=1||res.totalWidth>0){
-for(j=_13.length-1;j>=0;--j){
-var r=_13[j].record;
-if((r.start>=_15.start&&r.start<=_15.end)||(r.end>=_15.start&&r.end<=_15.end)){
-_13.splice(j,1);
-}
-}
-_13.push(res);
-}
-}
-}
-this._merged[_11]=[];
-dojo.forEach(_13,function(res){
-dojo.forEach(res.hiddenCells,function(_17){
-dojo.style(_17,"display","none");
+
+dojo.declare("dojox.grid.enhanced.plugins.CellMerge", dojox.grid.enhanced._Plugin, {
+	// summary:
+	//		This plugin provides functions to merge(un-merge) adjacent cells within one row.
+	//		Acceptable plugin paramters:
+	//		1. mergedCells: Array
+	//			An array of objects with structure:
+	//			{
+	//				row: function(Integer)|Integer
+	//					If it's a function, it's a predicate to decide which rows are to be merged.
+	//					It takes an integer (the row index), and should return true or false;
+	//				start: Integer
+	//					The column index of the left most cell that shall be merged.
+	//				end: Integer
+	//					The column index of the right most cell that shall be merged.
+	//				major: Integer
+	//					The column index of the cell whose content should be used as the content of the merged cell.
+	//					It must be larger than or equal to the startColumnIndex, and less than or equal to the endColumnIndex.
+	//					If it is omitted, the content of the leading edge (left-most for ltr, right most for rtl) cell will be used.
+	//			}
+	
+	// name: String
+	//		Plugin name
+	name: "cellMerge",
+	
+	constructor: function(grid, args){
+		this.grid = grid;
+		this._records = [];
+		this._merged = {};
+		if(args && dojo.isObject(args)){
+			this._setupConfig(args.mergedCells);
+		}
+		this._initEvents();
+		this._mixinGrid();
+	},
+	//----------------Public----------------------------
+	mergeCells: function(rowTester, startColumnIndex, endColumnIndex, majorColumnIndex){
+		// summary:
+		//		Merge cells from *startColumnIndex* to *endColumnIndex* at rows that make *rowTester* return true,
+		//		using the content of the cell at *majorColumnIndex*
+		// tags:
+		//		public
+		// rowTester: function(Integer)|Integer
+		//		If it's a function, it's a predicate to decide which rows are to be merged.
+		//		It takes an integer (the row index), and should return true or false;
+		// startColumnIndex: Integer
+		//		The column index of the left most cell that shall be merged.
+		// endColumnIndex: Integer
+		//		The column index of the right most cell that shall be merged.
+		// majorColumnIndex: Integer?
+		//		The column index of the cell whose content should be used as the content of the merged cell.
+		//		It must be larger than or equal to the startColumnIndex, and less than or equal to the endColumnIndex.
+		//		If it is omitted, the content of the leading edge (left-most for ltr, right most for rtl) cell will be used.
+		// return: Object | null
+		//		A handler for the merged cells created by a call of this function.
+		//		This handler can be used later to unmerge cells using the function unmergeCells
+		//		If the merge is not valid, returns null;
+		var item = this._createRecord({
+			"row": rowTester,
+			"start": startColumnIndex,
+			"end": endColumnIndex,
+			"major": majorColumnIndex
+		});
+		if(item){
+			this._updateRows(item);
+		}
+		return item;
+	},
+	unmergeCells: function(mergeHandler){
+		// summary:
+		//		Unmerge the cells that are merged by the *mergeHandler*, which represents a call to the function mergeCells.
+		// tags:
+		//		public
+		// mergeHandler: object
+		//		A handler for the merged cells created by a call of function mergeCells.
+		var idx;
+		if(mergeHandler && (idx = dojo.indexOf(this._records, mergeHandler)) >= 0){
+			this._records.splice(idx, 1);
+			this._updateRows(mergeHandler);
+		}
+	},
+	getMergedCells: function(){
+		// summary:
+		//		Get all records of currently merged cells.
+		// tags:
+		//		public
+		// return: Array
+		//		An array of records for merged-cells.
+		//		The record has the following structure:
+		//		{
+		//			"row": 1, //the row index
+		//			"start": 2, //the start column index
+		//			"end": 4, //the end column index
+		//			"major": 3, //the major column index
+		//			"handle": someHandle, //The handler that covers this merge cell record.
+		//		}
+		var res = [];
+		for(var i in this._merged){
+			res = res.concat(this._merged[i]);
+		}
+		return res;
+	},
+	getMergedCellsByRow: function(rowIndex){
+		// summary:
+		//		Get the records of currently merged cells at the given row.
+		// tags:
+		//		public
+		// return: Array
+		//		An array of records for merged-cells. See docs of getMergedCells.
+		return this._merged[rowIndex] || [];
+	},
+	
+	//----------------Private--------------------------
+	_setupConfig: function(config){
+		dojo.forEach(config, this._createRecord, this);
+	},
+	_initEvents: function(){
+		dojo.forEach(this.grid.views.views, function(view){
+			this.connect(view, "onAfterRow", dojo.hitch(this, "_onAfterRow", view.index));
+		}, this);
+	},
+	_mixinGrid: function(){
+		var g = this.grid;
+		g.mergeCells = dojo.hitch(this, "mergeCells");
+		g.unmergeCells = dojo.hitch(this, "unmergeCells");
+		g.getMergedCells = dojo.hitch(this, "getMergedCells");
+		g.getMergedCellsByRow = dojo.hitch(this, "getMergedCellsByRow");
+	},
+	_getWidth: function(colIndex){
+		var node = this.grid.layout.cells[colIndex].getHeaderNode();
+		return dojo.position(node).w;
+	},
+	_onAfterRow: function(viewIdx, rowIndex, subrows){
+		try{
+			if(rowIndex < 0){
+				return;
+			}
+			var result = [], i, j, len = this._records.length,
+				cells = this.grid.layout.cells;
+			//Apply merge-cell requests one by one.
+			for(i = 0; i < len; ++i){
+				var item = this._records[i];
+				var storeItem = this.grid._by_idx[rowIndex];
+				if(item.view == viewIdx && item.row(rowIndex, storeItem && storeItem.item, this.grid.store)){
+					var res = {
+						record: item,
+						hiddenCells: [],
+						totalWidth: 0,
+						majorNode: cells[item.major].getNode(rowIndex),
+						majorHeaderNode: cells[item.major].getHeaderNode()
+					};
+					//Calculated the width of merged cell.
+					for(j = item.start; j <= item.end; ++j){
+						var w = this._getWidth(j, rowIndex);
+						res.totalWidth += w;
+						if(j != item.major){
+							res.hiddenCells.push(cells[j].getNode(rowIndex));
+						}
+					}
+					//If width is valid, remember it. There may be multiple merges within one row.
+					if(subrows.length != 1 || res.totalWidth > 0){
+						//Remove conflicted merges.
+						for(j = result.length - 1; j >= 0; --j){
+							var r = result[j].record;
+							if((r.start >= item.start && r.start <= item.end) ||
+								(r.end >= item.start && r.end <= item.end)){
+								result.splice(j, 1);
+							}
+						}
+						result.push(res);
+					}
+				}
+			}
+			this._merged[rowIndex] = [];
+			dojo.forEach(result, function(res){
+				dojo.forEach(res.hiddenCells, function(node){
+					dojo.style(node, "display", "none");
+				});
+				var pbm = dojo.marginBox(res.majorHeaderNode).w - dojo.contentBox(res.majorHeaderNode).w;
+				var tw = res.totalWidth;
+				
+				//Tricky for WebKit.
+				if(!dojo.isWebKit){
+					tw -= pbm;
+				}
+				
+				dojo.style(res.majorNode, "width", tw + "px");
+				//In case we're dealing with multiple subrows.
+				dojo.attr(res.majorNode, "colspan", res.hiddenCells.length + 1);
+	
+				this._merged[rowIndex].push({
+					"row": rowIndex,
+					"start": res.record.start,
+					"end": res.record.end,
+					"major": res.record.major,
+					"handle": res.record
+				});
+			}, this);
+		}catch(e){
+			console.warn("CellMerge._onAfterRow() error: ", rowIndex, e);
+		}
+	},
+	_createRecord: function(item){
+		if(this._isValid(item)){
+			item = {
+				"row": item.row,
+				"start": item.start,
+				"end": item.end,
+				"major": item.major
+			};
+			var cells = this.grid.layout.cells;
+			item.view = cells[item.start].view.index;
+			item.major = typeof item.major == "number" && !isNaN(item.major) ? item.major : item.start;
+			if(typeof item.row == "number"){
+				var r = item.row;
+				item.row = function(rowIndex){
+					return rowIndex === r;
+				};
+			}else if(typeof item.row == "string"){
+				var id = item.row;
+				item.row = function(rowIndex, storeItem, store){
+					try{
+						if(store && storeItem && store.getFeatures()['dojo.data.api.Identity']){
+							return store.getIdentity(storeItem) == id;
+						}
+					}catch(e){
+						console.error(e);
+					}
+					return false;
+				};
+			}
+			if(dojo.isFunction(item.row)){
+				this._records.push(item);
+				return item;
+			}
+		}
+		return null;
+	},
+	_isValid: function(item){
+		var cells = this.grid.layout.cells,
+			colCount = cells.length;
+		return (dojo.isObject(item) && ("row" in item) && ("start" in item) && ("end" in item) &&
+			item.start >= 0 && item.start < colCount &&
+			item.end > item.start && item.end < colCount &&
+			cells[item.start].view.index == cells[item.end].view.index &&
+			cells[item.start].subrow == cells[item.end].subrow &&
+			!(typeof item.major == "number" && (item.major < item.start || item.major > item.end)));
+	},
+	_updateRows: function(item){
+		var min = null;
+		for(var i = 0, count = this.grid.rowCount; i < count; ++i){
+			var storeItem = this.grid._by_idx[i];
+			if(storeItem && item.row(i, storeItem && storeItem.item, this.grid.store)){
+				this.grid.views.updateRow(i);
+				if(min === null){ min = i; }
+			}
+		}
+		if(min >= 0){
+			this.grid.scroller.rowHeightChanged(min);
+		}
+	}
 });
-var pbm=dojo.marginBox(res.majorHeaderNode).w-dojo.contentBox(res.majorHeaderNode).w;
-var tw=res.totalWidth;
-if(!dojo.isWebKit){
-tw-=pbm;
-}
-dojo.style(res.majorNode,"width",tw+"px");
-dojo.attr(res.majorNode,"colspan",res.hiddenCells.length+1);
-this._merged[_11].push({"row":_11,"start":res.record.start,"end":res.record.end,"major":res.record.major,"handle":res.record});
-},this);
-}
-catch(e){
-console.warn("CellMerge._onAfterRow() error: ",_11,e);
-}
-},_createRecord:function(_18){
-if(this._isValid(_18)){
-_18={"row":_18.row,"start":_18.start,"end":_18.end,"major":_18.major};
-var _19=this.grid.layout.cells;
-_18.view=_19[_18.start].view.index;
-_18.major=typeof _18.major=="number"&&!isNaN(_18.major)?_18.major:_18.start;
-if(typeof _18.row=="number"){
-var r=_18.row;
-_18.row=function(_1a){
-return _1a===r;
-};
-}else{
-if(typeof _18.row=="string"){
-var id=_18.row;
-_18.row=function(_1b,_1c,_1d){
-try{
-if(_1d&&_1c&&_1d.getFeatures()["dojo.data.api.Identity"]){
-return _1d.getIdentity(_1c)==id;
-}
-}
-catch(e){
-console.error(e);
-}
-return false;
-};
-}
-}
-if(dojo.isFunction(_18.row)){
-this._records.push(_18);
-return _18;
-}
-}
-return null;
-},_isValid:function(_1e){
-var _1f=this.grid.layout.cells,_20=_1f.length;
-return (dojo.isObject(_1e)&&("row" in _1e)&&("start" in _1e)&&("end" in _1e)&&_1e.start>=0&&_1e.start<_20&&_1e.end>_1e.start&&_1e.end<_20&&_1f[_1e.start].view.index==_1f[_1e.end].view.index&&_1f[_1e.start].subrow==_1f[_1e.end].subrow&&!(typeof _1e.major=="number"&&(_1e.major<_1e.start||_1e.major>_1e.end)));
-},_updateRows:function(_21){
-var min=null;
-for(var i=0,_22=this.grid.rowCount;i<_22;++i){
-var _23=this.grid._by_idx[i];
-if(_23&&_21.row(i,_23&&_23.item,this.grid.store)){
-this.grid.views.updateRow(i);
-if(min===null){
-min=i;
-}
-}
-}
-if(min>=0){
-this.grid.scroller.rowHeightChanged(min);
-}
-}});
-dojox.grid.EnhancedGrid.registerPlugin(dojox.grid.enhanced.plugins.CellMerge);
-}
+dojox.grid.EnhancedGrid.registerPlugin(dojox.grid.enhanced.plugins.CellMerge/*name:'cellMerge'*/);

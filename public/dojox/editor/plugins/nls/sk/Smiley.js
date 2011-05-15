@@ -1,1 +1,22 @@
-({"emoticonLaughing":"smiech","emoticonCool":"super","emoticonTongue":"jazyk","emoticonCrying":"plač","emoticonOops":"ups","emoticonFrown":"zamračený","emoticonAngry":"nahnevaný","emoticonShy":"hanblivý","emoticonNo":"nie","emoticonAngel":"anjel","smiley":"Vložiť emotikon","emoticonIdea":"nápad","emoticonEyebrow":"zdvihnuté obočie","emoticonSmile":"úsmev","emoticonWink":"žmurknutie","emoticonYes":"áno","emoticonGrin":"úškľabok","emoticonGoofy":"pojašený","emoticonHalf":"polovica"})
+({
+	smiley: "Vložiť emotikon",
+	emoticonSmile: "úsmev",
+	emoticonLaughing: "smiech",
+	emoticonWink: "žmurknutie",
+	emoticonGrin: "úškľabok",
+	emoticonCool: "super",
+	emoticonAngry: "nahnevaný",
+	emoticonHalf: "polovica",
+	emoticonEyebrow: "zdvihnuté obočie",
+	emoticonFrown: "zamračený",
+	emoticonShy: "hanblivý",
+	emoticonGoofy: "pojašený",
+	emoticonOops: "ups",
+	emoticonTongue: "jazyk",
+	emoticonIdea: "nápad",
+	emoticonYes: "áno",
+	emoticonNo: "nie",
+	emoticonAngel: "anjel",
+	emoticonCrying: "plač"
+})
+

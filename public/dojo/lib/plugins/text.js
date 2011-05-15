@@ -1,44 +1,63 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+//
+// dojo text! plugin
+//
+// We choose to include our own plugin in hopes of leveraging functionality already contained in dojo
+// and thereby reducing the size of the plugin compared to various loader implementations. Naturally, this
+// allows AMD loaders to be used without their plugins.
 
+// CAUTION, this module may return improper results if the AMD loader does not support toAbsMid and client
+// code passes relative plugin resource module ids. In that case, you should consider using the text! plugin
+// that comes with your loader.
 
-define(["dojo","dojo/cache"],function(_1){
-var _2={},_3=function(_4,_5,_6){
-_2[_4]=_6;
-_1.cache({toString:function(){
-return _5;
-}},_6);
-},_7=function(_8){
-if(_8){
-_8=_8.replace(/^\s*<\?xml(\s)+version=[\'\"](\d)*.(\d)*[\'\"](\s)*\?>/im,"");
-var _9=_8.match(/<body[^>]*>\s*([\s\S]+)\s*<\/body>/im);
-if(_9){
-_8=_9[1];
-}
-}else{
-_8="";
-}
-return _8;
-};
-return {load:function(id,_a,_b){
-var _c,_d,_e,_f=id.split("!");
-if(_a.toAbsMid){
-_c=_f[0].match(/(.+)(\.[^\/]*)$/);
-_d=_c?_a.toAbsMid(_c[1])+_c[2]:_a.toAbsMid(_f[0]);
-if(_d in _2){
-_b(_f[1]=="strip"?_7(_2[_d]):_2[_d]);
-return;
-}
-}
-_e=_a.toUrl(_f[0]);
-_1.xhrGet({url:_e,load:function(_10){
-_d&&_3(_d,_e,_10);
-_b(_f[1]=="strip"?_7(_10):_10);
-}});
-},cache:function(_11,mid,_12,_13){
-_3(_11,require.nameToUrl(mid)+_12,_13);
-}};
+define(["dojo", "dojo/cache"], function(dojo){
+	var
+		cached= {},
+
+		cache= function(cacheId, url, value){
+			cached[cacheId]= value;
+			dojo.cache({toString:function(){return url;}}, value);
+		},
+
+		strip= function(text){
+			//note: this function courtesy of James Burke (https://github.com/jrburke/requirejs)
+			//Strips <?xml ...?> declarations so that external SVG and XML
+			//documents can be added to a document without worry. Also, if the string
+			//is an HTML document, only the part inside the body tag is returned.
+			if(text){
+				text= text.replace(/^\s*<\?xml(\s)+version=[\'\"](\d)*.(\d)*[\'\"](\s)*\?>/im, "");
+				var matches= text.match(/<body[^>]*>\s*([\s\S]+)\s*<\/body>/im);
+				if(matches){
+					text= matches[1];
+				}
+			}else{
+				text = "";
+			}
+			return text;
+		};
+
+	return {
+		load:function(id, require, load){
+			var match, cacheId, url, parts= id.split("!");
+			if(require.toAbsMid){
+				match= parts[0].match(/(.+)(\.[^\/]*)$/);
+				cacheId= match ? require.toAbsMid(match[1]) + match[2] : require.toAbsMid(parts[0]);
+				if(cacheId in cached){
+					load(parts[1]=="strip" ? strip(cached[cacheId]) : cached[cacheId]);
+					return;
+				}
+			}
+			url= require.toUrl(parts[0]);
+			dojo.xhrGet({
+				url:url,
+				load:function(text){
+					cacheId && cache(cacheId, url, text);
+					load(parts[1]=="strip" ? strip(text) : text);
+				}
+			});
+		},
+
+		cache:function(cacheId, mid, type, value) {
+			cache(cacheId, require.nameToUrl(mid) + type, value);
+		}
+	};
 });

@@ -1,95 +1,137 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.dtl.filter.lists"]){
-dojo._hasResource["dojox.dtl.filter.lists"]=true;
 dojo.provide("dojox.dtl.filter.lists");
+
 dojo.require("dojox.dtl._base");
-dojo.mixin(dojox.dtl.filter.lists,{_dictsort:function(a,b){
-if(a[0]==b[0]){
-return 0;
-}
-return (a[0]<b[0])?-1:1;
-},dictsort:function(_1,_2){
-if(!_2){
-return _1;
-}
-var i,_3,_4=[];
-if(!dojo.isArray(_1)){
-var _5=_1,_1=[];
-for(var _6 in _5){
-_1.push(_5[_6]);
-}
-}
-for(i=0;i<_1.length;i++){
-_4.push([new dojox.dtl._Filter("var."+_2).resolve(new dojox.dtl._Context({"var":_1[i]})),_1[i]]);
-}
-_4.sort(dojox.dtl.filter.lists._dictsort);
-var _7=[];
-for(i=0;_3=_4[i];i++){
-_7.push(_3[1]);
-}
-return _7;
-},dictsortreversed:function(_8,_9){
-if(!_9){
-return _8;
-}
-var _a=dojox.dtl.filter.lists.dictsort(_8,_9);
-return _a.reverse();
-},first:function(_b){
-return (_b.length)?_b[0]:"";
-},join:function(_c,_d){
-return _c.join(_d||",");
-},length:function(_e){
-return (isNaN(_e.length))?(_e+"").length:_e.length;
-},length_is:function(_f,arg){
-return _f.length==parseInt(arg);
-},random:function(_10){
-return _10[Math.floor(Math.random()*_10.length)];
-},slice:function(_11,arg){
-arg=arg||"";
-var _12=arg.split(":");
-var _13=[];
-for(var i=0;i<_12.length;i++){
-if(!_12[i].length){
-_13.push(null);
-}else{
-_13.push(parseInt(_12[i]));
-}
-}
-if(_13[0]===null){
-_13[0]=0;
-}
-if(_13[0]<0){
-_13[0]=_11.length+_13[0];
-}
-if(_13.length<2||_13[1]===null){
-_13[1]=_11.length;
-}
-if(_13[1]<0){
-_13[1]=_11.length+_13[1];
-}
-return _11.slice(_13[0],_13[1]);
-},_unordered_list:function(_14,_15){
-var ddl=dojox.dtl.filter.lists;
-var i,_16="";
-for(i=0;i<_15;i++){
-_16+="\t";
-}
-if(_14[1]&&_14[1].length){
-var _17=[];
-for(i=0;i<_14[1].length;i++){
-_17.push(ddl._unordered_list(_14[1][i],_15+1));
-}
-return _16+"<li>"+_14[0]+"\n"+_16+"<ul>\n"+_17.join("\n")+"\n"+_16+"</ul>\n"+_16+"</li>";
-}else{
-return _16+"<li>"+_14[0]+"</li>";
-}
-},unordered_list:function(_18){
-return dojox.dtl.filter.lists._unordered_list(_18,1);
-}});
-}
+
+dojo.mixin(dojox.dtl.filter.lists, {
+	_dictsort: function(a, b){
+		if(a[0] == b[0]){
+			return 0;
+		}
+		return (a[0] < b[0]) ? -1 : 1;
+	},
+	dictsort: function(value, arg){
+		// summary: Takes a list of dicts, returns that list sorted by the property given in the argument.
+		if(!arg){
+			return value;
+		}
+
+		var i, item, items = [];
+		if(!dojo.isArray(value)){
+			var obj = value, value = [];
+			for(var key in obj){
+				value.push(obj[key]);
+			}
+		}
+		for(i = 0; i < value.length; i++){
+			items.push([new dojox.dtl._Filter('var.' + arg).resolve(new dojox.dtl._Context({ 'var' : value[i]})), value[i]]);
+		}
+		items.sort(dojox.dtl.filter.lists._dictsort);
+		var output = [];
+		for(i = 0; item = items[i]; i++){
+			output.push(item[1]);
+		}
+		return output;
+	},
+	dictsortreversed: function(value, arg){
+		// summary: Takes a list of dicts, returns that list sorted in reverse order by the property given in the argument.
+		if(!arg) return value;
+
+		var dictsort = dojox.dtl.filter.lists.dictsort(value, arg);
+		return dictsort.reverse();
+	},
+	first: function(value){
+		// summary: Returns the first item in a list
+		return (value.length) ? value[0] : "";
+	},
+	join: function(value, arg){
+		// summary: Joins a list with a string, like Python's ``str.join(list)``
+		// description:
+		//		Django throws a compile error, but JS can't do arg checks
+		//		so we're left with run time errors, which aren't wise for something
+		//		as trivial here as an empty arg.
+		return value.join(arg || ",");
+	},
+	length: function(value){
+		// summary: Returns the length of the value - useful for lists
+		return (isNaN(value.length)) ? (value + "").length : value.length;
+	},
+	length_is: function(value, arg){
+		// summary: Returns a boolean of whether the value's length is the argument
+		return value.length == parseInt(arg);
+	},
+	random: function(value){
+		// summary: Returns a random item from the list
+		return value[Math.floor(Math.random() * value.length)];
+	},
+	slice: function(value, arg){
+		// summary: Returns a slice of the list.
+		// description:
+		//		Uses the same syntax as Python's list slicing; see
+		//		http://diveintopython.org/native_data_types/lists.html#odbchelper.list.slice
+		//		for an introduction.
+		//		Also uses the optional third value to denote every X item.
+		arg = arg || "";
+		var parts = arg.split(":");
+		var bits = [];
+		for(var i = 0; i < parts.length; i++){
+			if(!parts[i].length){
+				bits.push(null);
+			}else{
+				bits.push(parseInt(parts[i]));
+			}
+		}
+
+		if(bits[0] === null){
+			bits[0] = 0;
+		}
+		if(bits[0] < 0){
+			bits[0] = value.length + bits[0];
+		}
+		if(bits.length < 2 || bits[1] === null){
+			bits[1] = value.length;
+		}
+		if(bits[1] < 0){
+			bits[1] = value.length + bits[1];
+		}
+		
+		return value.slice(bits[0], bits[1]);
+	},
+	_unordered_list: function(value, tabs){
+		var ddl = dojox.dtl.filter.lists;
+		var i, indent = "";
+		for(i = 0; i < tabs; i++){
+			indent += "\t";
+		}
+		if(value[1] && value[1].length){
+			var recurse = [];
+			for(i = 0; i < value[1].length; i++){
+				recurse.push(ddl._unordered_list(value[1][i], tabs + 1))
+			}
+			return indent + "<li>" + value[0] + "\n" + indent + "<ul>\n" + recurse.join("\n") + "\n" + indent + "</ul>\n" + indent + "</li>";
+		}else{
+			return indent + "<li>" + value[0] + "</li>";
+		}
+	},
+	unordered_list: function(value){
+		// summary:
+		//		Recursively takes a self-nested list and returns an HTML unordered list --
+		//		WITHOUT opening and closing <ul> tags.
+		//	description:
+		//		The list is assumed to be in the proper format. For example, if ``var`` contains
+		//		``['States', [['Kansas', [['Lawrence', []], ['Topeka', []]]], ['Illinois', []]]]``,
+		//		then ``{{ var|unordered_list }}`` would return::
+		//
+		//		|	<li>States
+		//		|	<ul>
+		//		|		<li>Kansas
+		//		|		<ul>
+		//		|			<li>Lawrence</li>
+		//		|			<li>Topeka</li>
+		//		|		</ul>
+		//		|		</li>
+		//		|		<li>Illinois</li>
+		//		|	</ul>
+		//		|	</li>
+		return dojox.dtl.filter.lists._unordered_list(value, 1);
+	}
+});

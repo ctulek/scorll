@@ -1,35 +1,33 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.lang.aspect.memoizerGuard"]){
-dojo._hasResource["dojox.lang.aspect.memoizerGuard"]=true;
 dojo.provide("dojox.lang.aspect.memoizerGuard");
+
 (function(){
-var _1=dojox.lang.aspect,_2=function(_3){
-var _4=_1.getContext().instance,t;
-if(!(t=_4.__memoizerCache)){
-return;
-}
-if(arguments.length==0){
-delete _4.__memoizerCache;
-}else{
-if(dojo.isArray(_3)){
-dojo.forEach(_3,function(m){
-delete t[m];
-});
-}else{
-delete t[_3];
-}
-}
-};
-_1.memoizerGuard=function(_5){
-return {after:function(){
-_2(_5);
-}};
-};
+	var aop = dojox.lang.aspect,
+		reset = function(/*String|Array?*/ method){
+			var that = aop.getContext().instance, t;
+			if(!(t = that.__memoizerCache)){ return; }
+			if(arguments.length == 0){
+				delete that.__memoizerCache;
+			}else if(dojo.isArray(method)){
+				dojo.forEach(method, function(m){ delete t[m]; });
+			}else{
+				delete t[method];
+			}
+		};
+
+
+	aop.memoizerGuard = function(/*String|Array?*/ method){
+		// summary:
+		//		Invalidates the memoizer's cache (see dojox.lang.aspect.memoizer)
+		//		after calling certain methods.
+		//
+		// method:
+		//		Optional method's name to be guarded: only cache for
+		//		this method will be invalidated on call. Can be a string
+		//		or an array of method names. If omitted the whole cache
+		//		will be invalidated.
+
+		return {	// Object
+			after: function(){ reset(method); }
+		};
+	};
 })();
-}

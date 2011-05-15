@@ -1,1 +1,16 @@
-({"cancel":"キャンセル","toDic":"辞書に追加","skip":"スキップ","iMsg":"スペルの修正候補はありません","replaceAll":"すべてを置換","widgetLabel":"一括スペル・チェック","skipAll":"すべてをスキップ","suggestions":"修正候補","iSkipAll":"これと類似のものをスキップ","replaceWith":"置き換え","msg":"ミススペルはありません","replace":"置換","unfound":"見つかりません","iSkip":"これをスキップ"})
+({
+	widgetLabel: "一括スペル・チェック",
+	unfound: "見つかりません",
+	skip: "スキップ",
+	skipAll: "すべてをスキップ",
+	toDic: "辞書に追加",
+	suggestions: "修正候補",
+	replace: "置換",
+	replaceWith: "置き換え",
+	replaceAll: "すべてを置換",
+	cancel: "キャンセル",
+	msg: "ミススペルはありません",
+	iSkip: "これをスキップ",
+	iSkipAll: "これと類似のものをスキップ",
+	iMsg: "スペルの修正候補はありません"
+})

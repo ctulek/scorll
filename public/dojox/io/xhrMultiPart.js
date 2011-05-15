@@ -1,70 +1,153 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.io.xhrMultiPart"]){
-dojo._hasResource["dojox.io.xhrMultiPart"]=true;
 dojo.provide("dojox.io.xhrMultiPart");
 dojo.require("dojox.uuid.generateRandomUuid");
+
 (function(){
-function _1(_2,_3){
-if(!_2["name"]&&!_2["content"]){
-throw new Error("Each part of a multi-part request requires 'name' and 'content'.");
-}
-var _4=[];
-_4.push("--"+_3,"Content-Disposition: form-data; name=\""+_2.name+"\""+(_2["filename"]?"; filename=\""+_2.filename+"\"":""));
-if(_2["contentType"]){
-var ct="Content-Type: "+_2.contentType;
-if(_2["charset"]){
-ct+="; Charset="+_2.charset;
-}
-_4.push(ct);
-}
-if(_2["contentTransferEncoding"]){
-_4.push("Content-Transfer-Encoding: "+_2.contentTransferEncoding);
-}
-_4.push("",_2.content);
-return _4;
-};
-function _5(_6,_7){
-var o=dojo.formToObject(_6),_8=[];
-for(var p in o){
-if(dojo.isArray(o[p])){
-dojo.forEach(o[p],function(_9){
-_8=_8.concat(_1({name:p,content:_9},_7));
-});
-}else{
-_8=_8.concat(_1({name:p,content:o[p]},_7));
-}
-}
-return _8;
-};
-dojox.io.xhrMultiPart=function(_a){
-if(!_a["file"]&&!_a["content"]&&!_a["form"]){
-throw new Error("content, file or form must be provided to dojox.io.xhrMultiPart's arguments");
-}
-var _b=dojox.uuid.generateRandomUuid(),_c=[],_d="";
-if(_a["file"]||_a["content"]){
-var v=_a["file"]||_a["content"];
-dojo.forEach((dojo.isArray(v)?v:[v]),function(_e){
-_c=_c.concat(_1(_e,_b));
-});
-}else{
-if(_a["form"]){
-if(dojo.query("input[type=file]",_a["form"]).length){
-throw new Error("dojox.io.xhrMultiPart cannot post files that are values of an INPUT TYPE=FILE.  Use dojo.io.iframe.send() instead.");
-}
-_c=_5(_a["form"],_b);
-}
-}
-if(_c.length){
-_c.push("--"+_b+"--","");
-_d=_c.join("\r\n");
-}
-return dojo.rawXhrPost(dojo.mixin(_a,{contentType:"multipart/form-data; boundary="+_b,postData:_d}));
-};
+	/*=====
+	dojox.io.__xhrContentArgs = function(){
+		//	name: String
+		//		Name of the form value.
+		//	content: String
+		//		The contents of the value.
+		//	filename: String?
+		//		An optional filename to pass to the server, as defined by the boundary.
+		//	contentType: String?
+		//		An optional content-type (MIME) to pass to the server, if value is being
+		//		treated as a file.
+		//	charset: String?
+		//		Optional charset to pass, for the server to interpret the file correctly.
+		//	contentTransferEncoding: String?
+		//		Optional transfer encoding header value.
+		this.name = name;
+		this.content = content;
+		this.filename = filename;
+		this.contentType = contentType;
+		this.charset = charset;
+		this.contentTransferEncoding = contentTransferEncoding;
+	}
+	=====*/
+	function _createPart(/* dojox.io.__xhrContentArgs */args, /* String */boundary){
+		//	summary
+		//		Assemble an array of boundary parts based on the passed values in args.
+		if(!args["name"] && !args["content"]){
+			throw new Error("Each part of a multi-part request requires 'name' and 'content'.");
+		}
+
+		var tmp = [];
+		tmp.push(
+			"--" + boundary,
+			 "Content-Disposition: form-data; name=\"" + args.name + "\"" + (args["filename"] ? "; filename=\"" + args.filename + "\"" : "")
+		);
+
+		if(args["contentType"]){
+			var ct = "Content-Type: " + args.contentType;
+			if(args["charset"]){
+				ct += "; Charset=" + args.charset;
+			}
+			tmp.push(ct);
+		}
+
+		if(args["contentTransferEncoding"]){
+			tmp.push("Content-Transfer-Encoding: " + args.contentTransferEncoding);
+		}
+		tmp.push("", args.content);
+		return tmp;		//	Array
+	}
+
+	function _partsFromNode(/* DOMNode */node, /* String */boundary){
+		//	summary
+		//		Assemble an array of boundary parts based on the passed FORM node.
+		var o=dojo.formToObject(node), parts=[];
+		for(var p in o){
+			if(dojo.isArray(o[p])){
+				dojo.forEach(o[p], function(item){
+					parts = parts.concat(_createPart({ name: p, content: item }, boundary));
+				});
+			} else {
+				parts = parts.concat(_createPart({ name: p, content: o[p] }, boundary));
+			}
+		}
+		return parts;	//	Array
+	}
+
+	/*=====
+	dojox.io.__xhrMultiArgs = function(){
+		//	url: String
+		//		URL to server endpoint.
+		//	content: Object?
+		//		Contains properties with string values. These
+		//		properties will be serialized using multi-part
+		//		boundaries.
+		//	file: Object?
+		//		Alias for "content".  Provided for backwards compatibility.
+		//	timeout: Integer?
+		//		Milliseconds to wait for the response. If this time
+		//		passes, the then error callbacks are called.
+		//	form: DOMNode?
+		//		DOM node for a form. Used to extract the form values
+		//		and send to the server; each form value will be serialized
+		//		using multi-part boundaries.
+		//	preventCache: Boolean?
+		//		Default is false. If true, then a
+		//		"dojo.preventCache" parameter is sent in the request
+		//		with a value that changes with each request
+		//		(timestamp). Useful only with GET-type requests.
+		//	handleAs: String?
+		//		Acceptable values depend on the type of IO
+		//		transport (see specific IO calls for more information).
+		//	load: Function?
+		//		function(response, ioArgs){}. response is an Object, ioArgs
+		//		is of type dojo.__IoCallbackArgs. The load function will be
+		//		called on a successful response.
+		//	error: Function?
+		//		function(response, ioArgs){}. response is an Object, ioArgs
+		//		is of type dojo.__IoCallbackArgs. The error function will
+		//		be called in an error case.
+		//	handle: Function?
+		//		function(response, ioArgs){}. response is an Object, ioArgs
+		//		is of type dojo.__IoCallbackArgs. The handle function will
+		//		be called in either the successful or error case.
+		this.url = url;
+		this.content = content;
+		this.file = file;
+		this.timeout = timeout;
+		this.form = form;
+		this.preventCache = preventCache;
+		this.handleAs = handleAs;
+		this.load = load;
+		this.error = error;
+		this.handle = handle;
+	}
+	=====*/
+	dojox.io.xhrMultiPart = function(/* dojox.io.__xhrMultiArgs */args){
+		if(!args["file"] && !args["content"] && !args["form"]){
+			throw new Error("content, file or form must be provided to dojox.io.xhrMultiPart's arguments");
+		}
+
+		// unique guid as a boundary value for multipart posts
+		var boundary=dojox.uuid.generateRandomUuid(), tmp=[], out="";
+		if(args["file"] || args["content"]){
+			var v = args["file"] || args["content"];
+			dojo.forEach((dojo.isArray(v) ? v : [v]), function(item){
+				tmp = tmp.concat(_createPart(item, boundary));
+			});
+		}
+		else if(args["form"]){
+			if(dojo.query("input[type=file]", args["form"]).length){
+				throw new Error("dojox.io.xhrMultiPart cannot post files that are values of an INPUT TYPE=FILE.  Use dojo.io.iframe.send() instead.");
+			}
+			tmp = _partsFromNode(args["form"], boundary);
+		}
+
+		if(tmp.length){
+			tmp.push("--"+boundary+"--", "");
+			out = tmp.join("\r\n");
+		}
+
+		console.log(out);
+
+		return dojo.rawXhrPost(dojo.mixin(args, {
+			contentType: "multipart/form-data; boundary=" + boundary,
+			postData: out
+		}));	//	dojo.Deferred
+	}
 })();
-}

@@ -1,1 +1,17 @@
-({"cancel":"Peruuta","toDic":"Lisää sanastoon","skip":"Ohita","iMsg":"Ei oikeinkirjoitusehdotuksia","replaceAll":"Korvaa kaikki","widgetLabel":"Eräoikoluku","skipAll":"Ohita kaikki","suggestions":"Ehdotukset","iSkipAll":"Ohita kaikki samanlaiset","replaceWith":"Korvaava","msg":"Kirjoitusvirheitä ei löytynyt","replace":"Korvaa","unfound":"Ei löydy","iSkip":"Ohita tämä"})
+({
+	widgetLabel: "Eräoikoluku",
+	unfound: "Ei löydy",
+	skip: "Ohita",
+	skipAll: "Ohita kaikki",
+	toDic: "Lisää sanastoon",
+	suggestions: "Ehdotukset",
+	replace: "Korvaa",
+	replaceWith: "Korvaava",
+	replaceAll: "Korvaa kaikki",
+	cancel: "Peruuta",
+	msg: "Kirjoitusvirheitä ei löytynyt",
+	iSkip: "Ohita tämä",
+	iSkipAll: "Ohita kaikki samanlaiset",
+	iMsg: "Ei oikeinkirjoitusehdotuksia"
+})
+

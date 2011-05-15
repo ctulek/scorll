@@ -1,1 +1,3 @@
-({"pageBreak":"Sideskift"})
+({
+	"pageBreak": "Sideskift"
+})

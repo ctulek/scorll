@@ -1,555 +1,793 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.gfx.svg"]){
-dojo._hasResource["dojox.gfx.svg"]=true;
 dojo.provide("dojox.gfx.svg");
+
 dojo.require("dojox.gfx._base");
 dojo.require("dojox.gfx.shape");
 dojo.require("dojox.gfx.path");
+
 (function(){
-var d=dojo,g=dojox.gfx,gs=g.shape,_1=g.svg;
-_1.useSvgWeb=(typeof window.svgweb!="undefined");
-function _2(ns,_3){
-if(dojo.doc.createElementNS){
-return dojo.doc.createElementNS(ns,_3);
-}else{
-return dojo.doc.createElement(_3);
-}
-};
-function _4(_5){
-if(_1.useSvgWeb){
-return dojo.doc.createTextNode(_5,true);
-}else{
-return dojo.doc.createTextNode(_5);
-}
-};
-function _6(){
-if(_1.useSvgWeb){
-return dojo.doc.createDocumentFragment(true);
-}else{
-return dojo.doc.createDocumentFragment();
-}
-};
-_1.xmlns={xlink:"http://www.w3.org/1999/xlink",svg:"http://www.w3.org/2000/svg"};
-_1.getRef=function(_7){
-if(!_7||_7=="none"){
-return null;
-}
-if(_7.match(/^url\(#.+\)$/)){
-return d.byId(_7.slice(5,-1));
-}
-if(_7.match(/^#dojoUnique\d+$/)){
-return d.byId(_7.slice(1));
-}
-return null;
-};
-_1.dasharray={solid:"none",shortdash:[4,1],shortdot:[1,1],shortdashdot:[4,1,1,1],shortdashdotdot:[4,1,1,1,1,1],dot:[1,3],dash:[4,3],longdash:[8,3],dashdot:[4,3,1,3],longdashdot:[8,3,1,3],longdashdotdot:[8,3,1,3,1,3]};
-d.declare("dojox.gfx.svg.Shape",gs.Shape,{setFill:function(_8){
-if(!_8){
-this.fillStyle=null;
-this.rawNode.setAttribute("fill","none");
-this.rawNode.setAttribute("fill-opacity",0);
-return this;
-}
-var f;
-var _9=function(x){
-this.setAttribute(x,f[x].toFixed(8));
-};
-if(typeof (_8)=="object"&&"type" in _8){
-switch(_8.type){
-case "linear":
-f=g.makeParameters(g.defaultLinearGradient,_8);
-var _a=this._setFillObject(f,"linearGradient");
-d.forEach(["x1","y1","x2","y2"],_9,_a);
-break;
-case "radial":
-f=g.makeParameters(g.defaultRadialGradient,_8);
-var _a=this._setFillObject(f,"radialGradient");
-d.forEach(["cx","cy","r"],_9,_a);
-break;
-case "pattern":
-f=g.makeParameters(g.defaultPattern,_8);
-var _b=this._setFillObject(f,"pattern");
-d.forEach(["x","y","width","height"],_9,_b);
-break;
-}
-this.fillStyle=f;
-return this;
-}
-var f=g.normalizeColor(_8);
-this.fillStyle=f;
-this.rawNode.setAttribute("fill",f.toCss());
-this.rawNode.setAttribute("fill-opacity",f.a);
-this.rawNode.setAttribute("fill-rule","evenodd");
-return this;
-},setStroke:function(_c){
-var rn=this.rawNode;
-if(!_c){
-this.strokeStyle=null;
-rn.setAttribute("stroke","none");
-rn.setAttribute("stroke-opacity",0);
-return this;
-}
-if(typeof _c=="string"||d.isArray(_c)||_c instanceof d.Color){
-_c={color:_c};
-}
-var s=this.strokeStyle=g.makeParameters(g.defaultStroke,_c);
-s.color=g.normalizeColor(s.color);
-if(s){
-rn.setAttribute("stroke",s.color.toCss());
-rn.setAttribute("stroke-opacity",s.color.a);
-rn.setAttribute("stroke-width",s.width);
-rn.setAttribute("stroke-linecap",s.cap);
-if(typeof s.join=="number"){
-rn.setAttribute("stroke-linejoin","miter");
-rn.setAttribute("stroke-miterlimit",s.join);
-}else{
-rn.setAttribute("stroke-linejoin",s.join);
-}
-var da=s.style.toLowerCase();
-if(da in _1.dasharray){
-da=_1.dasharray[da];
-}
-if(da instanceof Array){
-da=d._toArray(da);
-for(var i=0;i<da.length;++i){
-da[i]*=s.width;
-}
-if(s.cap!="butt"){
-for(var i=0;i<da.length;i+=2){
-da[i]-=s.width;
-if(da[i]<1){
-da[i]=1;
-}
-}
-for(var i=1;i<da.length;i+=2){
-da[i]+=s.width;
-}
-}
-da=da.join(",");
-}
-rn.setAttribute("stroke-dasharray",da);
-rn.setAttribute("dojoGfxStrokeStyle",s.style);
-}
-return this;
-},_getParentSurface:function(){
-var _d=this.parent;
-for(;_d&&!(_d instanceof g.Surface);_d=_d.parent){
-}
-return _d;
-},_setFillObject:function(f,_e){
-var _f=_1.xmlns.svg;
-this.fillStyle=f;
-var _10=this._getParentSurface(),_11=_10.defNode,_12=this.rawNode.getAttribute("fill"),ref=_1.getRef(_12);
-if(ref){
-_12=ref;
-if(_12.tagName.toLowerCase()!=_e.toLowerCase()){
-var id=_12.id;
-_12.parentNode.removeChild(_12);
-_12=_2(_f,_e);
-_12.setAttribute("id",id);
-_11.appendChild(_12);
-}else{
-while(_12.childNodes.length){
-_12.removeChild(_12.lastChild);
-}
-}
-}else{
-_12=_2(_f,_e);
-_12.setAttribute("id",g._base._getUniqueId());
-_11.appendChild(_12);
-}
-if(_e=="pattern"){
-_12.setAttribute("patternUnits","userSpaceOnUse");
-var img=_2(_f,"image");
-img.setAttribute("x",0);
-img.setAttribute("y",0);
-img.setAttribute("width",f.width.toFixed(8));
-img.setAttribute("height",f.height.toFixed(8));
-img.setAttributeNS(_1.xmlns.xlink,"xlink:href",f.src);
-_12.appendChild(img);
-}else{
-_12.setAttribute("gradientUnits","userSpaceOnUse");
-for(var i=0;i<f.colors.length;++i){
-var c=f.colors[i],t=_2(_f,"stop"),cc=c.color=g.normalizeColor(c.color);
-t.setAttribute("offset",c.offset.toFixed(8));
-t.setAttribute("stop-color",cc.toCss());
-t.setAttribute("stop-opacity",cc.a);
-_12.appendChild(t);
-}
-}
-this.rawNode.setAttribute("fill","url(#"+_12.getAttribute("id")+")");
-this.rawNode.removeAttribute("fill-opacity");
-this.rawNode.setAttribute("fill-rule","evenodd");
-return _12;
-},_applyTransform:function(){
-var _13=this.matrix;
-if(_13){
-var tm=this.matrix;
-this.rawNode.setAttribute("transform","matrix("+tm.xx.toFixed(8)+","+tm.yx.toFixed(8)+","+tm.xy.toFixed(8)+","+tm.yy.toFixed(8)+","+tm.dx.toFixed(8)+","+tm.dy.toFixed(8)+")");
-}else{
-this.rawNode.removeAttribute("transform");
-}
-return this;
-},setRawNode:function(_14){
-var r=this.rawNode=_14;
-if(this.shape.type!="image"){
-r.setAttribute("fill","none");
-}
-r.setAttribute("fill-opacity",0);
-r.setAttribute("stroke","none");
-r.setAttribute("stroke-opacity",0);
-r.setAttribute("stroke-width",1);
-r.setAttribute("stroke-linecap","butt");
-r.setAttribute("stroke-linejoin","miter");
-r.setAttribute("stroke-miterlimit",4);
-},setShape:function(_15){
-this.shape=g.makeParameters(this.shape,_15);
-for(var i in this.shape){
-if(i!="type"){
-this.rawNode.setAttribute(i,this.shape[i]);
-}
-}
-this.bbox=null;
-return this;
-},_moveToFront:function(){
-this.rawNode.parentNode.appendChild(this.rawNode);
-return this;
-},_moveToBack:function(){
-this.rawNode.parentNode.insertBefore(this.rawNode,this.rawNode.parentNode.firstChild);
-return this;
-}});
-dojo.declare("dojox.gfx.svg.Group",_1.Shape,{constructor:function(){
-gs.Container._init.call(this);
-},setRawNode:function(_16){
-this.rawNode=_16;
-}});
-_1.Group.nodeType="g";
-dojo.declare("dojox.gfx.svg.Rect",[_1.Shape,gs.Rect],{setShape:function(_17){
-this.shape=g.makeParameters(this.shape,_17);
-this.bbox=null;
-for(var i in this.shape){
-if(i!="type"&&i!="r"){
-this.rawNode.setAttribute(i,this.shape[i]);
-}
-}
-if(this.shape.r){
-this.rawNode.setAttribute("ry",this.shape.r);
-this.rawNode.setAttribute("rx",this.shape.r);
-}
-return this;
-}});
-_1.Rect.nodeType="rect";
-dojo.declare("dojox.gfx.svg.Ellipse",[_1.Shape,gs.Ellipse],{});
-_1.Ellipse.nodeType="ellipse";
-dojo.declare("dojox.gfx.svg.Circle",[_1.Shape,gs.Circle],{});
-_1.Circle.nodeType="circle";
-dojo.declare("dojox.gfx.svg.Line",[_1.Shape,gs.Line],{});
-_1.Line.nodeType="line";
-dojo.declare("dojox.gfx.svg.Polyline",[_1.Shape,gs.Polyline],{setShape:function(_18,_19){
-if(_18&&_18 instanceof Array){
-this.shape=g.makeParameters(this.shape,{points:_18});
-if(_19&&this.shape.points.length){
-this.shape.points.push(this.shape.points[0]);
-}
-}else{
-this.shape=g.makeParameters(this.shape,_18);
-}
-this.bbox=null;
-this._normalizePoints();
-var _1a=[],p=this.shape.points;
-for(var i=0;i<p.length;++i){
-_1a.push(p[i].x.toFixed(8),p[i].y.toFixed(8));
-}
-this.rawNode.setAttribute("points",_1a.join(" "));
-return this;
-}});
-_1.Polyline.nodeType="polyline";
-dojo.declare("dojox.gfx.svg.Image",[_1.Shape,gs.Image],{setShape:function(_1b){
-this.shape=g.makeParameters(this.shape,_1b);
-this.bbox=null;
-var _1c=this.rawNode;
-for(var i in this.shape){
-if(i!="type"&&i!="src"){
-_1c.setAttribute(i,this.shape[i]);
-}
-}
-_1c.setAttribute("preserveAspectRatio","none");
-_1c.setAttributeNS(_1.xmlns.xlink,"xlink:href",this.shape.src);
-return this;
-}});
-_1.Image.nodeType="image";
-dojo.declare("dojox.gfx.svg.Text",[_1.Shape,gs.Text],{setShape:function(_1d){
-this.shape=g.makeParameters(this.shape,_1d);
-this.bbox=null;
-var r=this.rawNode,s=this.shape;
-r.setAttribute("x",s.x);
-r.setAttribute("y",s.y);
-r.setAttribute("text-anchor",s.align);
-r.setAttribute("text-decoration",s.decoration);
-r.setAttribute("rotate",s.rotated?90:0);
-r.setAttribute("kerning",s.kerning?"auto":0);
-r.setAttribute("text-rendering","optimizeLegibility");
-if(r.firstChild){
-r.firstChild.nodeValue=s.text;
-}else{
-r.appendChild(_4(s.text));
-}
-return this;
-},getTextWidth:function(){
-var _1e=this.rawNode,_1f=_1e.parentNode,_20=_1e.cloneNode(true);
-_20.style.visibility="hidden";
-var _21=0,_22=_20.firstChild.nodeValue;
-_1f.appendChild(_20);
-if(_22!=""){
-while(!_21){
-if(_20.getBBox){
-_21=parseInt(_20.getBBox().width);
-}else{
-_21=68;
-}
-}
-}
-_1f.removeChild(_20);
-return _21;
-}});
-_1.Text.nodeType="text";
-dojo.declare("dojox.gfx.svg.Path",[_1.Shape,g.path.Path],{_updateWithSegment:function(_23){
-this.inherited(arguments);
-if(typeof (this.shape.path)=="string"){
-this.rawNode.setAttribute("d",this.shape.path);
-}
-},setShape:function(_24){
-this.inherited(arguments);
-if(this.shape.path){
-this.rawNode.setAttribute("d",this.shape.path);
-}else{
-this.rawNode.removeAttribute("d");
-}
-return this;
-}});
-_1.Path.nodeType="path";
-dojo.declare("dojox.gfx.svg.TextPath",[_1.Shape,g.path.TextPath],{_updateWithSegment:function(_25){
-this.inherited(arguments);
-this._setTextPath();
-},setShape:function(_26){
-this.inherited(arguments);
-this._setTextPath();
-return this;
-},_setTextPath:function(){
-if(typeof this.shape.path!="string"){
-return;
-}
-var r=this.rawNode;
-if(!r.firstChild){
-var tp=_2(_1.xmlns.svg,"textPath"),tx=_4("");
-tp.appendChild(tx);
-r.appendChild(tp);
-}
-var ref=r.firstChild.getAttributeNS(_1.xmlns.xlink,"href"),_27=ref&&_1.getRef(ref);
-if(!_27){
-var _28=this._getParentSurface();
-if(_28){
-var _29=_28.defNode;
-_27=_2(_1.xmlns.svg,"path");
-var id=g._base._getUniqueId();
-_27.setAttribute("id",id);
-_29.appendChild(_27);
-r.firstChild.setAttributeNS(_1.xmlns.xlink,"xlink:href","#"+id);
-}
-}
-if(_27){
-_27.setAttribute("d",this.shape.path);
-}
-},_setText:function(){
-var r=this.rawNode;
-if(!r.firstChild){
-var tp=_2(_1.xmlns.svg,"textPath"),tx=_4("");
-tp.appendChild(tx);
-r.appendChild(tp);
-}
-r=r.firstChild;
-var t=this.text;
-r.setAttribute("alignment-baseline","middle");
-switch(t.align){
-case "middle":
-r.setAttribute("text-anchor","middle");
-r.setAttribute("startOffset","50%");
-break;
-case "end":
-r.setAttribute("text-anchor","end");
-r.setAttribute("startOffset","100%");
-break;
-default:
-r.setAttribute("text-anchor","start");
-r.setAttribute("startOffset","0%");
-break;
-}
-r.setAttribute("baseline-shift","0.5ex");
-r.setAttribute("text-decoration",t.decoration);
-r.setAttribute("rotate",t.rotated?90:0);
-r.setAttribute("kerning",t.kerning?"auto":0);
-r.firstChild.data=t.text;
-}});
-_1.TextPath.nodeType="text";
-dojo.declare("dojox.gfx.svg.Surface",gs.Surface,{constructor:function(){
-gs.Container._init.call(this);
-},destroy:function(){
-this.defNode=null;
-this.inherited(arguments);
-},setDimensions:function(_2a,_2b){
-if(!this.rawNode){
-return this;
-}
-this.rawNode.setAttribute("width",_2a);
-this.rawNode.setAttribute("height",_2b);
-return this;
-},getDimensions:function(){
-var t=this.rawNode?{width:g.normalizedLength(this.rawNode.getAttribute("width")),height:g.normalizedLength(this.rawNode.getAttribute("height"))}:null;
-return t;
-}});
-_1.createSurface=function(_2c,_2d,_2e){
-var s=new _1.Surface();
-s.rawNode=_2(_1.xmlns.svg,"svg");
-if(_2d){
-s.rawNode.setAttribute("width",_2d);
-}
-if(_2e){
-s.rawNode.setAttribute("height",_2e);
-}
-var _2f=_2(_1.xmlns.svg,"defs");
-s.rawNode.appendChild(_2f);
-s.defNode=_2f;
-s._parent=d.byId(_2c);
-s._parent.appendChild(s.rawNode);
-return s;
-};
-var _30={_setFont:function(){
-var f=this.fontStyle;
-this.rawNode.setAttribute("font-style",f.style);
-this.rawNode.setAttribute("font-variant",f.variant);
-this.rawNode.setAttribute("font-weight",f.weight);
-this.rawNode.setAttribute("font-size",f.size);
-this.rawNode.setAttribute("font-family",f.family);
-}};
-var C=gs.Container,_31={openBatch:function(){
-this.fragment=_6();
-},closeBatch:function(){
-if(this.fragment){
-this.rawNode.appendChild(this.fragment);
-delete this.fragment;
-}
-},add:function(_32){
-if(this!=_32.getParent()){
-if(this.fragment){
-this.fragment.appendChild(_32.rawNode);
-}else{
-this.rawNode.appendChild(_32.rawNode);
-}
-C.add.apply(this,arguments);
-}
-return this;
-},remove:function(_33,_34){
-if(this==_33.getParent()){
-if(this.rawNode==_33.rawNode.parentNode){
-this.rawNode.removeChild(_33.rawNode);
-}
-if(this.fragment&&this.fragment==_33.rawNode.parentNode){
-this.fragment.removeChild(_33.rawNode);
-}
-C.remove.apply(this,arguments);
-}
-return this;
-},clear:function(){
-var r=this.rawNode;
-while(r.lastChild){
-r.removeChild(r.lastChild);
-}
-var _35=this.defNode;
-if(_35){
-while(_35.lastChild){
-_35.removeChild(_35.lastChild);
-}
-r.appendChild(_35);
-}
-return C.clear.apply(this,arguments);
-},_moveChildToFront:C._moveChildToFront,_moveChildToBack:C._moveChildToBack};
-var _36={createObject:function(_37,_38){
-if(!this.rawNode){
-return null;
-}
-var _39=new _37(),_3a=_2(_1.xmlns.svg,_37.nodeType);
-_39.setRawNode(_3a);
-_39.setShape(_38);
-this.add(_39);
-return _39;
-}};
-d.extend(_1.Text,_30);
-d.extend(_1.TextPath,_30);
-d.extend(_1.Group,_31);
-d.extend(_1.Group,gs.Creator);
-d.extend(_1.Group,_36);
-d.extend(_1.Surface,_31);
-d.extend(_1.Surface,gs.Creator);
-d.extend(_1.Surface,_36);
-if(_1.useSvgWeb){
-_1.createSurface=function(_3b,_3c,_3d){
-var s=new _1.Surface();
-if(!_3c||!_3d){
-var pos=d.position(_3b);
-_3c=_3c||pos.w;
-_3d=_3d||pos.h;
-}
-_3b=d.byId(_3b);
-var id=_3b.id?_3b.id+"_svgweb":g._base._getUniqueId();
-var _3e=_2(_1.xmlns.svg,"svg");
-_3e.id=id;
-_3e.setAttribute("width",_3c);
-_3e.setAttribute("height",_3d);
-svgweb.appendChild(_3e,_3b);
-_3e.addEventListener("SVGLoad",function(){
-s.rawNode=this;
-s.isLoaded=true;
-var _3f=_2(_1.xmlns.svg,"defs");
-s.rawNode.appendChild(_3f);
-s.defNode=_3f;
-if(s.onLoad){
-s.onLoad(s);
-}
-},false);
-s.isLoaded=false;
-return s;
-};
-_1.Surface.extend({destroy:function(){
-var _40=this.rawNode;
-svgweb.removeChild(_40,_40.parentNode);
-}});
-var _41={connect:function(_42,_43,_44){
-if(_42.substring(0,2)==="on"){
-_42=_42.substring(2);
-}
-if(arguments.length==2){
-_44=_43;
-}else{
-_44=d.hitch(_43,_44);
-}
-this.getEventSource().addEventListener(_42,_44,false);
-return [this,_42,_44];
-},disconnect:function(_45){
-this.getEventSource().removeEventListener(_45[1],_45[2],false);
-delete _45[0];
-}};
-dojo.extend(_1.Shape,_41);
-dojo.extend(_1.Surface,_41);
-}
-if(g.loadAndSwitch==="svg"){
-g.switchTo("svg");
-delete g.loadAndSwitch;
-}
+	var d = dojo, g = dojox.gfx, gs = g.shape, svg = g.svg;
+	svg.useSvgWeb = (typeof window.svgweb != "undefined");
+	
+	function _createElementNS(ns, nodeType){
+		// summary:
+		//		Internal helper to deal with creating elements that
+		//		are namespaced.  Mainly to get SVG markup output
+		//		working on IE.
+		if(dojo.doc.createElementNS){
+			return dojo.doc.createElementNS(ns,nodeType);
+		}else{
+			return dojo.doc.createElement(nodeType);
+		}
+	}
+	
+	function _createTextNode(text){
+		if(svg.useSvgWeb){
+			return dojo.doc.createTextNode(text, true);
+		}else{
+			return dojo.doc.createTextNode(text);
+		}
+	}
+	
+	function _createFragment(){
+		if(svg.useSvgWeb){
+			return dojo.doc.createDocumentFragment(true);
+		}else{
+			return dojo.doc.createDocumentFragment();
+		}
+	}
+
+	svg.xmlns = {
+		xlink: "http://www.w3.org/1999/xlink",
+		svg:   "http://www.w3.org/2000/svg"
+	};
+
+	svg.getRef = function(name){
+		// summary: returns a DOM Node specified by the name argument or null
+		// name: String: an SVG external reference
+		if(!name || name == "none") return null;
+		if(name.match(/^url\(#.+\)$/)){
+			return d.byId(name.slice(5, -1));	// Node
+		}
+		// alternative representation of a reference
+		if(name.match(/^#dojoUnique\d+$/)){
+			// we assume here that a reference was generated by dojox.gfx
+			return d.byId(name.slice(1));	// Node
+		}
+		return null;	// Node
+	};
+
+	svg.dasharray = {
+		solid:				"none",
+		shortdash:			[4, 1],
+		shortdot:			[1, 1],
+		shortdashdot:		[4, 1, 1, 1],
+		shortdashdotdot:	[4, 1, 1, 1, 1, 1],
+		dot:				[1, 3],
+		dash:				[4, 3],
+		longdash:			[8, 3],
+		dashdot:			[4, 3, 1, 3],
+		longdashdot:		[8, 3, 1, 3],
+		longdashdotdot:		[8, 3, 1, 3, 1, 3]
+	};
+
+	d.declare("dojox.gfx.svg.Shape", gs.Shape, {
+		// summary: SVG-specific implementation of dojox.gfx.Shape methods
+
+		setFill: function(fill){
+			// summary: sets a fill object (SVG)
+			// fill: Object: a fill object
+			//	(see dojox.gfx.defaultLinearGradient,
+			//	dojox.gfx.defaultRadialGradient,
+			//	dojox.gfx.defaultPattern,
+			//	or dojo.Color)
+
+			if(!fill){
+				// don't fill
+				this.fillStyle = null;
+				this.rawNode.setAttribute("fill", "none");
+				this.rawNode.setAttribute("fill-opacity", 0);
+				return this;
+			}
+			var f;
+			// FIXME: slightly magical. We're using the outer scope's "f", but setting it later
+			var setter = function(x){
+					// we assume that we're executing in the scope of the node to mutate
+					this.setAttribute(x, f[x].toFixed(8));
+				};
+			if(typeof(fill) == "object" && "type" in fill){
+				// gradient
+				switch(fill.type){
+					case "linear":
+						f = g.makeParameters(g.defaultLinearGradient, fill);
+						var gradient = this._setFillObject(f, "linearGradient");
+						d.forEach(["x1", "y1", "x2", "y2"], setter, gradient);
+						break;
+					case "radial":
+						f = g.makeParameters(g.defaultRadialGradient, fill);
+						var gradient = this._setFillObject(f, "radialGradient");
+						d.forEach(["cx", "cy", "r"], setter, gradient);
+						break;
+					case "pattern":
+						f = g.makeParameters(g.defaultPattern, fill);
+						var pattern = this._setFillObject(f, "pattern");
+						d.forEach(["x", "y", "width", "height"], setter, pattern);
+						break;
+				}
+				this.fillStyle = f;
+				return this;
+			}
+			// color object
+			var f = g.normalizeColor(fill);
+			this.fillStyle = f;
+			this.rawNode.setAttribute("fill", f.toCss());
+			this.rawNode.setAttribute("fill-opacity", f.a);
+			this.rawNode.setAttribute("fill-rule", "evenodd");
+			return this;	// self
+		},
+
+		setStroke: function(stroke){
+			//	summary:
+			//		sets a stroke object (SVG)
+			//	stroke: Object
+			// 		a stroke object (see dojox.gfx.defaultStroke)
+
+			var rn = this.rawNode;
+			if(!stroke){
+				// don't stroke
+				this.strokeStyle = null;
+				rn.setAttribute("stroke", "none");
+				rn.setAttribute("stroke-opacity", 0);
+				return this;
+			}
+			// normalize the stroke
+			if(typeof stroke == "string" || d.isArray(stroke) || stroke instanceof d.Color){
+				stroke = { color: stroke };
+			}
+			var s = this.strokeStyle = g.makeParameters(g.defaultStroke, stroke);
+			s.color = g.normalizeColor(s.color);
+			// generate attributes
+			if(s){
+				rn.setAttribute("stroke", s.color.toCss());
+				rn.setAttribute("stroke-opacity", s.color.a);
+				rn.setAttribute("stroke-width",   s.width);
+				rn.setAttribute("stroke-linecap", s.cap);
+				if(typeof s.join == "number"){
+					rn.setAttribute("stroke-linejoin",   "miter");
+					rn.setAttribute("stroke-miterlimit", s.join);
+				}else{
+					rn.setAttribute("stroke-linejoin",   s.join);
+				}
+				var da = s.style.toLowerCase();
+				if(da in svg.dasharray){
+					da = svg.dasharray[da];
+				}
+				if(da instanceof Array){
+					da = d._toArray(da);
+					for(var i = 0; i < da.length; ++i){
+						da[i] *= s.width;
+					}
+					if(s.cap != "butt"){
+						for(var i = 0; i < da.length; i += 2){
+							da[i] -= s.width;
+							if(da[i] < 1){ da[i] = 1; }
+						}
+						for(var i = 1; i < da.length; i += 2){
+							da[i] += s.width;
+						}
+					}
+					da = da.join(",");
+				}
+				rn.setAttribute("stroke-dasharray", da);
+				rn.setAttribute("dojoGfxStrokeStyle", s.style);
+			}
+			return this;	// self
+		},
+
+		_getParentSurface: function(){
+			var surface = this.parent;
+			for(; surface && !(surface instanceof g.Surface); surface = surface.parent);
+			return surface;
+		},
+
+		_setFillObject: function(f, nodeType){
+			var svgns = svg.xmlns.svg;
+			this.fillStyle = f;
+			var surface = this._getParentSurface(),
+				defs = surface.defNode,
+				fill = this.rawNode.getAttribute("fill"),
+				ref  = svg.getRef(fill);
+			if(ref){
+				fill = ref;
+				if(fill.tagName.toLowerCase() != nodeType.toLowerCase()){
+					var id = fill.id;
+					fill.parentNode.removeChild(fill);
+					fill = _createElementNS(svgns, nodeType);
+					fill.setAttribute("id", id);
+					defs.appendChild(fill);
+				}else{
+					while(fill.childNodes.length){
+						fill.removeChild(fill.lastChild);
+					}
+				}
+			}else{
+				fill = _createElementNS(svgns, nodeType);
+				fill.setAttribute("id", g._base._getUniqueId());
+				defs.appendChild(fill);
+			}
+			if(nodeType == "pattern"){
+				fill.setAttribute("patternUnits", "userSpaceOnUse");
+				var img = _createElementNS(svgns, "image");
+				img.setAttribute("x", 0);
+				img.setAttribute("y", 0);
+				img.setAttribute("width",  f.width .toFixed(8));
+				img.setAttribute("height", f.height.toFixed(8));
+				img.setAttributeNS(svg.xmlns.xlink, "xlink:href", f.src);
+				fill.appendChild(img);
+			}else{
+				fill.setAttribute("gradientUnits", "userSpaceOnUse");
+				for(var i = 0; i < f.colors.length; ++i){
+					var c = f.colors[i], t = _createElementNS(svgns, "stop"),
+						cc = c.color = g.normalizeColor(c.color);
+					t.setAttribute("offset",       c.offset.toFixed(8));
+					t.setAttribute("stop-color",   cc.toCss());
+					t.setAttribute("stop-opacity", cc.a);
+					fill.appendChild(t);
+				}
+			}
+			this.rawNode.setAttribute("fill", "url(#" + fill.getAttribute("id") +")");
+			this.rawNode.removeAttribute("fill-opacity");
+			this.rawNode.setAttribute("fill-rule", "evenodd");
+			return fill;
+		},
+
+		_applyTransform: function() {
+			var matrix = this.matrix;
+			if(matrix){
+				var tm = this.matrix;
+				this.rawNode.setAttribute("transform", "matrix(" +
+					tm.xx.toFixed(8) + "," + tm.yx.toFixed(8) + "," +
+					tm.xy.toFixed(8) + "," + tm.yy.toFixed(8) + "," +
+					tm.dx.toFixed(8) + "," + tm.dy.toFixed(8) + ")");
+			}else{
+				this.rawNode.removeAttribute("transform");
+			}
+			return this;
+		},
+
+		setRawNode: function(rawNode){
+			// summary:
+			//	assigns and clears the underlying node that will represent this
+			//	shape. Once set, transforms, gradients, etc, can be applied.
+			//	(no fill & stroke by default)
+			var r = this.rawNode = rawNode;
+			if(this.shape.type!="image"){
+				r.setAttribute("fill", "none");
+			}
+			r.setAttribute("fill-opacity", 0);
+			r.setAttribute("stroke", "none");
+			r.setAttribute("stroke-opacity", 0);
+			r.setAttribute("stroke-width", 1);
+			r.setAttribute("stroke-linecap", "butt");
+			r.setAttribute("stroke-linejoin", "miter");
+			r.setAttribute("stroke-miterlimit", 4);
+		},
+
+		setShape: function(newShape){
+			// summary: sets a shape object (SVG)
+			// newShape: Object: a shape object
+			//	(see dojox.gfx.defaultPath,
+			//	dojox.gfx.defaultPolyline,
+			//	dojox.gfx.defaultRect,
+			//	dojox.gfx.defaultEllipse,
+			//	dojox.gfx.defaultCircle,
+			//	dojox.gfx.defaultLine,
+			//	or dojox.gfx.defaultImage)
+			this.shape = g.makeParameters(this.shape, newShape);
+			for(var i in this.shape){
+				if(i != "type"){
+					this.rawNode.setAttribute(i, this.shape[i]);
+				}
+			}
+			this.bbox = null;
+			return this;	// self
+		},
+
+		// move family
+
+		_moveToFront: function(){
+			// summary: moves a shape to front of its parent's list of shapes (SVG)
+			this.rawNode.parentNode.appendChild(this.rawNode);
+			return this;	// self
+		},
+		_moveToBack: function(){
+			// summary: moves a shape to back of its parent's list of shapes (SVG)
+			this.rawNode.parentNode.insertBefore(this.rawNode, this.rawNode.parentNode.firstChild);
+			return this;	// self
+		}
+	});
+
+	dojo.declare("dojox.gfx.svg.Group", svg.Shape, {
+		// summary: a group shape (SVG), which can be used
+		//	to logically group shapes (e.g, to propagate matricies)
+		constructor: function(){
+			gs.Container._init.call(this);
+		},
+		setRawNode: function(rawNode){
+			// summary: sets a raw SVG node to be used by this shape
+			// rawNode: Node: an SVG node
+			this.rawNode = rawNode;
+		}
+	});
+	svg.Group.nodeType = "g";
+
+	dojo.declare("dojox.gfx.svg.Rect", [svg.Shape, gs.Rect], {
+		// summary: a rectangle shape (SVG)
+		setShape: function(newShape){
+			// summary: sets a rectangle shape object (SVG)
+			// newShape: Object: a rectangle shape object
+			this.shape = g.makeParameters(this.shape, newShape);
+			this.bbox = null;
+			for(var i in this.shape){
+				if(i != "type" && i != "r"){
+					this.rawNode.setAttribute(i, this.shape[i]);
+				}
+			}
+			if(this.shape.r){
+				this.rawNode.setAttribute("ry", this.shape.r);
+				this.rawNode.setAttribute("rx", this.shape.r);
+			}
+			return this;	// self
+		}
+	});
+	svg.Rect.nodeType = "rect";
+
+	dojo.declare("dojox.gfx.svg.Ellipse", [svg.Shape, gs.Ellipse], {});
+	svg.Ellipse.nodeType = "ellipse";
+
+	dojo.declare("dojox.gfx.svg.Circle", [svg.Shape, gs.Circle], {});
+	svg.Circle.nodeType = "circle";
+
+	dojo.declare("dojox.gfx.svg.Line", [svg.Shape, gs.Line], {});
+	svg.Line.nodeType = "line";
+
+	dojo.declare("dojox.gfx.svg.Polyline", [svg.Shape, gs.Polyline], {
+		// summary: a polyline/polygon shape (SVG)
+		setShape: function(points, closed){
+			// summary: sets a polyline/polygon shape object (SVG)
+			// points: Object: a polyline/polygon shape object
+			if(points && points instanceof Array){
+				// branch
+				// points: Array: an array of points
+				this.shape = g.makeParameters(this.shape, { points: points });
+				if(closed && this.shape.points.length){
+					this.shape.points.push(this.shape.points[0]);
+				}
+			}else{
+				this.shape = g.makeParameters(this.shape, points);
+			}
+			this.bbox = null;
+			this._normalizePoints();
+			var attr = [], p = this.shape.points;
+			for(var i = 0; i < p.length; ++i){
+				attr.push(p[i].x.toFixed(8), p[i].y.toFixed(8));
+			}
+			this.rawNode.setAttribute("points", attr.join(" "));
+			return this;	// self
+		}
+	});
+	svg.Polyline.nodeType = "polyline";
+
+	dojo.declare("dojox.gfx.svg.Image", [svg.Shape, gs.Image], {
+		// summary: an image (SVG)
+		setShape: function(newShape){
+			// summary: sets an image shape object (SVG)
+			// newShape: Object: an image shape object
+			this.shape = g.makeParameters(this.shape, newShape);
+			this.bbox = null;
+			var rawNode = this.rawNode;
+			for(var i in this.shape){
+				if(i != "type" && i != "src"){
+					rawNode.setAttribute(i, this.shape[i]);
+				}
+			}
+			rawNode.setAttribute("preserveAspectRatio", "none");
+			rawNode.setAttributeNS(svg.xmlns.xlink, "xlink:href", this.shape.src);
+			return this;	// self
+		}
+	});
+	svg.Image.nodeType = "image";
+
+	dojo.declare("dojox.gfx.svg.Text", [svg.Shape, gs.Text], {
+		// summary: an anchored text (SVG)
+		setShape: function(newShape){
+			// summary: sets a text shape object (SVG)
+			// newShape: Object: a text shape object
+			this.shape = g.makeParameters(this.shape, newShape);
+			this.bbox = null;
+			var r = this.rawNode, s = this.shape;
+			r.setAttribute("x", s.x);
+			r.setAttribute("y", s.y);
+			r.setAttribute("text-anchor", s.align);
+			r.setAttribute("text-decoration", s.decoration);
+			r.setAttribute("rotate", s.rotated ? 90 : 0);
+			r.setAttribute("kerning", s.kerning ? "auto" : 0);
+			r.setAttribute("text-rendering", "optimizeLegibility");
+			
+			// update the text content
+			if(r.firstChild){
+				r.firstChild.nodeValue = s.text;
+			}else{
+				r.appendChild(_createTextNode(s.text));
+			}
+			return this;	// self
+		},
+		getTextWidth: function(){
+			// summary: get the text width in pixels
+			var rawNode = this.rawNode,
+				oldParent = rawNode.parentNode,
+				_measurementNode = rawNode.cloneNode(true);
+			_measurementNode.style.visibility = "hidden";
+
+			// solution to the "orphan issue" in FF
+			var _width = 0, _text = _measurementNode.firstChild.nodeValue;
+			oldParent.appendChild(_measurementNode);
+
+			// solution to the "orphan issue" in Opera
+			// (nodeValue == "" hangs firefox)
+			if(_text!=""){
+				while(!_width){
+//Yang: work around svgweb bug 417 -- http://code.google.com/p/svgweb/issues/detail?id=417
+if (_measurementNode.getBBox)
+					_width = parseInt(_measurementNode.getBBox().width);
+else
+	_width = 68;
+				}
+			}
+			oldParent.removeChild(_measurementNode);
+			return _width;
+		}
+	});
+	svg.Text.nodeType = "text";
+
+	dojo.declare("dojox.gfx.svg.Path", [svg.Shape, g.path.Path], {
+		// summary: a path shape (SVG)
+		_updateWithSegment: function(segment){
+			// summary: updates the bounding box of path with new segment
+			// segment: Object: a segment
+			this.inherited(arguments);
+			if(typeof(this.shape.path) == "string"){
+				this.rawNode.setAttribute("d", this.shape.path);
+			}
+		},
+		setShape: function(newShape){
+			// summary: forms a path using a shape (SVG)
+			// newShape: Object: an SVG path string or a path object (see dojox.gfx.defaultPath)
+			this.inherited(arguments);
+			if(this.shape.path){
+				this.rawNode.setAttribute("d", this.shape.path);
+			}else{
+				this.rawNode.removeAttribute("d");
+			}
+			return this;	// self
+		}
+	});
+	svg.Path.nodeType = "path";
+
+	dojo.declare("dojox.gfx.svg.TextPath", [svg.Shape, g.path.TextPath], {
+		// summary: a textpath shape (SVG)
+		_updateWithSegment: function(segment){
+			// summary: updates the bounding box of path with new segment
+			// segment: Object: a segment
+			this.inherited(arguments);
+			this._setTextPath();
+		},
+		setShape: function(newShape){
+			// summary: forms a path using a shape (SVG)
+			// newShape: Object: an SVG path string or a path object (see dojox.gfx.defaultPath)
+			this.inherited(arguments);
+			this._setTextPath();
+			return this;	// self
+		},
+		_setTextPath: function(){
+			if(typeof this.shape.path != "string"){ return; }
+			var r = this.rawNode;
+			if(!r.firstChild){
+				var tp = _createElementNS(svg.xmlns.svg, "textPath"),
+					tx = _createTextNode("");
+				tp.appendChild(tx);
+				r.appendChild(tp);
+			}
+			var ref  = r.firstChild.getAttributeNS(svg.xmlns.xlink, "href"),
+				path = ref && svg.getRef(ref);
+			if(!path){
+				var surface = this._getParentSurface();
+				if(surface){
+					var defs = surface.defNode;
+					path = _createElementNS(svg.xmlns.svg, "path");
+					var id = g._base._getUniqueId();
+					path.setAttribute("id", id);
+					defs.appendChild(path);
+					r.firstChild.setAttributeNS(svg.xmlns.xlink, "xlink:href", "#" + id);
+				}
+			}
+			if(path){
+				path.setAttribute("d", this.shape.path);
+			}
+		},
+		_setText: function(){
+			var r = this.rawNode;
+			if(!r.firstChild){
+				var tp = _createElementNS(svg.xmlns.svg, "textPath"),
+					tx = _createTextNode("");
+				tp.appendChild(tx);
+				r.appendChild(tp);
+			}
+			r = r.firstChild;
+			var t = this.text;
+			r.setAttribute("alignment-baseline", "middle");
+			switch(t.align){
+				case "middle":
+					r.setAttribute("text-anchor", "middle");
+					r.setAttribute("startOffset", "50%");
+					break;
+				case "end":
+					r.setAttribute("text-anchor", "end");
+					r.setAttribute("startOffset", "100%");
+					break;
+				default:
+					r.setAttribute("text-anchor", "start");
+					r.setAttribute("startOffset", "0%");
+					break;
+			}
+			//r.parentNode.setAttribute("alignment-baseline", "central");
+			//r.setAttribute("dominant-baseline", "central");
+			r.setAttribute("baseline-shift", "0.5ex");
+			r.setAttribute("text-decoration", t.decoration);
+			r.setAttribute("rotate", t.rotated ? 90 : 0);
+			r.setAttribute("kerning", t.kerning ? "auto" : 0);
+			r.firstChild.data = t.text;
+		}
+	});
+	svg.TextPath.nodeType = "text";
+
+	dojo.declare("dojox.gfx.svg.Surface", gs.Surface, {
+		// summary: a surface object to be used for drawings (SVG)
+		constructor: function(){
+			gs.Container._init.call(this);
+		},
+		destroy: function(){
+			this.defNode = null;	// release the external reference
+			this.inherited(arguments);
+		},
+		setDimensions: function(width, height){
+			// summary: sets the width and height of the rawNode
+			// width: String: width of surface, e.g., "100px"
+			// height: String: height of surface, e.g., "100px"
+			if(!this.rawNode){ return this; }
+			this.rawNode.setAttribute("width",  width);
+			this.rawNode.setAttribute("height", height);
+			return this;	// self
+		},
+		getDimensions: function(){
+			// summary: returns an object with properties "width" and "height"
+			var t = this.rawNode ? {
+				width:  g.normalizedLength(this.rawNode.getAttribute("width")),
+				height: g.normalizedLength(this.rawNode.getAttribute("height"))} : null;
+			return t;	// Object
+		}
+	});
+
+	svg.createSurface = function(parentNode, width, height){
+		// summary: creates a surface (SVG)
+		// parentNode: Node: a parent node
+		// width: String: width of surface, e.g., "100px"
+		// height: String: height of surface, e.g., "100px"
+
+		var s = new svg.Surface();
+		s.rawNode = _createElementNS(svg.xmlns.svg, "svg");
+		if(width){
+			s.rawNode.setAttribute("width",  width);
+		}
+		if(height){
+			s.rawNode.setAttribute("height", height);
+		}
+
+		var defNode = _createElementNS(svg.xmlns.svg, "defs");
+		s.rawNode.appendChild(defNode);
+		s.defNode = defNode;
+
+		s._parent = d.byId(parentNode);
+		s._parent.appendChild(s.rawNode);
+
+		return s;	// dojox.gfx.Surface
+	};
+
+	// Extenders
+
+	var Font = {
+		_setFont: function(){
+			// summary: sets a font object (SVG)
+			var f = this.fontStyle;
+			// next line doesn't work in Firefox 2 or Opera 9
+			//this.rawNode.setAttribute("font", dojox.gfx.makeFontString(this.fontStyle));
+			this.rawNode.setAttribute("font-style", f.style);
+			this.rawNode.setAttribute("font-variant", f.variant);
+			this.rawNode.setAttribute("font-weight", f.weight);
+			this.rawNode.setAttribute("font-size", f.size);
+			this.rawNode.setAttribute("font-family", f.family);
+		}
+	};
+
+	var C = gs.Container, Container = {
+		openBatch: function() {
+			// summary: starts a new batch, subsequent new child shapes will be held in
+			//	the batch instead of appending to the container directly
+			this.fragment = _createFragment();
+		},
+		closeBatch: function() {
+			// summary: submits the current batch, append all pending child shapes to DOM
+			if (this.fragment) {
+				this.rawNode.appendChild(this.fragment);
+				delete this.fragment;
+			}
+		},
+		add: function(shape){
+			// summary: adds a shape to a group/surface
+			// shape: dojox.gfx.Shape: an VML shape object
+			if(this != shape.getParent()){
+				if (this.fragment) {
+					this.fragment.appendChild(shape.rawNode);
+				} else {
+					this.rawNode.appendChild(shape.rawNode);
+				}
+				C.add.apply(this, arguments);
+			}
+			return this;	// self
+		},
+		remove: function(shape, silently){
+			// summary: remove a shape from a group/surface
+			// shape: dojox.gfx.Shape: an VML shape object
+			// silently: Boolean?: if true, regenerate a picture
+			if(this == shape.getParent()){
+				if(this.rawNode == shape.rawNode.parentNode){
+					this.rawNode.removeChild(shape.rawNode);
+				}
+				if(this.fragment && this.fragment == shape.rawNode.parentNode){
+					this.fragment.removeChild(shape.rawNode);
+				}
+				C.remove.apply(this, arguments);
+			}
+			return this;	// self
+		},
+		clear: function(){
+			// summary: removes all shapes from a group/surface
+			var r = this.rawNode;
+			while(r.lastChild){
+				r.removeChild(r.lastChild);
+			}
+			var defNode = this.defNode;
+			if(defNode){
+				while(defNode.lastChild){
+					defNode.removeChild(defNode.lastChild);
+				}
+				r.appendChild(defNode);
+			}
+			return C.clear.apply(this, arguments);
+		},
+		_moveChildToFront: C._moveChildToFront,
+		_moveChildToBack:  C._moveChildToBack
+	};
+
+	var Creator = {
+		// summary: SVG shape creators
+		createObject: function(shapeType, rawShape){
+			// summary: creates an instance of the passed shapeType class
+			// shapeType: Function: a class constructor to create an instance of
+			// rawShape: Object: properties to be passed in to the classes "setShape" method
+			if(!this.rawNode){ return null; }
+			var shape = new shapeType(),
+				node = _createElementNS(svg.xmlns.svg, shapeType.nodeType);
+
+			shape.setRawNode(node);
+			shape.setShape(rawShape);
+			// rawNode.appendChild() will be done inside this.add(shape) below
+			this.add(shape);
+			return shape;	// dojox.gfx.Shape
+		}
+	};
+
+	d.extend(svg.Text, Font);
+	d.extend(svg.TextPath, Font);
+
+	d.extend(svg.Group, Container);
+	d.extend(svg.Group, gs.Creator);
+	d.extend(svg.Group, Creator);
+
+	d.extend(svg.Surface, Container);
+	d.extend(svg.Surface, gs.Creator);
+	d.extend(svg.Surface, Creator);
+
+
+	// some specific override for svgweb + flash
+	if(svg.useSvgWeb){
+		// override createSurface()
+		svg.createSurface = function(parentNode, width, height){
+			var s = new svg.Surface();
+
+			// ensure width / height
+			if(!width || !height){
+				var pos = d.position(parentNode);
+				width  = width  || pos.w;
+				height = height || pos.h;
+			}
+
+			// ensure id
+			parentNode = d.byId(parentNode);
+			var id = parentNode.id ? parentNode.id+'_svgweb' : g._base._getUniqueId();
+			
+			// create dynamic svg root
+			var mockSvg = _createElementNS(svg.xmlns.svg, 'svg');
+			mockSvg.id = id;
+			mockSvg.setAttribute('width', width);
+			mockSvg.setAttribute('height', height);
+			svgweb.appendChild(mockSvg, parentNode);
+
+			// notice: any call to the raw node before flash init will fail.
+			mockSvg.addEventListener('SVGLoad', function(){
+				// become loaded
+				s.rawNode = this;
+				s.isLoaded = true;
+				
+				// init defs
+				var defNode = _createElementNS(svg.xmlns.svg, "defs");
+				s.rawNode.appendChild(defNode);
+				s.defNode = defNode;
+				
+				// notify application
+				if (s.onLoad)
+					s.onLoad(s);
+			}, false);
+
+			// flash not loaded yet
+			s.isLoaded = false;
+			return s;
+		};
+		
+		// override Surface.destroy()
+		svg.Surface.extend({
+			destroy: function(){
+				var mockSvg = this.rawNode;
+				svgweb.removeChild(mockSvg, mockSvg.parentNode);
+			}
+		});
+
+		// override connect() & disconnect() for Shape & Surface event processing
+		var _eventsProcessing = {
+			connect: function(name, object, method){
+				// connect events using the mock addEventListener() provided by svgweb
+				if (name.substring(0, 2)==='on') { name = name.substring(2); }
+				if (arguments.length == 2) {
+					method = object;
+				} else {
+					method = d.hitch(object, method);
+				}
+				this.getEventSource().addEventListener(name, method, false);
+				return [this, name, method];
+			},
+			disconnect: function(token){
+				// disconnect events using the mock removeEventListener() provided by svgweb
+				this.getEventSource().removeEventListener(token[1], token[2], false);
+				delete token[0];
+			}
+		};
+		
+		dojo.extend(svg.Shape, _eventsProcessing);
+		dojo.extend(svg.Surface, _eventsProcessing);
+	}
+
+	// see if we are required to initilize
+	if(g.loadAndSwitch === "svg"){
+		g.switchTo("svg");
+		delete g.loadAndSwitch;
+	}
 })();
-}

@@ -1,1 +1,4 @@
-({"insertEntity":"Infoga symbol"})
+({
+	insertEntity: "Infoga symbol"
+})
+

@@ -1,1 +1,4 @@
-({"preview":"Esikatselu"})
+({
+	"preview": "Esikatselu"
+})
+

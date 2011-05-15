@@ -1,76 +1,128 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.charting.action2d.Highlight"]){
-dojo._hasResource["dojox.charting.action2d.Highlight"]=true;
 dojo.provide("dojox.charting.action2d.Highlight");
+
 dojo.require("dojox.charting.action2d.Base");
 dojo.require("dojox.color");
-(function(){
-var _1=100,_2=75,_3=50,c=dojox.color,cc=function(_4){
-return function(){
-return _4;
-};
-},hl=function(_5){
-var a=new c.Color(_5),x=a.toHsl();
-if(x.s==0){
-x.l=x.l<50?100:0;
-}else{
-x.s=_1;
-if(x.l<_3){
-x.l=_2;
-}else{
-if(x.l>_2){
-x.l=_3;
-}else{
-x.l=x.l-_3>_2-x.l?_3:_2;
-}
-}
-}
-return c.fromHsl(x);
-};
-dojo.declare("dojox.charting.action2d.Highlight",dojox.charting.action2d.Base,{defaultParams:{duration:400,easing:dojo.fx.easing.backOut},optionalParams:{highlight:"red"},constructor:function(_6,_7,_8){
-var a=_8&&_8.highlight;
-this.colorFun=a?(dojo.isFunction(a)?a:cc(a)):hl;
-this.connect();
-},process:function(o){
-if(!o.shape||!(o.type in this.overOutEvents)){
-return;
-}
-var _9=o.run.name,_a=o.index,_b,_c,_d;
-if(_9 in this.anim){
-_b=this.anim[_9][_a];
-}else{
-this.anim[_9]={};
-}
-if(_b){
-_b.action.stop(true);
-}else{
-var _e=o.shape.getFill();
-if(!_e||!(_e instanceof dojo.Color)){
-return;
-}
-this.anim[_9][_a]=_b={start:_e,end:this.colorFun(_e)};
-}
-var _f=_b.start,end=_b.end;
-if(o.type=="onmouseout"){
-var t=_f;
-_f=end;
-end=t;
-}
-_b.action=dojox.gfx.fx.animateFill({shape:o.shape,duration:this.duration,easing:this.easing,color:{start:_f,end:end}});
-if(o.type=="onmouseout"){
-dojo.connect(_b.action,"onEnd",this,function(){
-if(this.anim[_9]){
-delete this.anim[_9][_a];
-}
+
+/*=====
+dojo.declare("dojox.charting.action2d.__HighlightCtorArgs", dojox.charting.action2d.__BaseCtorArgs, {
+	//	summary:
+	//		Additional arguments for highlighting actions.
+
+	//	highlight: String|dojo.Color|Function?
+	//		Either a color or a function that creates a color when highlighting happens.
+	highlight: null
 });
-}
-_b.action.play();
-}});
+=====*/
+(function(){
+	var DEFAULT_SATURATION  = 100,	// %
+		DEFAULT_LUMINOSITY1 = 75,	// %
+		DEFAULT_LUMINOSITY2 = 50,	// %
+
+		c = dojox.color,
+
+		cc = function(color){
+			return function(){ return color; };
+		},
+
+		hl = function(color){
+			var a = new c.Color(color),
+				x = a.toHsl();
+			if(x.s == 0){
+				x.l = x.l < 50 ? 100 : 0;
+			}else{
+				x.s = DEFAULT_SATURATION;
+				if(x.l < DEFAULT_LUMINOSITY2){
+					x.l = DEFAULT_LUMINOSITY1;
+				}else if(x.l > DEFAULT_LUMINOSITY1){
+					x.l = DEFAULT_LUMINOSITY2;
+				}else{
+					x.l = x.l - DEFAULT_LUMINOSITY2 > DEFAULT_LUMINOSITY1 - x.l ?
+						DEFAULT_LUMINOSITY2 : DEFAULT_LUMINOSITY1;
+				}
+			}
+			return c.fromHsl(x);
+		};
+
+	dojo.declare("dojox.charting.action2d.Highlight", dojox.charting.action2d.Base, {
+		//	summary:
+		//		Creates a highlighting action on a plot, where an element on that plot
+		//		has a highlight on it.
+
+		// the data description block for the widget parser
+		defaultParams: {
+			duration: 400,	// duration of the action in ms
+			easing:   dojo.fx.easing.backOut	// easing for the action
+		},
+		optionalParams: {
+			highlight: "red"	// name for the highlight color
+								// programmatic instantiation can use functions and color objects
+		},
+
+		constructor: function(chart, plot, kwArgs){
+			//	summary:
+			//		Create the highlighting action and connect it to the plot.
+			//	chart: dojox.charting.Chart2D
+			//		The chart this action belongs to.
+			//	plot: String?
+			//		The plot this action is attached to.  If not passed, "default" is assumed.
+			//	kwArgs: dojox.charting.action2d.__HighlightCtorArgs?
+			//		Optional keyword arguments object for setting parameters.
+			var a = kwArgs && kwArgs.highlight;
+			this.colorFun = a ? (dojo.isFunction(a) ? a : cc(a)) : hl;
+
+			this.connect();
+		},
+
+		process: function(o){
+			//	summary:
+			//		Process the action on the given object.
+			//	o: dojox.gfx.Shape
+			//		The object on which to process the highlighting action.
+			if(!o.shape || !(o.type in this.overOutEvents)){ return; }
+
+			var runName = o.run.name, index = o.index, anim, startFill, endFill;
+
+			if(runName in this.anim){
+				anim = this.anim[runName][index];
+			}else{
+				this.anim[runName] = {};
+			}
+
+			if(anim){
+				anim.action.stop(true);
+			}else{
+				var color = o.shape.getFill();
+				if(!color || !(color instanceof dojo.Color)){
+					return;
+				}
+				this.anim[runName][index] = anim = {
+					start: color,
+					end:   this.colorFun(color)
+				};
+			}
+
+			var start = anim.start, end = anim.end;
+			if(o.type == "onmouseout"){
+				// swap colors
+				var t = start;
+				start = end;
+				end = t;
+			}
+
+			anim.action = dojox.gfx.fx.animateFill({
+				shape:    o.shape,
+				duration: this.duration,
+				easing:   this.easing,
+				color:    {start: start, end: end}
+			});
+			if(o.type == "onmouseout"){
+				dojo.connect(anim.action, "onEnd", this, function(){
+					if(this.anim[runName]){
+						delete this.anim[runName][index];
+					}
+				});
+			}
+			anim.action.play();
+		}
+	});
 })();
-}

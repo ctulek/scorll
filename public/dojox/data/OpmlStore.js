@@ -1,329 +1,523 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dojox/data/OpmlStore", ["dojo", "dojox", "dojo/data/util/simpleFetch", "dojo/data/util/filter"], function(dojo, dojox) {
 
+dojo.declare("dojox.data.OpmlStore", null, {
+	/* summary:
+	 *   The OpmlStore implements the dojo.data.api.Read API.
+	 */
+	 
+	/* examples:
+	 *   var opmlStore = new dojo.data.OpmlStore({url:"geography.xml"});
+	 *   var opmlStore = new dojo.data.OpmlStore({url:"http://example.com/geography.xml"});
+	 */
+	constructor: function(/* Object */ keywordParameters){
+		// summary: constructor
+		// keywordParameters: {url: String, label: String}  Where label is optional and configures what should be used as the return from getLabel()
+		this._xmlData = null;
+		this._arrayOfTopLevelItems = [];
+		this._arrayOfAllItems = [];
+		this._metadataNodes = null;
+		this._loadFinished = false;
+		this.url = keywordParameters.url;
+		this._opmlData = keywordParameters.data; // XML DOM Document
+		if(keywordParameters.label){
+			this.label = keywordParameters.label;
+		}
+		this._loadInProgress = false;	//Got to track the initial load to prevent duelling loads of the dataset.
+		this._queuedFetches = [];
+		this._identityMap = {};
+		this._identCount = 0;
+		this._idProp = "_I";
+		if(keywordParameters && "urlPreventCache" in keywordParameters){
+			this.urlPreventCache = keywordParameters.urlPreventCache?true:false;
+		}
+	},
 
-if(!dojo._hasResource["dojox.data.OpmlStore"]){
-dojo._hasResource["dojox.data.OpmlStore"]=true;
-dojo.provide("dojox.data.OpmlStore");
-dojo.require("dojo.data.util.simpleFetch");
-dojo.require("dojo.data.util.filter");
-dojo.declare("dojox.data.OpmlStore",null,{constructor:function(_1){
-this._xmlData=null;
-this._arrayOfTopLevelItems=[];
-this._arrayOfAllItems=[];
-this._metadataNodes=null;
-this._loadFinished=false;
-this.url=_1.url;
-this._opmlData=_1.data;
-if(_1.label){
-this.label=_1.label;
-}
-this._loadInProgress=false;
-this._queuedFetches=[];
-this._identityMap={};
-this._identCount=0;
-this._idProp="_I";
-if(_1&&"urlPreventCache" in _1){
-this.urlPreventCache=_1.urlPreventCache?true:false;
-}
-},label:"text",url:"",urlPreventCache:false,_assertIsItem:function(_2){
-if(!this.isItem(_2)){
-throw new Error("dojo.data.OpmlStore: a function was passed an item argument that was not an item");
-}
-},_assertIsAttribute:function(_3){
-if(!dojo.isString(_3)){
-throw new Error("dojox.data.OpmlStore: a function was passed an attribute argument that was not an attribute object nor an attribute name string");
-}
-},_removeChildNodesThatAreNotElementNodes:function(_4,_5){
-var _6=_4.childNodes;
-if(_6.length===0){
-return;
-}
-var _7=[];
-var i,_8;
-for(i=0;i<_6.length;++i){
-_8=_6[i];
-if(_8.nodeType!=1){
-_7.push(_8);
-}
-}
-for(i=0;i<_7.length;++i){
-_8=_7[i];
-_4.removeChild(_8);
-}
-if(_5){
-for(i=0;i<_6.length;++i){
-_8=_6[i];
-this._removeChildNodesThatAreNotElementNodes(_8,_5);
-}
-}
-},_processRawXmlTree:function(_9){
-this._loadFinished=true;
-this._xmlData=_9;
-var _a=_9.getElementsByTagName("head");
-var _b=_a[0];
-if(_b){
-this._removeChildNodesThatAreNotElementNodes(_b);
-this._metadataNodes=_b.childNodes;
-}
-var _c=_9.getElementsByTagName("body");
-var _d=_c[0];
-if(_d){
-this._removeChildNodesThatAreNotElementNodes(_d,true);
-var _e=_c[0].childNodes;
-for(var i=0;i<_e.length;++i){
-var _f=_e[i];
-if(_f.tagName=="outline"){
-this._identityMap[this._identCount]=_f;
-this._identCount++;
-this._arrayOfTopLevelItems.push(_f);
-this._arrayOfAllItems.push(_f);
-this._checkChildNodes(_f);
-}
-}
-}
-},_checkChildNodes:function(_10){
-if(_10.firstChild){
-for(var i=0;i<_10.childNodes.length;i++){
-var _11=_10.childNodes[i];
-if(_11.tagName=="outline"){
-this._identityMap[this._identCount]=_11;
-this._identCount++;
-this._arrayOfAllItems.push(_11);
-this._checkChildNodes(_11);
-}
-}
-}
-},_getItemsArray:function(_12){
-if(_12&&_12.deep){
-return this._arrayOfAllItems;
-}
-return this._arrayOfTopLevelItems;
-},getValue:function(_13,_14,_15){
-this._assertIsItem(_13);
-this._assertIsAttribute(_14);
-if(_14=="children"){
-return (_13.firstChild||_15);
-}else{
-var _16=_13.getAttribute(_14);
-return (_16!==undefined)?_16:_15;
-}
-},getValues:function(_17,_18){
-this._assertIsItem(_17);
-this._assertIsAttribute(_18);
-var _19=[];
-if(_18=="children"){
-for(var i=0;i<_17.childNodes.length;++i){
-_19.push(_17.childNodes[i]);
-}
-}else{
-if(_17.getAttribute(_18)!==null){
-_19.push(_17.getAttribute(_18));
-}
-}
-return _19;
-},getAttributes:function(_1a){
-this._assertIsItem(_1a);
-var _1b=[];
-var _1c=_1a;
-var _1d=_1c.attributes;
-for(var i=0;i<_1d.length;++i){
-var _1e=_1d.item(i);
-_1b.push(_1e.nodeName);
-}
-if(_1c.childNodes.length>0){
-_1b.push("children");
-}
-return _1b;
-},hasAttribute:function(_1f,_20){
-return (this.getValues(_1f,_20).length>0);
-},containsValue:function(_21,_22,_23){
-var _24=undefined;
-if(typeof _23==="string"){
-_24=dojo.data.util.filter.patternToRegExp(_23,false);
-}
-return this._containsValue(_21,_22,_23,_24);
-},_containsValue:function(_25,_26,_27,_28){
-var _29=this.getValues(_25,_26);
-for(var i=0;i<_29.length;++i){
-var _2a=_29[i];
-if(typeof _2a==="string"&&_28){
-return (_2a.match(_28)!==null);
-}else{
-if(_27===_2a){
-return true;
-}
-}
-}
-return false;
-},isItem:function(_2b){
-return (_2b&&_2b.nodeType==1&&_2b.tagName=="outline"&&_2b.ownerDocument===this._xmlData);
-},isItemLoaded:function(_2c){
-return this.isItem(_2c);
-},loadItem:function(_2d){
-},getLabel:function(_2e){
-if(this.isItem(_2e)){
-return this.getValue(_2e,this.label);
-}
-return undefined;
-},getLabelAttributes:function(_2f){
-return [this.label];
-},_fetchItems:function(_30,_31,_32){
-var _33=this;
-var _34=function(_35,_36){
-var _37=null;
-if(_35.query){
-_37=[];
-var _38=_35.queryOptions?_35.queryOptions.ignoreCase:false;
-var _39={};
-for(var key in _35.query){
-var _3a=_35.query[key];
-if(typeof _3a==="string"){
-_39[key]=dojo.data.util.filter.patternToRegExp(_3a,_38);
-}
-}
-for(var i=0;i<_36.length;++i){
-var _3b=true;
-var _3c=_36[i];
-for(var key in _35.query){
-var _3a=_35.query[key];
-if(!_33._containsValue(_3c,key,_3a,_39[key])){
-_3b=false;
-}
-}
-if(_3b){
-_37.push(_3c);
-}
-}
-}else{
-if(_36.length>0){
-_37=_36.slice(0,_36.length);
-}
-}
-_31(_37,_35);
-};
-if(this._loadFinished){
-_34(_30,this._getItemsArray(_30.queryOptions));
-}else{
-if(this._loadInProgress){
-this._queuedFetches.push({args:_30,filter:_34});
-}else{
-if(this.url!==""){
-this._loadInProgress=true;
-var _3d={url:_33.url,handleAs:"xml",preventCache:_33.urlPreventCache};
-var _3e=dojo.xhrGet(_3d);
-_3e.addCallback(function(_3f){
-_33._processRawXmlTree(_3f);
-_34(_30,_33._getItemsArray(_30.queryOptions));
-_33._handleQueuedFetches();
+	// label: [public] string
+	//		The attribute of the Opml item to act as a label.
+	label: "text",
+
+	// url: [public] string
+	//		The location from which to fetch the Opml document.
+	url: "",
+
+	// urlPreventCache: [public] boolean
+	//		Flag to denote if the underlying xhrGet call should set preventCache.
+	urlPreventCache: false,
+
+	_assertIsItem: function(/* item */ item){
+		if(!this.isItem(item)){
+			throw new Error("dojo.data.OpmlStore: a function was passed an item argument that was not an item");
+		}
+	},
+	
+	_assertIsAttribute: function(/* item || String */ attribute){
+		//	summary:
+		//      This function tests whether the item passed in is indeed a valid 'attribute' like type for the store.
+		//	attribute:
+		//		The attribute to test for being contained by the store.
+		if(!dojo.isString(attribute)){
+			throw new Error("dojox.data.OpmlStore: a function was passed an attribute argument that was not an attribute object nor an attribute name string");
+		}
+	},
+	
+	_removeChildNodesThatAreNotElementNodes: function(/* node */ node, /* boolean */ recursive){
+		var childNodes = node.childNodes;
+		if(childNodes.length === 0){
+			return;
+		}
+		var nodesToRemove = [];
+		var i, childNode;
+		for(i = 0; i < childNodes.length; ++i){
+			childNode = childNodes[i];
+			if(childNode.nodeType != 1){
+				nodesToRemove.push(childNode);
+			}
+		}
+		for(i = 0; i < nodesToRemove.length; ++i){
+			childNode = nodesToRemove[i];
+			node.removeChild(childNode);
+		}
+		if(recursive){
+			for(i = 0; i < childNodes.length; ++i){
+				childNode = childNodes[i];
+				this._removeChildNodesThatAreNotElementNodes(childNode, recursive);
+			}
+		}
+	},
+	
+	_processRawXmlTree: function(/* xmlDoc */ rawXmlTree){
+		this._loadFinished = true;
+		this._xmlData = rawXmlTree;
+		var headNodes = rawXmlTree.getElementsByTagName('head');
+		var headNode = headNodes[0];
+		if(headNode){
+			this._removeChildNodesThatAreNotElementNodes(headNode);
+			this._metadataNodes = headNode.childNodes;
+		}
+		var bodyNodes = rawXmlTree.getElementsByTagName('body');
+		var bodyNode = bodyNodes[0];
+		if(bodyNode){
+			this._removeChildNodesThatAreNotElementNodes(bodyNode, true);
+			
+			var bodyChildNodes = bodyNodes[0].childNodes;
+			for(var i = 0; i < bodyChildNodes.length; ++i){
+				var node = bodyChildNodes[i];
+				if(node.tagName == 'outline'){
+					this._identityMap[this._identCount] = node;
+					this._identCount++;
+					this._arrayOfTopLevelItems.push(node);
+					this._arrayOfAllItems.push(node);
+					this._checkChildNodes(node);
+				}
+			}
+		}
+	},
+
+	_checkChildNodes: function(node /*Node*/){
+		//	summary:
+		//		Internal function to recurse over all child nodes from the store and add them
+		//		As non-toplevel items
+		//	description:
+		//		Internal function to recurse over all child nodes from the store and add them
+		//		As non-toplevel items
+		//
+		//	node:
+		//		The child node to walk.
+		if(node.firstChild){
+			for(var i = 0; i < node.childNodes.length; i++){
+				var child = node.childNodes[i];
+				if(child.tagName == 'outline'){
+					this._identityMap[this._identCount] = child;
+					this._identCount++;
+					this._arrayOfAllItems.push(child);
+					this._checkChildNodes(child);
+				}
+			}
+		}
+	},
+
+	_getItemsArray: function(/*object?*/queryOptions){
+		//	summary:
+		//		Internal function to determine which list of items to search over.
+		//	queryOptions: The query options parameter, if any.
+		if(queryOptions && queryOptions.deep){
+			return this._arrayOfAllItems;
+		}
+		return this._arrayOfTopLevelItems;
+	},
+
+/***************************************
+     dojo.data.api.Read API
+***************************************/
+	getValue: function( /* item */ item,
+						/* attribute || attribute-name-string */ attribute,
+						/* value? */ defaultValue){
+		//	summary:
+		//      See dojo.data.api.Read.getValue()
+		this._assertIsItem(item);
+		this._assertIsAttribute(attribute);
+		if(attribute == 'children'){
+			return (item.firstChild || defaultValue); //Object
+		}else{
+			var value = item.getAttribute(attribute);
+			return (value !== undefined) ? value : defaultValue; //Object
+		}
+	},
+	
+	getValues: function(/* item */ item,
+						/* attribute || attribute-name-string */ attribute){
+		//	summary:
+		//		See dojo.data.api.Read.getValues()
+		this._assertIsItem(item);
+		this._assertIsAttribute(attribute);
+		var array = [];
+		if(attribute == 'children'){
+			for(var i = 0; i < item.childNodes.length; ++i){
+				array.push(item.childNodes[i]);
+			}
+		} else if(item.getAttribute(attribute) !== null){
+				array.push(item.getAttribute(attribute));
+		}
+		return array; // Array
+	},
+	
+	getAttributes: function(/* item */ item){
+		//	summary:
+		//		See dojo.data.api.Read.getAttributes()
+		this._assertIsItem(item);
+		var attributes = [];
+		var xmlNode = item;
+		var xmlAttributes = xmlNode.attributes;
+		for(var i = 0; i < xmlAttributes.length; ++i){
+			var xmlAttribute = xmlAttributes.item(i);
+			attributes.push(xmlAttribute.nodeName);
+		}
+		if(xmlNode.childNodes.length > 0){
+			attributes.push('children');
+		}
+		return attributes; //Array
+	},
+	
+	hasAttribute: function( /* item */ item,
+							/* attribute || attribute-name-string */ attribute){
+		//	summary:
+		//		See dojo.data.api.Read.hasAttribute()
+		return (this.getValues(item, attribute).length > 0); //Boolean
+	},
+	
+	containsValue: function(/* item */ item,
+							/* attribute || attribute-name-string */ attribute,
+							/* anything */ value){
+		//	summary:
+		//		See dojo.data.api.Read.containsValue()
+		var regexp = undefined;
+		if(typeof value === "string"){
+			regexp = dojo.data.util.filter.patternToRegExp(value, false);
+		}
+		return this._containsValue(item, attribute, value, regexp); //boolean.
+	},
+
+	_containsValue: function(	/* item */ item,
+								/* attribute || attribute-name-string */ attribute,
+								/* anything */ value,
+								/* RegExp?*/ regexp){
+		//	summary:
+		//		Internal function for looking at the values contained by the item.
+		//	description:
+		//		Internal function for looking at the values contained by the item.  This
+		//		function allows for denoting if the comparison should be case sensitive for
+		//		strings or not (for handling filtering cases where string case should not matter)
+		//
+		//	item:
+		//		The data item to examine for attribute values.
+		//	attribute:
+		//		The attribute to inspect.
+		//	value:
+		//		The value to match.
+		//	regexp:
+		//		Optional regular expression generated off value if value was of string type to handle wildcarding.
+		//		If present and attribute values are string, then it can be used for comparison instead of 'value'
+		var values = this.getValues(item, attribute);
+		for(var i = 0; i < values.length; ++i){
+			var possibleValue = values[i];
+			if(typeof possibleValue === "string" && regexp){
+				return (possibleValue.match(regexp) !== null);
+			}else{
+				//Non-string matching.
+				if(value === possibleValue){
+					return true; // Boolean
+				}
+			}
+		}
+		return false; // Boolean
+	},
+			
+	isItem: function(/* anything */ something){
+		//	summary:
+		//		See dojo.data.api.Read.isItem()
+		//	description:
+		//		Four things are verified to ensure that "something" is an item:
+		//		something can not be null, the nodeType must be an XML Element,
+		//		the tagName must be "outline", and the node must be a member of
+		//		XML document for this datastore.
+		return (something &&
+				something.nodeType == 1 &&
+				something.tagName == 'outline' &&
+				something.ownerDocument === this._xmlData); //Boolean
+	},
+	
+	isItemLoaded: function(/* anything */ something){
+		//	summary:
+		//		See dojo.data.api.Read.isItemLoaded()
+		// 		OpmlStore loads every item, so if it's an item, then it's loaded.
+		return this.isItem(something); //Boolean
+	},
+	
+	loadItem: function(/* item */ item){
+		//	summary:
+		//		See dojo.data.api.Read.loadItem()
+		//	description:
+		//		The OpmlStore always loads all items, so if it's an item, then it's loaded.
+		//		From the dojo.data.api.Read.loadItem docs:
+		//			If a call to isItemLoaded() returns true before loadItem() is even called,
+		//			then loadItem() need not do any work at all and will not even invoke the callback handlers.
+	},
+
+	getLabel: function(/* item */ item){
+		//	summary:
+		//		See dojo.data.api.Read.getLabel()
+		if(this.isItem(item)){
+			return this.getValue(item,this.label); //String
+		}
+		return undefined; //undefined
+	},
+
+	getLabelAttributes: function(/* item */ item){
+		//	summary:
+		//		See dojo.data.api.Read.getLabelAttributes()
+		return [this.label]; //array
+	},
+
+	// The dojo.data.api.Read.fetch() function is implemented as
+	// a mixin from dojo.data.util.simpleFetch.
+	// That mixin requires us to define _fetchItems().
+	_fetchItems: function(	/* Object */ keywordArgs,
+							/* Function */ findCallback,
+							/* Function */ errorCallback){
+		//	summary:
+		//		See dojo.data.util.simpleFetch.fetch()
+		
+		var self = this;
+		var filter = function(requestArgs, arrayOfItems){
+			var items = null;
+			if(requestArgs.query){
+				items = [];
+				var ignoreCase = requestArgs.queryOptions ? requestArgs.queryOptions.ignoreCase : false;
+
+				//See if there are any string values that can be regexp parsed first to avoid multiple regexp gens on the
+				//same value for each item examined.  Much more efficient.
+				var regexpList = {};
+				for(var key in requestArgs.query){
+					var value = requestArgs.query[key];
+					if(typeof value === "string"){
+						regexpList[key] = dojo.data.util.filter.patternToRegExp(value, ignoreCase);
+					}
+				}
+
+				for(var i = 0; i < arrayOfItems.length; ++i){
+					var match = true;
+					var candidateItem = arrayOfItems[i];
+					for(var key in requestArgs.query){
+						var value = requestArgs.query[key];
+						if(!self._containsValue(candidateItem, key, value, regexpList[key])){
+							match = false;
+						}
+					}
+					if(match){
+						items.push(candidateItem);
+					}
+				}
+			}else{
+				// We want a copy to pass back in case the parent wishes to sort the array.  We shouldn't allow resort
+				// of the internal list so that multiple callers can get lists and sort without affecting each other.
+				if(arrayOfItems.length> 0){
+					items = arrayOfItems.slice(0,arrayOfItems.length);
+				}
+			}
+			findCallback(items, requestArgs);
+		};
+
+		if(this._loadFinished){
+			filter(keywordArgs, this._getItemsArray(keywordArgs.queryOptions));
+		}else{
+
+			//If fetches come in before the loading has finished, but while
+			//a load is in progress, we have to defer the fetching to be
+			//invoked in the callback.
+			if(this._loadInProgress){
+				this._queuedFetches.push({args: keywordArgs, filter: filter});
+			}else{
+				if(this.url !== ""){
+					this._loadInProgress = true;
+					var getArgs = {
+							url: self.url,
+							handleAs: "xml",
+							preventCache: self.urlPreventCache
+						};
+					var getHandler = dojo.xhrGet(getArgs);
+					getHandler.addCallback(function(data){
+						self._processRawXmlTree(data);
+						filter(keywordArgs, self._getItemsArray(keywordArgs.queryOptions));
+						self._handleQueuedFetches();
+					});
+					getHandler.addErrback(function(error){
+						throw error;
+					});
+				}else if(this._opmlData){
+					this._processRawXmlTree(this._opmlData);
+					this._opmlData = null;
+					filter(keywordArgs, this._getItemsArray(keywordArgs.queryOptions));
+				}else{
+					throw new Error("dojox.data.OpmlStore: No OPML source data was provided as either URL or XML data input.");
+				}
+			}
+		}
+	},
+	
+	getFeatures: function(){
+		// summary: See dojo.data.api.Read.getFeatures()
+		var features = {
+			'dojo.data.api.Read': true,
+			'dojo.data.api.Identity': true
+		};
+		return features; //Object
+	},
+
+/***************************************
+     dojo.data.api.Identity API
+***************************************/
+	getIdentity: function(/* item */ item){
+		//	summary:
+		//		See dojo.data.api.Identity.getIdentity()
+		if(this.isItem(item)){
+			//No ther way to do this other than O(n) without
+			//complete rework of how the tree stores nodes.
+			for(var i in this._identityMap){
+				if(this._identityMap[i] === item){
+					return i;
+				}
+			}
+		}
+		return null; //null
+	},
+
+	fetchItemByIdentity: function(/* Object */ keywordArgs){
+		//	summary:
+		//		See dojo.data.api.Identity.fetchItemByIdentity()
+
+		//Hasn't loaded yet, we have to trigger the load.
+		if(!this._loadFinished){
+			var self = this;
+			if(this.url !== ""){
+				//If fetches come in before the loading has finished, but while
+				//a load is in progress, we have to defer the fetching to be
+				//invoked in the callback.
+				if(this._loadInProgress){
+					this._queuedFetches.push({args: keywordArgs});
+				}else{
+					this._loadInProgress = true;
+					var getArgs = {
+							url: self.url,
+							handleAs: "xml"
+						};
+					var getHandler = dojo.xhrGet(getArgs);
+					getHandler.addCallback(function(data){
+						var scope = keywordArgs.scope?keywordArgs.scope:dojo.global;
+						try{
+							self._processRawXmlTree(data);
+							var item = self._identityMap[keywordArgs.identity];
+							if(!self.isItem(item)){
+								item = null;
+							}
+							if(keywordArgs.onItem){
+								keywordArgs.onItem.call(scope, item);
+							}
+							self._handleQueuedFetches();
+						}catch(error){
+							if(keywordArgs.onError){
+								keywordArgs.onError.call(scope, error);
+							}
+						}
+					});
+					getHandler.addErrback(function(error){
+						this._loadInProgress = false;
+						if(keywordArgs.onError){
+							var scope = keywordArgs.scope?keywordArgs.scope:dojo.global;
+							keywordArgs.onError.call(scope, error);
+						}
+					});
+				}
+			}else if(this._opmlData){
+				this._processRawXmlTree(this._opmlData);
+				this._opmlData = null;
+				var item = this._identityMap[keywordArgs.identity];
+				if(!self.isItem(item)){
+					item = null;
+				}
+				if(keywordArgs.onItem){
+					var scope = keywordArgs.scope?keywordArgs.scope:dojo.global;
+					keywordArgs.onItem.call(scope, item);
+				}
+			}
+		}else{
+			//Already loaded.  We can just look it up and call back.
+			var item = this._identityMap[keywordArgs.identity];
+			if(!this.isItem(item)){
+				item = null;
+			}
+			if(keywordArgs.onItem){
+				var scope = keywordArgs.scope?keywordArgs.scope:dojo.global;
+				keywordArgs.onItem.call(scope, item);
+			}
+		}
+	},
+
+	getIdentityAttributes: function(/* item */ item){
+		 //	summary:
+		 //		See dojo.data.api.Identity.getIdentifierAttributes()
+		 
+		 //Identity isn't a public attribute in the item, it's the node count.
+		 //So, return null.
+		 return null;
+	},
+
+	_handleQueuedFetches: function(){
+		//	summary:
+		//		Internal function to execute delayed request in the store.
+		//Execute any deferred fetches now.
+		if(this._queuedFetches.length > 0){
+			for(var i = 0; i < this._queuedFetches.length; i++){
+				var fData = this._queuedFetches[i];
+				var delayedQuery = fData.args;
+				var delayedFilter = fData.filter;
+				if(delayedFilter){
+					delayedFilter(delayedQuery, this._getItemsArray(delayedQuery.queryOptions));
+				}else{
+					this.fetchItemByIdentity(delayedQuery);
+				}
+			}
+			this._queuedFetches = [];
+		}
+	},
+
+	close: function(/*dojo.data.api.Request || keywordArgs || null */ request){
+		 //	summary:
+		 //		See dojo.data.api.Read.close()
+	}
 });
-_3e.addErrback(function(_40){
-throw _40;
-});
-}else{
-if(this._opmlData){
-this._processRawXmlTree(this._opmlData);
-this._opmlData=null;
-_34(_30,this._getItemsArray(_30.queryOptions));
-}else{
-throw new Error("dojox.data.OpmlStore: No OPML source data was provided as either URL or XML data input.");
-}
-}
-}
-}
-},getFeatures:function(){
-var _41={"dojo.data.api.Read":true,"dojo.data.api.Identity":true};
-return _41;
-},getIdentity:function(_42){
-if(this.isItem(_42)){
-for(var i in this._identityMap){
-if(this._identityMap[i]===_42){
-return i;
-}
-}
-}
-return null;
-},fetchItemByIdentity:function(_43){
-if(!this._loadFinished){
-var _44=this;
-if(this.url!==""){
-if(this._loadInProgress){
-this._queuedFetches.push({args:_43});
-}else{
-this._loadInProgress=true;
-var _45={url:_44.url,handleAs:"xml"};
-var _46=dojo.xhrGet(_45);
-_46.addCallback(function(_47){
-var _48=_43.scope?_43.scope:dojo.global;
-try{
-_44._processRawXmlTree(_47);
-var _49=_44._identityMap[_43.identity];
-if(!_44.isItem(_49)){
-_49=null;
-}
-if(_43.onItem){
-_43.onItem.call(_48,_49);
-}
-_44._handleQueuedFetches();
-}
-catch(error){
-if(_43.onError){
-_43.onError.call(_48,error);
-}
-}
-});
-_46.addErrback(function(_4a){
-this._loadInProgress=false;
-if(_43.onError){
-var _4b=_43.scope?_43.scope:dojo.global;
-_43.onError.call(_4b,_4a);
-}
-});
-}
-}else{
-if(this._opmlData){
-this._processRawXmlTree(this._opmlData);
-this._opmlData=null;
-var _4c=this._identityMap[_43.identity];
-if(!_44.isItem(_4c)){
-_4c=null;
-}
-if(_43.onItem){
-var _4d=_43.scope?_43.scope:dojo.global;
-_43.onItem.call(_4d,_4c);
-}
-}
-}
-}else{
-var _4c=this._identityMap[_43.identity];
-if(!this.isItem(_4c)){
-_4c=null;
-}
-if(_43.onItem){
-var _4d=_43.scope?_43.scope:dojo.global;
-_43.onItem.call(_4d,_4c);
-}
-}
-},getIdentityAttributes:function(_4e){
-return null;
-},_handleQueuedFetches:function(){
-if(this._queuedFetches.length>0){
-for(var i=0;i<this._queuedFetches.length;i++){
-var _4f=this._queuedFetches[i];
-var _50=_4f.args;
-var _51=_4f.filter;
-if(_51){
-_51(_50,this._getItemsArray(_50.queryOptions));
-}else{
-this.fetchItemByIdentity(_50);
-}
-}
-this._queuedFetches=[];
-}
-},close:function(_52){
-}});
+//Mix in the simple fetch implementation to this class.
 dojo.extend(dojox.data.OpmlStore,dojo.data.util.simpleFetch);
-}
+
+return dojox.data.OpmlStore;
+});
+	

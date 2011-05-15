@@ -1,1 +1,4 @@
-({"blockquote":"Öbek"})
+({
+	"blockquote": "Öbek"
+})
+

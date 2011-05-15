@@ -1,55 +1,137 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
+define("dijit/_base/wai", ["dojo", "dijit"], function(dojo, dijit) {
+
+dijit.wai = {
+	onload: function(){
+		// summary:
+		//		Detects if we are in high-contrast mode or not
+
+		// This must be a named function and not an anonymous
+		// function, so that the widget parsing code can make sure it
+		// registers its onload function after this function.
+		// DO NOT USE "this" within this function.
+
+		// create div for testing if high contrast mode is on or images are turned off
+		var div = dojo.create("div",{
+			id: "a11yTestNode",
+			style:{
+				cssText:'border: 1px solid;'
+					+ 'border-color:red green;'
+					+ 'position: absolute;'
+					+ 'height: 5px;'
+					+ 'top: -999px;'
+					+ 'background-image: url("' + (dojo.config.blankGif || dojo.moduleUrl("dojo", "resources/blank.gif")) + '");'
+			}
+		}, dojo.body());
+
+		// test it
+		var cs = dojo.getComputedStyle(div);
+		if(cs){
+			var bkImg = cs.backgroundImage;
+			var needsA11y = (cs.borderTopColor == cs.borderRightColor) || (bkImg != null && (bkImg == "none" || bkImg == "url(invalid-url:)" ));
+			dojo[needsA11y ? "addClass" : "removeClass"](dojo.body(), "dijit_a11y");
+			if(dojo.isIE){
+				div.outerHTML = "";		// prevent mixed-content warning, see http://support.microsoft.com/kb/925014
+			}else{
+				dojo.body().removeChild(div);
+			}
+		}
+	}
+};
+
+// Test if computer is in high contrast mode.
+// Make sure the a11y test runs first, before widgets are instantiated.
+if(dojo.isIE || dojo.isMoz){	// NOTE: checking in Safari messes things up
+	dojo._loaders.unshift(dijit.wai.onload);
+}
+
+dojo.mixin(dijit, {
+	hasWaiRole: function(/*Element*/ elem, /*String?*/ role){
+		// summary:
+		//		Determines if an element has a particular role.
+		// returns:
+		//		True if elem has the specific role attribute and false if not.
+		// 		For backwards compatibility if role parameter not provided,
+		// 		returns true if has a role
+		var waiRole = this.getWaiRole(elem);
+		return role ? (waiRole.indexOf(role) > -1) : (waiRole.length > 0);
+	},
+
+	getWaiRole: function(/*Element*/ elem){
+		// summary:
+		//		Gets the role for an element (which should be a wai role).
+		// returns:
+		//		The role of elem or an empty string if elem
+		//		does not have a role.
+		 return dojo.trim((dojo.attr(elem, "role") || "").replace("wairole:",""));
+	},
+
+	setWaiRole: function(/*Element*/ elem, /*String*/ role){
+		// summary:
+		//		Sets the role on an element.
+		// description:
+		//		Replace existing role attribute with new role.
+
+			dojo.attr(elem, "role", role);
+	},
+
+	removeWaiRole: function(/*Element*/ elem, /*String*/ role){
+		// summary:
+		//		Removes the specified role from an element.
+		// 		Removes role attribute if no specific role provided (for backwards compat.)
+
+		var roleValue = dojo.attr(elem, "role");
+		if(!roleValue){ return; }
+		if(role){
+			var t = dojo.trim((" " + roleValue + " ").replace(" " + role + " ", " "));
+			dojo.attr(elem, "role", t);
+		}else{
+			elem.removeAttribute("role");
+		}
+	},
+
+	hasWaiState: function(/*Element*/ elem, /*String*/ state){
+		// summary:
+		//		Determines if an element has a given state.
+		// description:
+		//		Checks for an attribute called "aria-"+state.
+		// returns:
+		//		true if elem has a value for the given state and
+		//		false if it does not.
+
+		return elem.hasAttribute ? elem.hasAttribute("aria-"+state) : !!elem.getAttribute("aria-"+state);
+	},
+
+	getWaiState: function(/*Element*/ elem, /*String*/ state){
+		// summary:
+		//		Gets the value of a state on an element.
+		// description:
+		//		Checks for an attribute called "aria-"+state.
+		// returns:
+		//		The value of the requested state on elem
+		//		or an empty string if elem has no value for state.
+
+		return elem.getAttribute("aria-"+state) || "";
+	},
+
+	setWaiState: function(/*Element*/ elem, /*String*/ state, /*String*/ value){
+		// summary:
+		//		Sets a state on an element.
+		// description:
+		//		Sets an attribute called "aria-"+state.
+
+		elem.setAttribute("aria-"+state, value);
+	},
+
+	removeWaiState: function(/*Element*/ elem, /*String*/ state){
+		// summary:
+		//		Removes a state from an element.
+		// description:
+		//		Sets an attribute called "aria-"+state.
+
+		elem.removeAttribute("aria-"+state);
+	}
+});
 
 
-if(!dojo._hasResource["dijit._base.wai"]){
-dojo._hasResource["dijit._base.wai"]=true;
-dojo.provide("dijit._base.wai");
-dijit.wai={onload:function(){
-var _1=dojo.create("div",{id:"a11yTestNode",style:{cssText:"border: 1px solid;"+"border-color:red green;"+"position: absolute;"+"height: 5px;"+"top: -999px;"+"background-image: url(\""+(dojo.config.blankGif||dojo.moduleUrl("dojo","resources/blank.gif"))+"\");"}},dojo.body());
-var cs=dojo.getComputedStyle(_1);
-if(cs){
-var _2=cs.backgroundImage;
-var _3=(cs.borderTopColor==cs.borderRightColor)||(_2!=null&&(_2=="none"||_2=="url(invalid-url:)"));
-dojo[_3?"addClass":"removeClass"](dojo.body(),"dijit_a11y");
-if(dojo.isIE){
-_1.outerHTML="";
-}else{
-dojo.body().removeChild(_1);
-}
-}
-}};
-if(dojo.isIE||dojo.isMoz){
-dojo._loaders.unshift(dijit.wai.onload);
-}
-dojo.mixin(dijit,{hasWaiRole:function(_4,_5){
-var _6=this.getWaiRole(_4);
-return _5?(_6.indexOf(_5)>-1):(_6.length>0);
-},getWaiRole:function(_7){
-return dojo.trim((dojo.attr(_7,"role")||"").replace("wairole:",""));
-},setWaiRole:function(_8,_9){
-dojo.attr(_8,"role",_9);
-},removeWaiRole:function(_a,_b){
-var _c=dojo.attr(_a,"role");
-if(!_c){
-return;
-}
-if(_b){
-var t=dojo.trim((" "+_c+" ").replace(" "+_b+" "," "));
-dojo.attr(_a,"role",t);
-}else{
-_a.removeAttribute("role");
-}
-},hasWaiState:function(_d,_e){
-return _d.hasAttribute?_d.hasAttribute("aria-"+_e):!!_d.getAttribute("aria-"+_e);
-},getWaiState:function(_f,_10){
-return _f.getAttribute("aria-"+_10)||"";
-},setWaiState:function(_11,_12,_13){
-_11.setAttribute("aria-"+_12,_13);
-},removeWaiState:function(_14,_15){
-_14.removeAttribute("aria-"+_15);
-}});
-}
+return dijit;
+});

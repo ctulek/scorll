@@ -1,1000 +1,1265 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.gantt.GanttChart"]){
-dojo._hasResource["dojox.gantt.GanttChart"]=true;
 dojo.provide("dojox.gantt.GanttChart");
+
 dojo.require("dijit.Tooltip");
 dojo.require("dojox.gantt.GanttProjectItem");
 dojo.require("dojox.gantt.GanttResourceItem");
 dojo.require("dojox.gantt.TabMenu");
 dojo.require("dojo.date.locale");
+
 (function(){
-dojo.declare("dojox.gantt.GanttChart",null,{constructor:function(_1,_2){
-this.resourceChartHeight=_1.resourceChartHeight!==undefined?_1.resourceChartHeight:false;
-this.withResource=_1.withResource!==undefined?_1.withResource:true;
-this.correctError=_1.autoCorrectError!==undefined?_1.autoCorrectError:false;
-this.isShowConMenu=this.isContentEditable=!_1.readOnly;
-this.withTaskId=_1.withTaskId!==undefined?_1.withTaskId:!_1.readOnly;
-this.animation=_1.animation!==undefined?_1.animation:true;
-this.saveProgramPath=_1.saveProgramPath||"saveGanttData.php";
-this.dataFilePath=_1.dataFilePath||"gantt_default.json";
-this.contentHeight=_1.height||400;
-this.contentWidth=_1.width||600;
-this.content=dojo.byId(_2);
-this.scrollBarWidth=18;
-this.panelTimeHeight=102;
-this.maxWidthPanelNames=150;
-this.maxWidthTaskNames=150;
-this.minWorkLength=8;
-this.heightTaskItem=12;
-this.heightTaskItemExtra=11;
-this.pixelsPerDay=24;
-this.hsPerDay=8;
-this.pixelsPerWorkHour=this.pixelsPerDay/this.hsPerDay;
-this.pixelsPerHour=this.pixelsPerDay/24;
-this.countDays=0;
-this.totalDays=0;
-this.startDate=null;
-this.initialPos=0;
-this.contentDataHeight=0;
-this.panelTimeExpandDelta=20;
-this.divTimeInfo=null;
-this.panelNames=null;
-this.panelTime=null;
-this.contentData=null;
-this.tabMenu=null;
-this.project=[];
-this.arrProjects=[];
-this.xmlLoader=null;
-this.isMoving=false;
-this.isResizing=false;
-this.animationNodes=[];
-this.scale=1;
-this.tempDayInPixels=0;
-this.resource=null;
-this.months=dojo.date.locale.getNames("months","wide");
-this._events=[];
-},getProject:function(id){
-return dojo.filter(this.arrProjects,function(_3){
-return _3.project.id==id;
-},this)[0];
-},checkPosPreviousTask:function(_4,_5){
-var _6=this.getWidthOnDuration(_4.duration);
-var _7=this.getPosOnDate(_4.startTime);
-var _8=this.getPosOnDate(_5.startTime);
-if((_6+_7)>_8){
-return false;
-}
-return true;
-},correctPosPreviousTask:function(_9,_a,_b){
-var _c=new Date(_9.startTime);
-_c.setHours(_c.getHours()+(_9.duration/this.hsPerDay*24));
-if(_c.getHours()>0){
-_c.setHours(0);
-_c.setDate(_c.getDate()+1);
-}
-_b?(_b.setStartTime(_c,true)):(_a.startTime=_c);
-if(_a.parentTask){
-if(!this.checkPosParentTask(_a.parentTask,_a)){
-var _d=new Date(_a.parentTask.startTime);
-_d.setHours(_d.getHours()+(_a.parentTask.duration/this.hsPerDay*24));
-_a.duration=parseInt((parseInt((_d-_a.startTime)/(1000*60*60)))*this.hsPerDay/24);
-}
-}
-},correctPosParentTask:function(_e,_f){
-if(!_f.previousTask){
-if(_e.startTime>_f.startTime){
-_f.startTime=new Date(_e.startTime);
-}
-if(!this.checkPosParentTask(_e,_f)){
-_f.duration=_e.duration;
-}
-}else{
-this.correctPosPreviousTask(_f.previousTask,_f);
-}
-},checkPosParentTaskInTree:function(_10){
-var _11=false;
-for(var i=0;i<_10.cldTasks.length;i++){
-var _12=_10.cldTasks[i];
-if(!this.checkPosParentTask(_10,_12)){
-if(!this.correctError){
-return true;
-}else{
-this.correctPosParentTask(_10,_12);
-}
-}
-if(_10.startTime>_12.startTime){
-if(!this.correctError){
-return true;
-}else{
-this.correctPosParentTask(_10,_12);
-}
-}
-if(_12.cldTasks.length>0){
-_11=this.checkPosParentTaskInTree(_12);
-}
-}
-return _11;
-},setPreviousTask:function(_13){
-var _14=false;
-for(var i=0;i<_13.parentTasks.length;i++){
-var _15=_13.parentTasks[i];
-if(_15.previousTaskId){
-_15.previousTask=_13.getTaskById(_15.previousTaskId);
-if(!_15.previousTask){
-if(!this.correctError){
-return true;
-}
-}
-_15.previousTask.cldPreTasks.push(_15);
-}
-if(_15.previousTask){
-if(!this.checkPosPreviousTask(_15.previousTask,_15)){
-if(!this.correctError){
-return true;
-}else{
-this.correctPosPreviousTask(_15.previousTask,_15);
-}
-}
-}
-_14=this.setPreviousTaskInTree(_15);
-}
-return _14;
-},setPreviousTaskInTree:function(_16){
-var _17=false;
-for(var i=0;i<_16.cldTasks.length;i++){
-var _18=_16.cldTasks[i];
-if(_18.previousTaskId){
-_18.previousTask=_16.project.getTaskById(_18.previousTaskId);
-if(!_18.previousTask){
-if(!this.correctError){
-return true;
-}
-}
-if(!this.checkPosPreviousTask(_18.previousTask,_18)){
-if(!this.correctError){
-return true;
-}else{
-this.correctPosPreviousTask(_18.previousTask,_18);
-}
-}
-_18.previousTask.cldPreTasks.push(_18);
-}
-if(_18.cldTasks.length>0){
-_17=this.setPreviousTaskInTree(_18);
-}
-}
-return _17;
-},checkPosParentTask:function(_19,_1a){
-var _1b=this.getWidthOnDuration(_19.duration);
-var _1c=this.getPosOnDate(_19.startTime);
-var _1d=this.getPosOnDate(_1a.startTime);
-var _1e=this.getWidthOnDuration(_1a.duration);
-return (_1b+_1c)>=(_1d+_1e);
-},addProject:function(_1f){
-this.project.push(_1f);
-},deleteProject:function(id){
-var _20=this.getProject(id);
-if(_20){
-if(_20.arrTasks.length>0){
-while(_20.arrTasks.length>0){
-_20.deleteChildTask(_20.arrTasks[0]);
-}
-}
-var _21=this.heightTaskItemExtra+this.heightTaskItem;
-_20.nextProject&&_20.shiftNextProject(_20,-_21);
-this.project=dojo.filter(this.project,function(_22){
-return _22.id!=_20.project.id;
-},this);
-if((_20.previousProject)&&(_20.nextProject)){
-var _23=_20.previousProject;
-_23.nextProject=_20.nextProject;
-}
-if((_20.previousProject)&&!(_20.nextProject)){
-var _23=_20.previousProject;
-_23.nextProject=null;
-}
-if(!(_20.previousProject)&&(_20.nextProject)){
-var _24=_20.nextProject;
-_24.previousProject=null;
-}
-for(var i=0;i<this.arrProjects.length;i++){
-if(this.arrProjects[i].project.id==id){
-this.arrProjects.splice(i,1);
-}
-}
-_20.projectItem[0].parentNode.removeChild(_20.projectItem[0]);
-_20.descrProject.parentNode.removeChild(_20.descrProject);
-_20.projectNameItem.parentNode.removeChild(_20.projectNameItem);
-this.contentDataHeight-=this.heightTaskItemExtra+this.heightTaskItem;
-if(this.project.length==0){
-var d=new Date(this.startDate);
-var t=new Date(d.setDate(d.getDate()+1));
-var pi=new dojox.gantt.GanttProjectItem({id:1,name:"New Project",startDate:t});
-this.project.push(pi);
-var _20=new dojox.gantt.GanttProjectControl(this,pi);
-_20.create();
-this.arrProjects.push(_20);
-this.contentDataHeight+=this.heightTaskItemExtra+this.heightTaskItem;
-}
-this.checkPosition();
-}
-},insertProject:function(id,_25,_26){
-if(this.startDate>=_26){
-return false;
-}
-if(this.getProject(id)){
-return false;
-}
-this.checkHeighPanelTasks();
-var _27=new dojox.gantt.GanttProjectItem({id:id,name:_25,startDate:_26});
-this.project.push(_27);
-var _28=new dojox.gantt.GanttProjectControl(this,_27);
-for(var i=0;i<this.arrProjects.length;i++){
-var _29=this.arrProjects[i],_2a=this.arrProjects[i-1],_2b=this.arrProjects[i+1];
-if(_26<_29.project.startDate){
-this.arrProjects.splice(i,0,_28);
-if(i>0){
-_28.previousProject=_2a;
-_2a.nextProject=_28;
-}
-if(i+1<=this.arrProjects.length){
-_28.nextProject=_2b;
-_2b.previousProject=_28;
-var _2c=this.heightTaskItem+this.heightTaskItemExtra;
-_28.shiftNextProject(_28,_2c);
-}
-_28.create();
-_28.hideDescrProject();
-this.checkPosition();
-return _28;
-}
-}
-if(this.arrProjects.length>0){
-this.arrProjects[this.arrProjects.length-1].nextProject=_28;
-_28.previousProject=this.arrProjects[this.arrProjects.length-1];
-}
-this.arrProjects.push(_28);
-_28.create();
-_28.hideDescrProject();
-this.checkPosition();
-return _28;
-},openTree:function(_2d){
-var _2e=this.getLastCloseParent(_2d);
-this.openNode(_2e);
-_2d.taskItem.id!=_2e.taskItem.id&&this.openTree(_2d);
-},openNode:function(_2f){
-if(!_2f.isExpanded){
-dojo.removeClass(_2f.cTaskNameItem[2],"ganttImageTreeExpand");
-dojo.addClass(_2f.cTaskNameItem[2],"ganttImageTreeCollapse");
-_2f.isExpanded=true;
-_2f.shiftCurrentTasks(_2f,_2f.hideTasksHeight);
-_2f.showChildTasks(_2f,_2f.isExpanded);
-_2f.hideTasksHeight=0;
-}
-},getLastCloseParent:function(_30){
-if(_30.parentTask){
-if((!_30.parentTask.isExpanded)||(_30.parentTask.cTaskNameItem[2].style.display=="none")){
-return this.getLastCloseParent(_30.parentTask);
-}else{
-return _30;
-}
-}else{
-return _30;
-}
-},getProjectItemById:function(id){
-return dojo.filter(this.project,function(_31){
-return _31.id==id;
-},this)[0];
-},clearAll:function(){
-this.contentDataHeight=0;
-this.startDate=null;
-this.clearData();
-this.clearItems();
-this.clearEvents();
-},clearEvents:function(){
-dojo.forEach(this._events,dojo.disconnect);
-this._events=[];
-},clearData:function(){
-this.project=[];
-this.arrProjects=[];
-},clearItems:function(){
-this.contentData.removeChild(this.contentData.firstChild);
-this.contentData.appendChild(this.createPanelTasks());
-this.panelNames.removeChild(this.panelNames.firstChild);
-this.panelNames.appendChild(this.createPanelNamesTasks());
-this.panelTime.removeChild(this.panelTime.firstChild);
-},buildUIContent:function(){
-this.project.sort(this.sortProjStartDate);
-this.startDate=this.getStartDate();
-this.panelTime.appendChild(this.createPanelTime());
-for(var i=0;i<this.project.length;i++){
-var _32=this.project[i];
-for(var k=0;k<_32.parentTasks.length;k++){
-var _33=_32.parentTasks[k];
-if(_33.startTime){
-this.setStartTimeChild(_33);
-}else{
-return;
-}
-if(this.setPreviousTask(_32)){
-return;
-}
-}
-for(var k=0;k<_32.parentTasks.length;k++){
-var _33=_32.parentTasks[k];
-if(_33.startTime<_32.startDate){
-return;
-}
-if(this.checkPosParentTaskInTree(_33)){
-return;
-}
-}
-this.sortTasksByStartTime(_32);
-}
-for(var i=0;i<this.project.length;i++){
-var _32=this.project[i];
-var _34=new dojox.gantt.GanttProjectControl(this,_32);
-if(this.arrProjects.length>0){
-var _35=this.arrProjects[this.arrProjects.length-1];
-_34.previousProject=_35;
-_35.nextProject=_34;
-}
-_34.create();
-this.checkHeighPanelTasks();
-this.arrProjects.push(_34);
-this.createTasks(_34);
-}
-this.resource&&this.resource.reConstruct();
-this.postLoadData();
-this.postBindEvents();
-},loadJSONData:function(_36){
-var _37=this;
-_37.dataFilePath=_36||_37.dataFilePath;
-dojo.xhrGet({url:_37.dataFilePath,sync:true,load:function(_38,_39){
-_37.loadJSONString(_38);
-_37.buildUIContent();
-alert("Successfully! Loaded data from: "+_37.dataFilePath);
-},error:function(err,_3a){
-alert("Failed! Load error: "+_37.dataFilePath);
-}});
-},loadJSONString:function(_3b){
-if(!_3b){
-return;
-}
-this.clearAll();
-var _3c=dojo.fromJson(_3b);
-var _3d=_3c.items;
-dojo.forEach(_3d,function(_3e){
-var _3f=_3e.startdate.split("-");
-var _40=new dojox.gantt.GanttProjectItem({id:_3e.id,name:_3e.name,startDate:new Date(_3f[0],(parseInt(_3f[1])-1),_3f[2])});
-var _41=_3e.tasks;
-dojo.forEach(_41,function(_42){
-var id=_42.id,_43=_42.name,_44=_42.starttime.split("-");
-duration=_42.duration,percentage=_42.percentage,previousTaskId=_42.previousTaskId,taskOwner=_42.taskOwner;
-var _45=new dojox.gantt.GanttTaskItem({id:id,name:_43,startTime:new Date(_44[0],(parseInt(_44[1])-1),_44[2]),duration:duration,percentage:percentage,previousTaskId:previousTaskId,taskOwner:taskOwner});
-var _46=_42.children;
-if(_46.length!=0){
-this.buildChildTasksData(_45,_46);
-}
-_40.addTask(_45);
-},this);
-this.addProject(_40);
-},this);
-},buildChildTasksData:function(_47,_48){
-_48&&dojo.forEach(_48,function(_49){
-var id=_49.id,_4a=_49.name,_4b=_49.starttime.split("-"),_4c=_49.duration,_4d=_49.percentage,_4e=_49.previousTaskId,_4f=_49.taskOwner;
-var _50=new dojox.gantt.GanttTaskItem({id:id,name:_4a,startTime:new Date(_4b[0],(parseInt(_4b[1])-1),_4b[2]),duration:_4c,percentage:_4d,previousTaskId:_4e,taskOwner:_4f});
-_50.parentTask=_47;
-_47.addChildTask(_50);
-var _51=_49.children;
-if(_51.length!=0){
-this.buildChildTasksData(_50,_51);
-}
-},this);
-},getJSONData:function(){
-var _52={identifier:"id",items:[]};
-dojo.forEach(this.project,function(_53){
-var _54={id:_53.id,name:_53.name,startdate:_53.startDate.getFullYear()+"-"+(_53.startDate.getMonth()+1)+"-"+_53.startDate.getDate(),tasks:[]};
-_52.items.push(_54);
-dojo.forEach(_53.parentTasks,function(_55){
-var _56={id:_55.id,name:_55.name,starttime:_55.startTime.getFullYear()+"-"+(_55.startTime.getMonth()+1)+"-"+_55.startTime.getDate(),duration:_55.duration,percentage:_55.percentage,previousTaskId:(_55.previousTaskId||""),taskOwner:(_55.taskOwner||""),children:this.getChildTasksData(_55.cldTasks)};
-_54.tasks.push(_56);
-},this);
-},this);
-return _52;
-},getChildTasksData:function(_57){
-var _58=[];
-_57&&_57.length>0&&dojo.forEach(_57,function(_59){
-var _5a={id:_59.id,name:_59.name,starttime:_59.startTime.getFullYear()+"-"+(_59.startTime.getMonth()+1)+"-"+_59.startTime.getDate(),duration:_59.duration,percentage:_59.percentage,previousTaskId:(_59.previousTaskId||""),taskOwner:(_59.taskOwner||""),children:this.getChildTasksData(_59.cldTasks)};
-_58.push(_5a);
-},this);
-return _58;
-},saveJSONData:function(_5b){
-var _5c=this;
-_5c.dataFilePath=(_5b&&dojo.trim(_5b).length>0)?_5b:this.dataFilePath;
-try{
-var td=dojo.xhrPost({url:_5c.saveProgramPath,content:{filename:_5c.dataFilePath,data:dojo.toJson(_5c.getJSONData())},handle:function(res,_5d){
-if((dojo._isDocumentOk(_5d.xhr))||(_5d.xhr.status==405)){
-alert("Successfully! Saved data to "+_5c.dataFilePath);
-}else{
-alert("Failed! Saved error");
-}
-}});
-}
-catch(e){
-alert("exception: "+e.message);
-}
-},sortTaskStartTime:function(a,b){
-return a.startTime<b.startTime?-1:(a.startTime>b.startTime?1:0);
-},sortProjStartDate:function(a,b){
-return a.startDate<b.startDate?-1:(a.startDate>b.startDate?1:0);
-},setStartTimeChild:function(_5e){
-dojo.forEach(_5e.cldTasks,function(_5f){
-if(!_5f.startTime){
-_5f.startTime=_5e.startTime;
-}
-if(_5f.cldTasks.length!=0){
-this.setStartTimeChild(_5f);
-}
-},this);
-},createPanelTasks:function(){
-var _60=dojo.create("div",{className:"ganttTaskPanel"});
-dojo.style(_60,{height:(this.contentHeight-this.panelTimeHeight-this.scrollBarWidth)+"px"});
-return _60;
-},refreshParams:function(_61){
-this.pixelsPerDay=_61;
-this.pixelsPerWorkHour=this.pixelsPerDay/this.hsPerDay;
-this.pixelsPerHour=this.pixelsPerDay/24;
-},createPanelNamesTasksHeader:function(){
-var _62=this;
-var _63=dojo.create("div",{className:"ganttPanelHeader"});
-var _64=dojo.create("table",{cellPadding:"0px",border:"0px",cellSpacing:"0px",bgColor:"#FFFFFF",className:"ganttToolbar"},_63);
-var _65=_64.insertRow(_64.rows.length);
-var _66=_64.insertRow(_64.rows.length);
-var _67=_64.insertRow(_64.rows.length);
-var _68=_64.insertRow(_64.rows.length);
-var _69=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttToolbarZoomIn"},_65);
-var _6a=dojo.hitch(this,function(){
-if(this.scale*2>5){
-return;
-}
-this.scale=this.scale*2;
-this.switchTeleMicroView(this.pixelsPerDay*this.scale);
-});
-dojo.disconnect(this.zoomInClickEvent);
-this.zoomInClickEvent=dojo.connect(_69,"onclick",this,_6a);
-dojo.disconnect(this.zoomInKeyEvent);
-this.zoomInKeyEvent=dojo.connect(_69,"onkeydown",this,function(e){
-if(e.keyCode!=dojo.keys.ENTER){
-return;
-}
-_6a();
-});
-dojo.attr(_69,"tabIndex",0);
-var _6b=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttToolbarZoomOut"},_65);
-var _6c=dojo.hitch(this,function(){
-if(this.scale*0.5<0.2){
-return;
-}
-this.scale=this.scale*0.5;
-this.switchTeleMicroView(this.pixelsPerDay*this.scale);
-});
-dojo.disconnect(this.zoomOutClickEvent);
-this.zoomOutClickEvent=dojo.connect(_6b,"onclick",this,_6c);
-dojo.disconnect(this.zoomOutKeyEvent);
-this.zoomOutKeyEvent=dojo.connect(_6b,"onkeydown",this,function(e){
-if(e.keyCode!=dojo.keys.ENTER){
-return;
-}
-_6c();
-});
-dojo.attr(_6b,"tabIndex",0);
-var _6d=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttToolbarMicro"},_66);
-dojo.disconnect(this.microClickEvent);
-this.microClickEvent=dojo.connect(_6d,"onclick",this,dojo.hitch(this,this.refresh,this.animation?15:1,0,2));
-dojo.disconnect(this.microKeyEvent);
-this.microKeyEvent=dojo.connect(_6d,"onkeydown",this,function(e){
-if(e.keyCode!=dojo.keys.ENTER){
-return;
-}
-_6d.blur();
-this.refresh(this.animation?15:1,0,2);
-});
-dojo.attr(_6d,"tabIndex",0);
-var _6e=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttToolbarTele"},_66);
-dojo.disconnect(this.teleClickEvent);
-this.teleClickEvent=dojo.connect(_6e,"onclick",this,dojo.hitch(this,this.refresh,this.animation?15:1,0,0.5));
-dojo.disconnect(this.teleKeyEvent);
-this.teleKeyEvent=dojo.connect(_6e,"onkeydown",this,function(e){
-if(e.keyCode!=dojo.keys.ENTER){
-return;
-}
-_6e.blur();
-this.refresh(this.animation?15:1,0,0.5);
-});
-dojo.attr(_6e,"tabIndex",0);
-var _6f=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttToolbarSave"},_67);
-dojo.disconnect(this.saveClickEvent);
-this.saveClickEvent=dojo.connect(_6f,"onclick",this,dojo.hitch(this,this.saveJSONData,""));
-dojo.disconnect(this.saveKeyEvent);
-this.saveKeyEvent=dojo.connect(_6f,"onkeydown",this,function(e){
-if(e.keyCode!=dojo.keys.ENTER){
-return;
-}
-this.saveJSONData("");
-});
-dojo.attr(_6f,"tabIndex",0);
-var _70=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttToolbarLoad"},_67);
-dojo.disconnect(this.loadClickEvent);
-this.loadClickEvent=dojo.connect(_70,"onclick",this,dojo.hitch(this,this.loadJSONData,""));
-dojo.disconnect(this.loadKeyEvent);
-this.loadKeyEvent=dojo.connect(_70,"onkeydown",this,function(e){
-if(e.keyCode!=dojo.keys.ENTER){
-return;
-}
-this.loadJSONData("");
-});
-dojo.attr(_70,"tabIndex",0);
-var _71=[_69,_6b,_6d,_6e,_6f,_70],_72=["Enlarge timeline","Shrink timeline","Zoom in time zone(microscope view)","Zoom out time zone(telescope view)","Save gantt data to json file","Load gantt data from json file"];
-dojo.forEach(_71,function(_73,i){
-var _74=_72[i];
-var _75=function(){
-dojo.addClass(_73,"ganttToolbarActionHover");
-dijit.showTooltip(_74,_73,["above","below"]);
-};
-_73.onmouseover=_75;
-_73.onfocus=_75;
-var _76=function(){
-dojo.removeClass(_73,"ganttToolbarActionHover");
-_73&&dijit.hideTooltip(_73);
-};
-_73.onmouseout=_76;
-_73.onblur=_76;
-},this);
-return _63;
-},createPanelNamesTasks:function(){
-var _77=dojo.create("div",{innerHTML:"&nbsp;",className:"ganttPanelNames"});
-dojo.style(_77,{height:(this.contentHeight-this.panelTimeHeight-this.scrollBarWidth)+"px",width:this.maxWidthPanelNames+"px"});
-return _77;
-},createPanelTime:function(){
-var _78=dojo.create("div",{className:"ganttPanelTime"});
-var _79=dojo.create("table",{cellPadding:"0px",border:"0px",cellSpacing:"0px",bgColor:"#FFFFFF",className:"ganttTblTime"},_78);
-this.totalDays=this.countDays;
-var _7a=_79.insertRow(_79.rows.length),_7b=oldYear=new Date(this.startDate).getFullYear(),_7c=0;
-for(var i=0;i<this.countDays;i++,_7c++){
-var _7d=new Date(this.startDate);
-_7d.setDate(_7d.getDate()+i);
-_7b=_7d.getFullYear();
-if(_7b!=oldYear){
-this.addYearInPanelTime(_7a,_7c,oldYear);
-_7c=0;
-oldYear=_7b;
-}
-}
-this.addYearInPanelTime(_7a,_7c,_7b);
-dojo.style(_7a,"display","none");
-var _7e=_79.insertRow(_79.rows.length),_7f=oldMonth=new Date(this.startDate).getMonth(),_80=0,_81=1970;
-for(var i=0;i<this.countDays;i++,_80++){
-var _7d=new Date(this.startDate);
-_7d.setDate(_7d.getDate()+i);
-_7f=_7d.getMonth();
-_81=_7d.getFullYear();
-if(_7f!=oldMonth){
-this.addMonthInPanelTime(_7e,_80,oldMonth,_81);
-_80=0;
-oldMonth=_7f;
-}
-}
-this.addMonthInPanelTime(_7e,_80,_7f,_81);
-var _82=_79.insertRow(_79.rows.length),_83=oldWeek=dojo.date.locale._getWeekOfYear(new Date(this.startDate)),_80=0;
-for(var i=0;i<this.countDays;i++,_80++){
-var _7d=new Date(this.startDate);
-_7d.setDate(_7d.getDate()+i);
-_83=dojo.date.locale._getWeekOfYear(_7d);
-if(_83!=oldWeek){
-this.addWeekInPanelTime(_82,_80,oldWeek);
-_80=0;
-oldWeek=_83;
-}
-}
-this.addWeekInPanelTime(_82,_80,_83);
-var _84=_79.insertRow(_79.rows.length);
-for(var i=0;i<this.countDays;i++){
-this.addDayInPanelTime(_84);
-}
-var _85=_79.insertRow(_79.rows.length);
-for(var i=0;i<this.countDays;i++){
-this.addHourInPanelTime(_85);
-}
-dojo.style(_85,"display","none");
-return _78;
-},adjustPanelTime:function(_86){
-var _87=dojo.map(this.arrProjects,function(_88){
-return (parseInt(_88.projectItem[0].style.left)+parseInt(_88.projectItem[0].firstChild.style.width)+_88.descrProject.offsetWidth+this.panelTimeExpandDelta);
-},this).sort(function(a,b){
-return b-a;
-})[0];
-if(this.maxTaskEndPos!=_87){
-var _89=this.panelTime.firstChild.firstChild.rows;
-for(var i=0;i<=4;i++){
-this.removeCell(_89[i]);
-}
-var _8a=Math.round((_87+this.panelTimeExpandDelta)/this.pixelsPerDay);
-this.totalDays=_8a;
-var _8b=oldYear=new Date(this.startDate).getFullYear(),_8c=0;
-for(var i=0;i<_8a;i++,_8c++){
-var _8d=new Date(this.startDate);
-_8d.setDate(_8d.getDate()+i);
-_8b=_8d.getFullYear();
-if(_8b!=oldYear){
-this.addYearInPanelTime(_89[0],_8c,oldYear);
-_8c=0;
-oldYear=_8b;
-}
-}
-this.addYearInPanelTime(_89[0],_8c,_8b);
-var _8e=oldMonth=new Date(this.startDate).getMonth(),_8f=0,_90=1970;
-for(var i=0;i<_8a;i++,_8f++){
-var _8d=new Date(this.startDate);
-_8d.setDate(_8d.getDate()+i);
-_8e=_8d.getMonth();
-_90=_8d.getFullYear();
-if(_8e!=oldMonth){
-this.addMonthInPanelTime(_89[1],_8f,oldMonth,_90);
-_8f=0;
-oldMonth=_8e;
-}
-}
-this.addMonthInPanelTime(_89[1],_8f,_8e,_90);
-var _91=oldWeek=dojo.date.locale._getWeekOfYear(new Date(this.startDate)),_8f=0;
-for(var i=0;i<_8a;i++,_8f++){
-var _8d=new Date(this.startDate);
-_8d.setDate(_8d.getDate()+i);
-_91=dojo.date.locale._getWeekOfYear(_8d);
-if(_91!=oldWeek){
-this.addWeekInPanelTime(_89[2],_8f,oldWeek);
-_8f=0;
-oldWeek=_91;
-}
-}
-this.addWeekInPanelTime(_89[2],_8f,_91);
-for(var i=0;i<_8a;i++){
-this.addDayInPanelTime(_89[3]);
-}
-for(var i=0;i<_8a;i++){
-this.addHourInPanelTime(_89[4]);
-}
-this.panelTime.firstChild.firstChild.style.width=this.pixelsPerDay*(_89[3].cells.length)+"px";
-this.contentData.firstChild.style.width=this.pixelsPerDay*(_89[3].cells.length)+"px";
-this.maxTaskEndPos=_87;
-}
-},addYearInPanelTime:function(row,_92,_93){
-var _94="Year   "+_93;
-var _95=dojo.create("td",{colSpan:_92,align:"center",vAlign:"middle",className:"ganttYearNumber",innerHTML:this.pixelsPerDay*_92>20?_94:"",innerHTMLData:_94},row);
-dojo.style(_95,"width",(this.pixelsPerDay*_92)+"px");
-},addMonthInPanelTime:function(row,_96,_97,_98){
-var _99=this.months[_97]+(_98?" of "+_98:"");
-var _9a=dojo.create("td",{colSpan:_96,align:"center",vAlign:"middle",className:"ganttMonthNumber",innerHTML:this.pixelsPerDay*_96>30?_99:"",innerHTMLData:_99},row);
-dojo.style(_9a,"width",(this.pixelsPerDay*_96)+"px");
-},addWeekInPanelTime:function(row,_9b,_9c){
-var _9d="Week   "+_9c;
-var _9e=dojo.create("td",{colSpan:_9b,align:"center",vAlign:"middle",className:"ganttWeekNumber",innerHTML:this.pixelsPerDay*_9b>20?_9d:"",innerHTMLData:_9d},row);
-dojo.style(_9e,"width",(this.pixelsPerDay*_9b)+"px");
-},addDayInPanelTime:function(row){
-var _9f=new Date(this.startDate);
-_9f.setDate(_9f.getDate()+parseInt(row.cells.length));
-var _a0=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttDayNumber",innerHTML:this.pixelsPerDay>20?_9f.getDate():"",innerHTMLData:String(_9f.getDate()),data:row.cells.length},row);
-dojo.style(_a0,"width",this.pixelsPerDay+"px");
-(_9f.getDay()>=5)&&dojo.addClass(_a0,"ganttDayNumberWeekend");
-this._events.push(dojo.connect(_a0,"onmouseover",this,function(_a1){
-var _a2=_a1.target||_a1.srcElement;
-var _a3=new Date(this.startDate.getTime());
-_a3.setDate(_a3.getDate()+parseInt(dojo.attr(_a2,"data")));
-dijit.showTooltip(_a3.getFullYear()+"."+(_a3.getMonth()+1)+"."+_a3.getDate(),_a0,["above","below"]);
-}));
-this._events.push(dojo.connect(_a0,"onmouseout",this,function(_a4){
-var _a5=_a4.target||_a4.srcElement;
-_a5&&dijit.hideTooltip(_a5);
-}));
-},addHourInPanelTime:function(row){
-var _a6=dojo.create("td",{align:"center",vAlign:"middle",className:"ganttHourNumber",data:row.cells.length},row);
-dojo.style(_a6,"width",this.pixelsPerDay+"px");
-var _a7=dojo.create("table",{cellPadding:"0",cellSpacing:"0"},_a6);
-var _a8=_a7.insertRow(_a7.rows.length);
-for(var i=0;i<this.hsPerDay;i++){
-var _a9=dojo.create("td",{className:"ganttHourClass"},_a8);
-dojo.style(_a9,"width",(this.pixelsPerDay/this.hsPerDay)+"px");
-dojo.attr(_a9,"innerHTMLData",String(9+i));
-if(this.pixelsPerDay/this.hsPerDay>5){
-dojo.attr(_a9,"innerHTML",String(9+i));
-}
-dojo.addClass(_a9,i<=3?"ganttHourNumberAM":"ganttHourNumberPM");
-}
-},incHeightPanelTasks:function(_aa){
-var _ab=this.contentData.firstChild;
-_ab.style.height=parseInt(_ab.style.height)+_aa+"px";
-},incHeightPanelNames:function(_ac){
-var _ad=this.panelNames.firstChild;
-_ad.style.height=parseInt(_ad.style.height)+_ac+"px";
-},checkPosition:function(){
-dojo.forEach(this.arrProjects,function(_ae){
-dojo.forEach(_ae.arrTasks,function(_af){
-_af.checkPosition();
-},this);
-},this);
-},checkHeighPanelTasks:function(){
-this.contentDataHeight+=this.heightTaskItemExtra+this.heightTaskItem;
-if((parseInt(this.contentData.firstChild.style.height)<=this.contentDataHeight)){
-this.incHeightPanelTasks(this.heightTaskItem+this.heightTaskItemExtra);
-this.incHeightPanelNames(this.heightTaskItem+this.heightTaskItemExtra);
-}
-},sortTasksByStartTime:function(_b0){
-_b0.parentTasks.sort(this.sortTaskStartTime);
-for(var i=0;i<_b0.parentTasks.length;i++){
-_b0.parentTasks[i]=this.sortChildTasks(_b0.parentTasks[i]);
-}
-},sortChildTasks:function(_b1){
-_b1.cldTasks.sort(this.sortTaskStartTime);
-for(var i=0;i<_b1.cldTasks.length;i++){
-if(_b1.cldTasks[i].cldTasks.length>0){
-this.sortChildTasks(_b1.cldTasks[i]);
-}
-}
-return _b1;
-},refresh:function(_b2,_b3,_b4){
-if(this.arrProjects.length<=0){
-return;
-}
-if(this.arrProjects[0].arrTasks.length<=0){
-return;
-}
-if(!_b2||_b3>_b2){
-this.refreshController();
-if(this.resource){
-this.resource.refresh();
-}
-this.tempDayInPixels=0;
-this.panelNameHeadersCover&&dojo.style(this.panelNameHeadersCover,"display","none");
-return;
-}
-if(this.tempDayInPixels==0){
-this.tempDayInPixels=this.pixelsPerDay;
-}
-this.panelNameHeadersCover&&dojo.style(this.panelNameHeadersCover,"display","");
-var dip=this.tempDayInPixels+this.tempDayInPixels*(_b4-1)*Math.pow((_b3/_b2),2);
-this.refreshParams(dip);
-dojo.forEach(this.arrProjects,function(_b5){
-dojo.forEach(_b5.arrTasks,function(_b6){
-_b6.refresh();
-},this);
-_b5.refresh();
-},this);
-setTimeout(dojo.hitch(this,function(){
-this.refresh(_b2,++_b3,_b4);
-}),15);
-},switchTeleMicroView:function(dip){
-var _b7=this.panelTime.firstChild.firstChild;
-for(var i=0;i<5;i++){
-if(dip>40){
-dojo.style(_b7.rows[i],"display",(i==0||i==1)?"none":"");
-}else{
-if(dip<20){
-dojo.style(_b7.rows[i],"display",(i==2||i==4)?"none":"");
-}else{
-dojo.style(_b7.rows[i],"display",(i==0||i==4)?"none":"");
-}
-}
-}
-},refreshController:function(){
-this.contentData.firstChild.style.width=Math.max(1200,this.pixelsPerDay*this.totalDays)+"px";
-this.panelTime.firstChild.style.width=this.pixelsPerDay*this.totalDays+"px";
-this.panelTime.firstChild.firstChild.style.width=this.pixelsPerDay*this.totalDays+"px";
-this.switchTeleMicroView(this.pixelsPerDay);
-dojo.forEach(this.panelTime.firstChild.firstChild.rows,function(row){
-dojo.forEach(row.childNodes,function(td){
-var cs=parseInt(dojo.attr(td,"colSpan")||1);
-var _b8=dojo.trim(dojo.attr(td,"innerHTMLData")||"");
-if(_b8.length>0){
-dojo.attr(td,"innerHTML",this.pixelsPerDay*cs<20?"":_b8);
-}else{
-dojo.forEach(td.firstChild.rows[0].childNodes,function(td){
-var _b9=dojo.trim(dojo.attr(td,"innerHTMLData")||"");
-dojo.attr(td,"innerHTML",this.pixelsPerDay/this.hsPerDay>10?_b9:"");
-},this);
-}
-if(cs==1){
-dojo.style(td,"width",(this.pixelsPerDay*cs)+"px");
-if(_b8.length<=0){
-dojo.forEach(td.firstChild.rows[0].childNodes,function(td){
-dojo.style(td,"width",(this.pixelsPerDay*cs/this.hsPerDay)+"px");
-},this);
-}
-}
-},this);
-},this);
-},init:function(){
-this.startDate=this.getStartDate();
-dojo.style(this.content,{width:this.contentWidth+"px",height:this.contentHeight+"px"});
-this.tableControl=dojo.create("table",{cellPadding:"0",cellSpacing:"0",className:"ganttTabelControl"});
-var _ba=this.tableControl.insertRow(this.tableControl.rows.length);
-this.content.appendChild(this.tableControl);
-this.countDays=this.getCountDays();
-this.panelTime=dojo.create("div",{className:"ganttPanelTimeContainer"});
-dojo.style(this.panelTime,"height",this.panelTimeHeight+"px");
-this.panelTime.appendChild(this.createPanelTime());
-this.contentData=dojo.create("div",{className:"ganttContentDataContainer"});
-dojo.style(this.contentData,"height",(this.contentHeight-this.panelTimeHeight)+"px");
-this.contentData.appendChild(this.createPanelTasks());
-var _bb=dojo.create("td",{vAlign:"top"});
-this.panelNameHeaders=dojo.create("div",{className:"ganttPanelNameHeaders"},_bb);
-dojo.style(this.panelNameHeaders,{height:this.panelTimeHeight+"px",width:this.maxWidthPanelNames+"px"});
-this.panelNameHeaders.appendChild(this.createPanelNamesTasksHeader());
-this.panelNames=dojo.create("div",{className:"ganttPanelNamesContainer"},_bb);
-this.panelNames.appendChild(this.createPanelNamesTasks());
-_ba.appendChild(_bb);
-_bb=dojo.create("td",{vAlign:"top"});
-var _bc=dojo.create("div",{className:"ganttDivCell"});
-_bc.appendChild(this.panelTime);
-_bc.appendChild(this.contentData);
-_bb.appendChild(_bc);
-_ba.appendChild(_bb);
-dojo.style(this.panelNames,"height",(this.contentHeight-this.panelTimeHeight-this.scrollBarWidth)+"px");
-dojo.style(this.panelNames,"width",this.maxWidthPanelNames+"px");
-dojo.style(this.contentData,"width",(this.contentWidth-this.maxWidthPanelNames)+"px");
-dojo.style(this.contentData.firstChild,"width",this.pixelsPerDay*this.countDays+"px");
-dojo.style(this.panelTime,"width",(this.contentWidth-this.maxWidthPanelNames-this.scrollBarWidth)+"px");
-dojo.style(this.panelTime.firstChild,"width",this.pixelsPerDay*this.countDays+"px");
-if(this.isShowConMenu){
-this.tabMenu=new dojox.gantt.TabMenu(this);
-}
-var _bd=this;
-this.contentData.onscroll=function(){
-_bd.panelTime.scrollLeft=this.scrollLeft;
-if(_bd.panelNames){
-_bd.panelNames.scrollTop=this.scrollTop;
-if(_bd.isShowConMenu){
-_bd.tabMenu.hide();
-}
-}
-if(_bd.resource){
-_bd.resource.contentData.scrollLeft=this.scrollLeft;
-}
-};
-this.project.sort(this.sortProjStartDate);
-for(var i=0;i<this.project.length;i++){
-var _be=this.project[i];
-for(var k=0;k<_be.parentTasks.length;k++){
-var _bf=_be.parentTasks[k];
-if(!_bf.startTime){
-_bf.startTime=_be.startDate;
-}
-this.setStartTimeChild(_bf);
-if(this.setPreviousTask(_be)){
-return;
-}
-}
-for(var k=0;k<_be.parentTasks.length;k++){
-var _bf=_be.parentTasks[k];
-if(_bf.startTime<_be.startDate){
-if(!this.correctError){
-return;
-}else{
-_bf.startTime=_be.startDate;
-}
-}
-if(this.checkPosParentTaskInTree(_bf)){
-return;
-}
-}
-this.sortTasksByStartTime(_be);
-}
-for(var i=0;i<this.project.length;i++){
-var _be=this.project[i];
-var _c0=new dojox.gantt.GanttProjectControl(this,_be);
-if(this.arrProjects.length>0){
-var _c1=this.arrProjects[this.arrProjects.length-1];
-_c0.previousProject=_c1;
-_c1.nextProject=_c0;
-}
-_c0.create();
-this.checkHeighPanelTasks();
-this.arrProjects.push(_c0);
-this.createTasks(_c0);
-}
-if(this.withResource){
-this.resource=new dojox.gantt.GanttResourceItem(this);
-this.resource.create();
-}
-this.postLoadData();
-this.postBindEvents();
-return this;
-},postLoadData:function(){
-dojo.forEach(this.arrProjects,function(_c2){
-dojo.forEach(_c2.arrTasks,function(_c3){
-_c3.postLoadData();
-},this);
-_c2.postLoadData();
-},this);
-var _c4=dojo.coords(this.panelNameHeaders);
-if(!this.panelNameHeadersCover){
-this.panelNameHeadersCover=dojo.create("div",{className:"ganttHeaderCover"},this.panelNameHeaders.parentNode);
-dojo.style(this.panelNameHeadersCover,{left:_c4.l+"px",top:_c4.t+"px",height:_c4.h+"px",width:_c4.w+"px",display:"none"});
-}
-},postBindEvents:function(){
-var pos=dojo.position(this.tableControl,true);
-!dojo.isIE&&this._events.push(dojo.connect(this.tableControl,"onmousemove",this,function(_c5){
-var _c6=_c5.srcElement||_c5.target;
-if(_c6==this.panelNames.firstChild||_c6==this.contentData.firstChild){
-var _c7=this.heightTaskItem+this.heightTaskItemExtra;
-var _c8=parseInt(_c5.layerY/_c7)*_c7+this.panelTimeHeight-this.contentData.scrollTop;
-if(_c8!=this.oldHLTop&&_c8<(pos.h-50)){
-if(this.highLightDiv){
-dojo.style(this.highLightDiv,"top",(pos.y+_c8)+"px");
-}else{
-this.highLightDiv=dojo.create("div",{className:"ganttRowHighlight"},dojo.body());
-dojo.style(this.highLightDiv,{top:(pos.y+_c8)+"px",left:pos.x+"px",width:(pos.w-20)+"px",height:_c7+"px"});
-}
-}
-this.oldHLTop=_c8;
-}
-}));
-},getStartDate:function(){
-dojo.forEach(this.project,function(_c9){
-if(this.startDate){
-if(_c9.startDate<this.startDate){
-this.startDate=new Date(_c9.startDate);
-}
-}else{
-this.startDate=new Date(_c9.startDate);
-}
-},this);
-this.initialPos=24*this.pixelsPerHour;
-return this.startDate?new Date(this.startDate.setHours(this.startDate.getHours()-24)):new Date();
-},getCountDays:function(){
-return parseInt((this.contentWidth-this.maxWidthPanelNames)/(this.pixelsPerHour*24));
-},createTasks:function(_ca){
-dojo.forEach(_ca.project.parentTasks,function(_cb,i){
-if(i>0){
-_ca.project.parentTasks[i-1].nextParentTask=_cb;
-_cb.previousParentTask=_ca.project.parentTasks[i-1];
-}
-var _cc=new dojox.gantt.GanttTaskControl(_cb,_ca,this);
-_ca.arrTasks.push(_cc);
-_cc.create();
-this.checkHeighPanelTasks();
-if(_cb.cldTasks.length>0){
-this.createChildItemControls(_cb.cldTasks,_ca);
-}
-},this);
-},createChildItemControls:function(_cd,_ce){
-_cd&&dojo.forEach(_cd,function(_cf,i){
-if(i>0){
-_cf.previousChildTask=_cd[i-1];
-_cd[i-1].nextChildTask=_cf;
-}
-var _d0=new dojox.gantt.GanttTaskControl(_cf,_ce,this);
-_d0.create();
-this.checkHeighPanelTasks();
-if(_cf.cldTasks.length>0){
-this.createChildItemControls(_cf.cldTasks,_ce);
-}
-},this);
-},getPosOnDate:function(_d1){
-return (_d1-this.startDate)/(60*60*1000)*this.pixelsPerHour;
-},getWidthOnDuration:function(_d2){
-return Math.round(this.pixelsPerWorkHour*_d2);
-},getLastChildTask:function(_d3){
-return _d3.childTask.length>0?this.getLastChildTask(_d3.childTask[_d3.childTask.length-1]):_d3;
-},removeCell:function(row){
-while(row.cells[0]){
-row.deleteCell(row.cells[0]);
-}
-}});
+	dojo.declare("dojox.gantt.GanttChart", null, {
+		constructor: function(configuration, node){
+			this.resourceChartHeight = configuration.resourceChartHeight !== undefined ? configuration.resourceChartHeight : false;
+			this.withResource = configuration.withResource !== undefined ? configuration.withResource : true;
+			this.correctError = configuration.autoCorrectError !== undefined ? configuration.autoCorrectError : false;
+			this.isShowConMenu = this.isContentEditable = !configuration.readOnly;
+			this.withTaskId = configuration.withTaskId !== undefined ? configuration.withTaskId : !configuration.readOnly;
+			this.animation = configuration.animation !== undefined ? configuration.animation : true;
+			this.saveProgramPath = configuration.saveProgramPath  || "saveGanttData.php";
+			this.dataFilePath = configuration.dataFilePath  || "gantt_default.json";
+			this.contentHeight = configuration.height || 400;
+			this.contentWidth = configuration.width || 600;
+			this.content = dojo.byId(node);
+			this.scrollBarWidth = 18;
+			this.panelTimeHeight = 102;
+			this.maxWidthPanelNames = 150;
+			this.maxWidthTaskNames = 150;
+			this.minWorkLength = 8;
+			this.heightTaskItem = 12;
+			this.heightTaskItemExtra = 11;
+			this.pixelsPerDay = 24;//px
+			this.hsPerDay = 8;
+			this.pixelsPerWorkHour = this.pixelsPerDay / this.hsPerDay;//px
+			this.pixelsPerHour = this.pixelsPerDay / 24;//px
+			this.countDays = 0;
+			this.totalDays = 0;
+			this.startDate = null;
+			this.initialPos = 0;
+			
+			this.contentDataHeight = 0;
+			this.panelTimeExpandDelta = 20;
+			
+			this.divTimeInfo = null;
+			this.panelNames = null;
+			this.panelTime = null;
+			this.contentData = null;
+			this.tabMenu = null;
+			
+			this.project = [];
+			this.arrProjects = [];
+			
+			this.xmlLoader = null;
+			this.isMoving = false;
+			this.isResizing = false;
+			this.animationNodes = [];
+			this.scale = 1;
+			this.tempDayInPixels = 0;
+			this.resource = null;
+			this.months = dojo.date.locale.getNames("months", "wide");
+			this._events = [];
+		},
+		getProject: function(id){
+			return dojo.filter(this.arrProjects, function(proj){
+				return proj.project.id == id;
+			}, this)[0];
+		},
+		checkPosPreviousTask: function(predTask, task){
+			var widthPred = this.getWidthOnDuration(predTask.duration);
+			var posPred = this.getPosOnDate(predTask.startTime);
+			var posChild = this.getPosOnDate(task.startTime);
+			if((widthPred + posPred) > posChild){
+				return false;
+			}
+			return true;
+		},
+		correctPosPreviousTask: function(predTask, ctask, ctaskObj){
+			var newDate = new Date(predTask.startTime);
+			newDate.setHours(newDate.getHours() + (predTask.duration / this.hsPerDay * 24))
+			if(newDate.getHours() > 0){
+				newDate.setHours(0);
+				newDate.setDate(newDate.getDate() + 1);
+			}
+			ctaskObj ? (ctaskObj.setStartTime(newDate, true)) : (ctask.startTime = newDate);
+			if(ctask.parentTask){
+				if(!this.checkPosParentTask(ctask.parentTask, ctask)){
+					var newDate2 = new Date(ctask.parentTask.startTime);
+					newDate2.setHours(newDate2.getHours() + (ctask.parentTask.duration / this.hsPerDay * 24))
+					ctask.duration = parseInt((parseInt((newDate2 - ctask.startTime) / (1000 * 60 * 60))) * this.hsPerDay / 24);
+				}
+			}
+		},
+		correctPosParentTask: function(parentTask, ctask){
+			if(!ctask.previousTask){
+				if(parentTask.startTime > ctask.startTime){
+					ctask.startTime = new Date(parentTask.startTime);
+				}
+				if(!this.checkPosParentTask(parentTask, ctask)){
+					ctask.duration = parentTask.duration;
+				}
+			}else{
+				this.correctPosPreviousTask(ctask.previousTask, ctask);
+			}
+		},
+		checkPosParentTaskInTree: function(parentTask){
+			var exception = false;
+			for(var i = 0; i < parentTask.cldTasks.length; i++){
+				var pcTask = parentTask.cldTasks[i];
+				if(!this.checkPosParentTask(parentTask, pcTask)){
+					if(!this.correctError){
+						return true;
+					}else{
+						this.correctPosParentTask(parentTask, pcTask);
+					}
+				}
+				if(parentTask.startTime > pcTask.startTime){
+					if(!this.correctError){
+						return true;
+					}else{
+						this.correctPosParentTask(parentTask, pcTask);
+					}
+				}
+				if(pcTask.cldTasks.length > 0){
+					exception = this.checkPosParentTaskInTree(pcTask);
+				}
+			}
+			return exception;
+		},
+		setPreviousTask: function(project){
+			var exception = false;
+			for(var i = 0; i < project.parentTasks.length; i++){
+				var ppTask = project.parentTasks[i];
+				if(ppTask.previousTaskId){
+					ppTask.previousTask = project.getTaskById(ppTask.previousTaskId);
+					if(!ppTask.previousTask){
+						if(!this.correctError){
+							return true;
+						}
+					}
+					ppTask.previousTask.cldPreTasks.push(ppTask);
+				}
+				if(ppTask.previousTask){
+					if(!this.checkPosPreviousTask(ppTask.previousTask, ppTask)){
+						if(!this.correctError){
+							return true;
+						}else{
+							this.correctPosPreviousTask(ppTask.previousTask, ppTask);
+						}
+					}
+				}
+				exception = this.setPreviousTaskInTree(ppTask);
+			}
+			return exception;
+		},
+		setPreviousTaskInTree: function(parentTask){
+			var exception = false;
+			for(var i = 0; i < parentTask.cldTasks.length; i++){
+				var pcTask = parentTask.cldTasks[i];
+				if(pcTask.previousTaskId){
+					pcTask.previousTask = parentTask.project.getTaskById(pcTask.previousTaskId);
+					if(!pcTask.previousTask){
+						if(!this.correctError){
+							return true;
+						}
+					}
+					if(!this.checkPosPreviousTask(pcTask.previousTask, pcTask)){
+						if(!this.correctError){
+							return true;
+						}else{
+							this.correctPosPreviousTask(pcTask.previousTask, pcTask);
+						}
+					}
+					pcTask.previousTask.cldPreTasks.push(pcTask);
+				}
+				
+				if(pcTask.cldTasks.length > 0){
+					exception = this.setPreviousTaskInTree(pcTask);
+				}
+			}
+			return exception;
+		},
+		checkPosParentTask: function(parentTask, task){
+			var widthParent = this.getWidthOnDuration(parentTask.duration);
+			var posParent = this.getPosOnDate(parentTask.startTime);
+			var posChild = this.getPosOnDate(task.startTime);
+			var widthChild = this.getWidthOnDuration(task.duration);
+			return (widthParent + posParent) >= (posChild + widthChild);
+		},
+		addProject: function(projectItem){
+			this.project.push(projectItem);
+		},
+		deleteProject: function(id){
+			var project = this.getProject(id);
+			if(project){
+				if(project.arrTasks.length > 0){
+					while(project.arrTasks.length > 0){
+						project.deleteChildTask(project.arrTasks[0]);
+					}
+				}
+				var rowHeight = this.heightTaskItemExtra + this.heightTaskItem;
+				project.nextProject && project.shiftNextProject(project, -rowHeight); //rowHeight: 23
+				this.project = dojo.filter(this.project, function(proj){
+					return proj.id != project.project.id;
+				}, this);
+				if((project.previousProject) && (project.nextProject)){
+					var previousProject = project.previousProject;
+					previousProject.nextProject = project.nextProject;
+				}
+				if((project.previousProject) && !(project.nextProject)){
+					var previousProject = project.previousProject;
+					previousProject.nextProject = null;
+				}
+				if(!(project.previousProject) && (project.nextProject)){
+					var nextProject = project.nextProject;
+					nextProject.previousProject = null;
+				}
+				for(var i = 0; i < this.arrProjects.length; i++){
+					if(this.arrProjects[i].project.id == id){
+						this.arrProjects.splice(i, 1);
+					}
+				}
+				project.projectItem[0].parentNode.removeChild(project.projectItem[0]);
+				project.descrProject.parentNode.removeChild(project.descrProject);
+				project.projectNameItem.parentNode.removeChild(project.projectNameItem);
+				this.contentDataHeight -= this.heightTaskItemExtra + this.heightTaskItem;
+				if(this.project.length == 0){
+					var d = new Date(this.startDate);
+					var t = new Date(d.setDate(d.getDate() + 1));
+					var pi = new dojox.gantt.GanttProjectItem({
+						id: 1,
+						name: "New Project",
+						startDate: t
+					});
+					this.project.push(pi);
+					var project = new dojox.gantt.GanttProjectControl(this, pi);
+					project.create();
+					this.arrProjects.push(project);
+					this.contentDataHeight += this.heightTaskItemExtra + this.heightTaskItem;
+				}
+				this.checkPosition();
+			}
+		},
+		insertProject: function(id, name, startDate){
+			if(this.startDate >= startDate){
+				return false;
+			}
+			if(this.getProject(id)){
+				return false;
+			}
+			this.checkHeighPanelTasks();
+			var project = new dojox.gantt.GanttProjectItem({
+				id: id,
+				name: name,
+				startDate: startDate
+			});
+			this.project.push(project);
+			var _project = new dojox.gantt.GanttProjectControl(this, project);
+			for(var i = 0; i < this.arrProjects.length; i++){
+				var curProject = this.arrProjects[i],
+					preProject = this.arrProjects[i-1],
+					nextProject = this.arrProjects[i+1];
+				if(startDate < curProject.project.startDate){
+					this.arrProjects.splice(i, 0, _project);
+					if(i > 0){
+						_project.previousProject = preProject;
+						preProject.nextProject = _project;
+					}
+					if(i + 1 <= this.arrProjects.length){
+						_project.nextProject = nextProject;
+						nextProject.previousProject = _project;
+						var rowHeight = this.heightTaskItem + this.heightTaskItemExtra;
+						_project.shiftNextProject(_project, rowHeight);
+					}
+					_project.create();
+					_project.hideDescrProject();
+					this.checkPosition();
+					return _project;
+				}
+			}
+			if(this.arrProjects.length > 0){
+				this.arrProjects[this.arrProjects.length - 1].nextProject = _project;
+				_project.previousProject = this.arrProjects[this.arrProjects.length - 1];
+			}
+			this.arrProjects.push(_project);
+			_project.create();
+			_project.hideDescrProject();
+			this.checkPosition();
+			return _project;
+		},
+		openTree: function(parentTask){
+			var lastParentTask = this.getLastCloseParent(parentTask);
+			this.openNode(lastParentTask);
+			parentTask.taskItem.id != lastParentTask.taskItem.id && this.openTree(parentTask);
+		},
+		openNode: function(parentTask){
+			if(!parentTask.isExpanded){
+				dojo.removeClass(parentTask.cTaskNameItem[2], "ganttImageTreeExpand");
+				dojo.addClass(parentTask.cTaskNameItem[2], "ganttImageTreeCollapse");
+				parentTask.isExpanded = true;
+				parentTask.shiftCurrentTasks(parentTask, parentTask.hideTasksHeight);
+				parentTask.showChildTasks(parentTask, parentTask.isExpanded);
+				parentTask.hideTasksHeight = 0;
+			}
+		},
+		getLastCloseParent: function(task){
+			if(task.parentTask){
+				if((!task.parentTask.isExpanded) ||
+				(task.parentTask.cTaskNameItem[2].style.display == "none")){
+					return this.getLastCloseParent(task.parentTask);
+				}else{
+					return task;
+				}
+			}else{
+				return task;
+			}
+		},
+		getProjectItemById: function(id){
+			return dojo.filter(this.project, function(proj){
+				return proj.id == id;
+			}, this)[0];
+		},
+		clearAll: function(){
+			this.contentDataHeight = 0;
+			this.startDate = null;
+			this.clearData();
+			this.clearItems();
+			this.clearEvents();
+		},
+		clearEvents: function(){
+			dojo.forEach(this._events, dojo.disconnect);
+			this._events = [];
+		},
+		clearData: function(){
+			this.project = [];
+			this.arrProjects = [];
+		},
+		clearItems: function(){
+			this.contentData.removeChild(this.contentData.firstChild);
+			this.contentData.appendChild(this.createPanelTasks());
+			this.panelNames.removeChild(this.panelNames.firstChild);
+			this.panelNames.appendChild(this.createPanelNamesTasks());
+			this.panelTime.removeChild(this.panelTime.firstChild);
+		},
+		buildUIContent: function(){
+			this.project.sort(this.sortProjStartDate);
+			this.startDate = this.getStartDate();
+			this.panelTime.appendChild(this.createPanelTime());
+			for(var i = 0; i < this.project.length; i++){
+				var proj = this.project[i];
+				for(var k = 0; k < proj.parentTasks.length; k++){
+					var ppTask = proj.parentTasks[k];
+					if(ppTask.startTime){
+						this.setStartTimeChild(ppTask);
+					}else{
+						return;
+					}
+					if(this.setPreviousTask(proj)){
+						return;
+					}
+				}
+				for(var k = 0; k < proj.parentTasks.length; k++){
+					var ppTask = proj.parentTasks[k];
+					if(ppTask.startTime < proj.startDate){
+						return;
+					}
+					if(this.checkPosParentTaskInTree(ppTask)) return;
+				}
+				this.sortTasksByStartTime(proj);
+			}
+			
+			for(var i = 0; i < this.project.length; i++){
+				var proj = this.project[i];
+				var project = new dojox.gantt.GanttProjectControl(this, proj);
+				if(this.arrProjects.length > 0){
+					var previousProject = this.arrProjects[this.arrProjects.length - 1];
+					project.previousProject = previousProject;
+					previousProject.nextProject = project;
+				}
+				project.create();
+				this.checkHeighPanelTasks();
+				this.arrProjects.push(project);
+				this.createTasks(project);
+			}
+			this.resource && this.resource.reConstruct();
+			this.postLoadData();
+			this.postBindEvents();
+		},
+		loadJSONData: function(filename){
+			var _this = this;
+			_this.dataFilePath = filename || _this.dataFilePath;
+			dojo.xhrGet({
+				url: _this.dataFilePath,
+				sync: true,
+				load: function(text, ioArgs){
+					_this.loadJSONString(text);
+					_this.buildUIContent();
+					alert("Successfully! Loaded data from: " + _this.dataFilePath);
+				},
+				error: function(err, ioArgs){
+					alert("Failed! Load error: " + _this.dataFilePath);
+				}
+			});
+		},
+		loadJSONString: function(content){
+			//load data
+			if(!content){ return; }
+			this.clearAll();
+			var jsonObj = dojo.fromJson(content);
+			
+			var items = jsonObj.items;
+			dojo.forEach(items, function(pItem){
+				var startDate = pItem.startdate.split("-");
+				var project = new dojox.gantt.GanttProjectItem({
+					id: pItem.id,
+					name: pItem.name,
+					startDate: new Date(startDate[0], (parseInt(startDate[1]) - 1), startDate[2])
+				});
+				var tItems = pItem.tasks;
+				dojo.forEach(tItems, function(tItem){
+					var id = tItem.id,
+						name = tItem.name,
+						starttime = tItem.starttime.split("-");
+						duration = tItem.duration,
+						percentage = tItem.percentage,
+						previousTaskId = tItem.previousTaskId,
+						taskOwner = tItem.taskOwner;
+					
+					var task = new dojox.gantt.GanttTaskItem({
+						id: id,
+						name: name,
+						startTime: new Date(starttime[0], (parseInt(starttime[1]) - 1), starttime[2]),
+						duration: duration,
+						percentage: percentage,
+						previousTaskId: previousTaskId,
+						taskOwner: taskOwner
+					});
+					var ctItems = tItem.children;
+					if(ctItems.length != 0){
+						this.buildChildTasksData(task, ctItems);
+					}
+					project.addTask(task);
+				}, this);
+				this.addProject(project);
+			 }, this);
+		},
+		buildChildTasksData: function(parentTask, childTaskItems){
+			childTaskItems && dojo.forEach(childTaskItems, function(ctItem){
+				var id = ctItem.id,
+					name = ctItem.name,
+					starttime = ctItem.starttime.split("-"),
+					duration = ctItem.duration,
+					percentage = ctItem.percentage,
+					previousTaskId = ctItem.previousTaskId,
+					taskOwner = ctItem.taskOwner;
+				
+				var task = new dojox.gantt.GanttTaskItem({
+					id: id,
+					name: name,
+					startTime: new Date(starttime[0], (parseInt(starttime[1]) - 1), starttime[2]),
+					duration: duration,
+					percentage: percentage,
+					previousTaskId: previousTaskId,
+					taskOwner: taskOwner
+				});
+				task.parentTask = parentTask;
+				parentTask.addChildTask(task);
+				
+				var ctItems = ctItem.children;
+				if(ctItems.length != 0){
+					this.buildChildTasksData(task, ctItems);
+				}
+			}, this);
+		},
+		getJSONData: function(){
+			var jsonObj = {identifier: 'id', items: []};
+			dojo.forEach(this.project, function(proj){
+				var project = {
+					id: proj.id,
+					name: proj.name,
+					startdate: proj.startDate.getFullYear() + '-' + (proj.startDate.getMonth() + 1) + '-' + proj.startDate.getDate(),
+					tasks: []
+				};
+				jsonObj.items.push(project);
+				dojo.forEach(proj.parentTasks, function(pTask){
+					var task = {
+						id: pTask.id,
+						name: pTask.name,
+						starttime: pTask.startTime.getFullYear() + '-' + (pTask.startTime.getMonth() + 1) + '-' + pTask.startTime.getDate(),
+						duration: pTask.duration,
+						percentage: pTask.percentage,
+						previousTaskId: (pTask.previousTaskId || ''),
+						taskOwner: (pTask.taskOwner || ''),
+						children: this.getChildTasksData(pTask.cldTasks)
+					};
+					project.tasks.push(task);
+				}, this);
+			}, this);
+			return jsonObj;
+		},
+		getChildTasksData: function(childTasks){
+			var cTaskObj = [];
+			childTasks && childTasks.length > 0 && dojo.forEach(childTasks, function(childTask){
+				var ctask = {
+					id: childTask.id,
+					name: childTask.name,
+					starttime: childTask.startTime.getFullYear() + '-' + (childTask.startTime.getMonth() + 1) + '-' + childTask.startTime.getDate(),
+					duration: childTask.duration,
+					percentage: childTask.percentage,
+					previousTaskId: (childTask.previousTaskId || ''),
+					taskOwner: (childTask.taskOwner || ''),
+					children: this.getChildTasksData(childTask.cldTasks)
+				};
+				cTaskObj.push(ctask);
+			}, this);
+			return cTaskObj;
+		},
+		saveJSONData: function(fileName){
+			var _this = this;
+			_this.dataFilePath = (fileName && dojo.trim(fileName).length > 0) ? fileName : this.dataFilePath;
+			try {
+				var td = dojo.xhrPost({
+					url: _this.saveProgramPath,
+					content: {filename: _this.dataFilePath, data: dojo.toJson(_this.getJSONData())},
+					handle: function(res, ioArgs){
+						if((dojo._isDocumentOk(ioArgs.xhr))||
+							(ioArgs.xhr.status == 405)
+						){
+							alert("Successfully! Saved data to " + _this.dataFilePath);
+						}else{
+							alert("Failed! Saved error");
+						}
+					}
+				});
+			} catch (e){
+				alert("exception: " + e.message);
+			}
+		},
+		sortTaskStartTime: function(a, b){
+			return a.startTime < b.startTime ? -1 : (a.startTime > b.startTime ? 1 : 0);
+		},
+		sortProjStartDate: function(a, b){
+			return a.startDate < b.startDate ? -1 : (a.startDate > b.startDate ? 1 : 0);
+		},
+		setStartTimeChild: function(parentTask){
+			dojo.forEach(parentTask.cldTasks, function(pcTask){
+				if(!pcTask.startTime){
+					pcTask.startTime = parentTask.startTime;
+				}
+				if(pcTask.cldTasks.length != 0){
+					this.setStartTimeChild(pcTask);
+				}
+			}, this);
+		},
+		createPanelTasks: function(){
+			var panelTask = dojo.create("div", {
+				className: "ganttTaskPanel"
+			});
+			dojo.style(panelTask, {
+				height: (this.contentHeight - this.panelTimeHeight - this.scrollBarWidth) + "px"
+			});
+			return panelTask;
+		},
+		refreshParams: function(pixelsPerDay){
+			this.pixelsPerDay = pixelsPerDay;
+			this.pixelsPerWorkHour = this.pixelsPerDay / this.hsPerDay;
+			this.pixelsPerHour = this.pixelsPerDay / 24;
+		},
+		createPanelNamesTasksHeader: function(){
+			var _this = this;
+			var panelHeader = dojo.create("div", {className: "ganttPanelHeader"});
+			var tblHeader = dojo.create("table", {
+				cellPadding: "0px",
+				border: "0px",
+				cellSpacing: "0px",
+				bgColor: "#FFFFFF",
+				className: "ganttToolbar"
+			}, panelHeader);
+			var firstRow = tblHeader.insertRow(tblHeader.rows.length);
+			var secondRow = tblHeader.insertRow(tblHeader.rows.length);
+			var thirdRow = tblHeader.insertRow(tblHeader.rows.length);
+			var forthRow = tblHeader.insertRow(tblHeader.rows.length);
+			var zoomIn = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttToolbarZoomIn"
+			}, firstRow);
+			var zoomInFn = dojo.hitch(this, function(){
+				if(this.scale * 2 > 5){return;}
+				this.scale = this.scale * 2;
+				this.switchTeleMicroView(this.pixelsPerDay * this.scale);
+			});
+			dojo.disconnect(this.zoomInClickEvent);
+			this.zoomInClickEvent = dojo.connect(zoomIn, "onclick", this, zoomInFn);
+			//a11y support
+			dojo.disconnect(this.zoomInKeyEvent);
+			this.zoomInKeyEvent = dojo.connect(zoomIn, "onkeydown", this, function(e){
+				if(e.keyCode != dojo.keys.ENTER){return;}
+				zoomInFn();
+			});
+			dojo.attr(zoomIn, "tabIndex", 0);
+			var zoomOut = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttToolbarZoomOut"
+			}, firstRow);
+			var zoomOutFn = dojo.hitch(this, function(){
+				if(this.scale * 0.5 < 0.2){return;}
+				this.scale = this.scale * 0.5;
+				this.switchTeleMicroView(this.pixelsPerDay * this.scale);
+			});
+			dojo.disconnect(this.zoomOutClickEvent);
+			this.zoomOutClickEvent = dojo.connect(zoomOut, "onclick", this, zoomOutFn);
+			//a11y support
+			dojo.disconnect(this.zoomOutKeyEvent);
+			this.zoomOutKeyEvent = dojo.connect(zoomOut, "onkeydown", this, function(e){
+				if(e.keyCode != dojo.keys.ENTER){return;}
+				zoomOutFn();
+			});
+			dojo.attr(zoomOut, "tabIndex", 0);
+			var micro = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttToolbarMicro"
+			}, secondRow);
+			dojo.disconnect(this.microClickEvent);
+			this.microClickEvent = dojo.connect(micro, "onclick", this, dojo.hitch(this, this.refresh, this.animation?15:1, 0, 2));
+			//a11y support
+			dojo.disconnect(this.microKeyEvent);
+			this.microKeyEvent = dojo.connect(micro, "onkeydown", this, function(e){
+				if(e.keyCode != dojo.keys.ENTER){return;}
+				micro.blur();
+				this.refresh(this.animation?15:1, 0, 2);
+			});
+			dojo.attr(micro, "tabIndex", 0);
+			var tele = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttToolbarTele"
+			}, secondRow);
+			dojo.disconnect(this.teleClickEvent);
+			this.teleClickEvent = dojo.connect(tele, "onclick", this, dojo.hitch(this, this.refresh, this.animation?15:1, 0, 0.5));
+			//a11y support
+			dojo.disconnect(this.teleKeyEvent);
+			this.teleKeyEvent = dojo.connect(tele, "onkeydown", this, function(e){
+				if(e.keyCode != dojo.keys.ENTER){return;}
+				tele.blur();
+				this.refresh(this.animation?15:1, 0, 0.5);
+			});
+			dojo.attr(tele, "tabIndex", 0);
+			var save = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttToolbarSave"
+			}, thirdRow);
+			dojo.disconnect(this.saveClickEvent);
+			this.saveClickEvent = dojo.connect(save, "onclick", this, dojo.hitch(this, this.saveJSONData, ""));
+			//a11y support
+			dojo.disconnect(this.saveKeyEvent);
+			this.saveKeyEvent = dojo.connect(save, "onkeydown", this, function(e){
+				if(e.keyCode != dojo.keys.ENTER){return;}
+				this.saveJSONData("");
+			});
+			dojo.attr(save, "tabIndex", 0);
+			var load = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttToolbarLoad"
+			}, thirdRow);
+			dojo.disconnect(this.loadClickEvent);
+			this.loadClickEvent = dojo.connect(load, "onclick", this, dojo.hitch(this, this.loadJSONData, ""));
+			//a11y support
+			dojo.disconnect(this.loadKeyEvent);
+			this.loadKeyEvent = dojo.connect(load, "onkeydown", this, function(e){
+				if(e.keyCode != dojo.keys.ENTER){return;}
+				this.loadJSONData("");
+			});
+			dojo.attr(load, "tabIndex", 0);
+			//action popup description
+			var actions = [zoomIn, zoomOut, micro, tele, save, load],
+				titles = ["Enlarge timeline", "Shrink timeline", "Zoom in time zone(microscope view)", "Zoom out time zone(telescope view)",
+							"Save gantt data to json file", "Load gantt data from json file"];
+			dojo.forEach(actions, function(action, i){
+				var title = titles[i];
+				var tooltipShow = function(){
+					dojo.addClass(action, "ganttToolbarActionHover");
+					dijit.showTooltip(title, action, ["above", "below"]);
+				};
+				action.onmouseover = tooltipShow;
+				//a11y support
+				action.onfocus = tooltipShow;
+				var tooltipHide = function(){
+					dojo.removeClass(action, "ganttToolbarActionHover");
+					action && dijit.hideTooltip(action);
+				};
+				action.onmouseout = tooltipHide;
+				action.onblur = tooltipHide;
+			}, this);
+			return panelHeader;
+		},
+		createPanelNamesTasks: function(){
+			var panelNameTask = dojo.create("div", {
+				innerHTML: "&nbsp;",
+				className: "ganttPanelNames"
+			});
+			dojo.style(panelNameTask, {
+				height: (this.contentHeight - this.panelTimeHeight - this.scrollBarWidth) + "px",
+				width: this.maxWidthPanelNames + "px"
+			});
+			return panelNameTask;
+		},
+		createPanelTime: function(){
+			var panelTime = dojo.create("div", {className: "ganttPanelTime"});
+			var tblTime = dojo.create("table", {
+				cellPadding: "0px",
+				border: "0px",
+				cellSpacing: "0px",
+				bgColor: "#FFFFFF",
+				className: "ganttTblTime"
+			}, panelTime);
+			this.totalDays = this.countDays;
+			//year
+			var newYearRow = tblTime.insertRow(tblTime.rows.length), newYear = oldYear = new Date(this.startDate).getFullYear(), ycount = 0;
+			for(var i = 0; i < this.countDays; i++, ycount++){
+				var date = new Date(this.startDate);
+				date.setDate(date.getDate() + i);
+				newYear = date.getFullYear();
+				if(newYear != oldYear){
+					this.addYearInPanelTime(newYearRow, ycount, oldYear);
+					ycount = 0;
+					oldYear = newYear;
+				}
+			}
+			this.addYearInPanelTime(newYearRow, ycount, newYear);
+			dojo.style(newYearRow, "display", "none");
+			//month
+			var newMonthRow = tblTime.insertRow(tblTime.rows.length), newMonth = oldMonth = new Date(this.startDate).getMonth(), mcount = 0, lastYear = 1970;
+			for(var i = 0; i < this.countDays; i++, mcount++){
+				var date = new Date(this.startDate);
+				date.setDate(date.getDate() + i);
+				newMonth = date.getMonth();
+				lastYear = date.getFullYear();
+				if(newMonth != oldMonth){
+					this.addMonthInPanelTime(newMonthRow, mcount, oldMonth, lastYear);
+					mcount = 0;
+					oldMonth = newMonth;
+				}
+			}
+			this.addMonthInPanelTime(newMonthRow, mcount, newMonth, lastYear);
+			//week
+			var newWeekRow = tblTime.insertRow(tblTime.rows.length), newWeek = oldWeek = dojo.date.locale._getWeekOfYear(new Date(this.startDate)), mcount = 0;
+			for(var i = 0; i < this.countDays; i++, mcount++){
+				var date = new Date(this.startDate);
+				date.setDate(date.getDate() + i);
+				newWeek = dojo.date.locale._getWeekOfYear(date);
+				if(newWeek != oldWeek){
+					this.addWeekInPanelTime(newWeekRow, mcount, oldWeek);
+					mcount = 0;
+					oldWeek = newWeek;
+				}
+			}
+			this.addWeekInPanelTime(newWeekRow, mcount, newWeek);
+			//day
+			var newDayRow = tblTime.insertRow(tblTime.rows.length);
+			for(var i = 0; i < this.countDays; i++){
+				this.addDayInPanelTime(newDayRow);
+			}
+			//hour
+			var newHourRow = tblTime.insertRow(tblTime.rows.length);
+			for(var i = 0; i < this.countDays; i++){
+				this.addHourInPanelTime(newHourRow);
+			}
+			dojo.style(newHourRow, "display", "none");
+			return panelTime;
+		},
+		adjustPanelTime: function(width){
+			var maxEndPos = dojo.map(this.arrProjects, function(project){
+				return (parseInt(project.projectItem[0].style.left) + parseInt(project.projectItem[0].firstChild.style.width)
+					+ project.descrProject.offsetWidth + this.panelTimeExpandDelta);
+			}, this).sort(function(a,b){return b-a})[0];
+			if(this.maxTaskEndPos != maxEndPos){
+				//reset panel time
+				var prows = this.panelTime.firstChild.firstChild.rows;
+				for(var i = 0; i <= 4; i++){//prows.length
+					this.removeCell(prows[i]);
+				};
+				var countDays = Math.round((maxEndPos+this.panelTimeExpandDelta) / this.pixelsPerDay);
+				this.totalDays = countDays;
+				//year
+				var newYear = oldYear = new Date(this.startDate).getFullYear(), ycount = 0;
+				for(var i = 0; i < countDays; i++, ycount++){
+					var date = new Date(this.startDate);
+					date.setDate(date.getDate() + i);
+					newYear = date.getFullYear();
+					if(newYear != oldYear){
+						this.addYearInPanelTime(prows[0], ycount, oldYear);
+						ycount = 0;
+						oldYear = newYear;
+					}
+				}
+				this.addYearInPanelTime(prows[0], ycount, newYear);
+				//month
+				var newMonth = oldMonth = new Date(this.startDate).getMonth(), mcount = 0, lastYear = 1970;
+				for(var i = 0; i < countDays; i++, mcount++){
+					var date = new Date(this.startDate);
+					date.setDate(date.getDate() + i);
+					newMonth = date.getMonth();
+					lastYear = date.getFullYear();
+					if(newMonth != oldMonth){
+						this.addMonthInPanelTime(prows[1], mcount, oldMonth, lastYear);
+						mcount = 0;
+						oldMonth = newMonth;
+					}
+				}
+				this.addMonthInPanelTime(prows[1], mcount, newMonth, lastYear);
+				//week
+				var newWeek = oldWeek = dojo.date.locale._getWeekOfYear(new Date(this.startDate)), mcount = 0;
+				for(var i = 0; i < countDays; i++, mcount++){
+					var date = new Date(this.startDate);
+					date.setDate(date.getDate() + i);
+					newWeek = dojo.date.locale._getWeekOfYear(date);
+					if(newWeek != oldWeek){
+						this.addWeekInPanelTime(prows[2], mcount, oldWeek);
+						mcount = 0;
+						oldWeek = newWeek;
+					}
+				}
+				this.addWeekInPanelTime(prows[2], mcount, newWeek);
+				//day
+				for(var i = 0; i < countDays; i++){
+					this.addDayInPanelTime(prows[3]);
+				}
+				//hour
+				for(var i = 0; i < countDays; i++){
+					this.addHourInPanelTime(prows[4]);
+				}
+				this.panelTime.firstChild.firstChild.style.width = this.pixelsPerDay * (prows[3].cells.length) + "px";
+				this.contentData.firstChild.style.width = this.pixelsPerDay * (prows[3].cells.length) + "px";
+				this.maxTaskEndPos = maxEndPos;
+			}
+		},
+		addYearInPanelTime: function(row, count, year){
+			var data = "Year   " + year;
+			var newCell = dojo.create("td", {
+				colSpan: count,
+				align: "center",
+				vAlign: "middle",
+				className: "ganttYearNumber",
+				innerHTML: this.pixelsPerDay * count > 20 ? data : "",
+				innerHTMLData: data
+			}, row);
+			dojo.style(newCell, "width", (this.pixelsPerDay * count) + "px");
+		},
+		addMonthInPanelTime: function(row, count, month, year){
+			var data = this.months[month] + (year ? " of " + year : "");
+			var newCell = dojo.create("td", {
+				colSpan: count,
+				align: "center",
+				vAlign: "middle",
+				className: "ganttMonthNumber",
+				innerHTML: this.pixelsPerDay * count > 30 ? data : "",
+				innerHTMLData: data
+			}, row);
+			dojo.style(newCell, "width", (this.pixelsPerDay * count) + "px");
+		},
+		addWeekInPanelTime: function(row, count, week){
+			var data = "Week   " + week;
+			var newCell = dojo.create("td", {
+				colSpan: count,
+				align: "center",
+				vAlign: "middle",
+				className: "ganttWeekNumber",
+				innerHTML: this.pixelsPerDay * count > 20 ? data : "",
+				innerHTMLData: data
+			}, row);
+			dojo.style(newCell, "width", (this.pixelsPerDay * count) + "px");
+		},
+		addDayInPanelTime: function(row){
+			var date = new Date(this.startDate);
+			date.setDate(date.getDate() + parseInt(row.cells.length));
+			var newCell = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttDayNumber",
+				innerHTML: this.pixelsPerDay > 20 ? date.getDate() : "",
+				innerHTMLData: String(date.getDate()),
+				data: row.cells.length
+			}, row);
+			dojo.style(newCell, "width", this.pixelsPerDay + "px");
+			(date.getDay() >= 5) && dojo.addClass(newCell, "ganttDayNumberWeekend");
+			this._events.push(
+				dojo.connect(newCell, "onmouseover", this, function(event){
+					var dayTime = event.target || event.srcElement;
+					var date = new Date(this.startDate.getTime());
+					date.setDate(date.getDate() + parseInt(dojo.attr(dayTime, "data")));
+					dijit.showTooltip(date.getFullYear() + "." + (date.getMonth() + 1) + "." + date.getDate(), newCell, ["above", "below"]);
+				})
+			);
+			this._events.push(
+				dojo.connect(newCell, "onmouseout", this, function(event){
+					var dayTime = event.target || event.srcElement;
+					dayTime && dijit.hideTooltip(dayTime);
+				})
+			);
+		},
+		addHourInPanelTime: function(row){
+			var newCell = dojo.create("td", {
+				align: "center",
+				vAlign: "middle",
+				className: "ganttHourNumber",
+				data: row.cells.length
+			}, row);
+			dojo.style(newCell, "width", this.pixelsPerDay + "px");
+			
+			var hourTable = dojo.create("table", {
+				cellPadding: "0",
+				cellSpacing: "0"
+			}, newCell);
+			var newRow = hourTable.insertRow(hourTable.rows.length);
+			for(var i = 0; i < this.hsPerDay; i++){
+				var hourTD = dojo.create("td", {
+					className: "ganttHourClass"
+				}, newRow);
+				dojo.style(hourTD, "width", (this.pixelsPerDay / this.hsPerDay) + "px");
+				dojo.attr(hourTD, "innerHTMLData", String(9 + i));
+				if(this.pixelsPerDay / this.hsPerDay > 5){
+					dojo.attr(hourTD, "innerHTML", String(9 + i));
+				}
+				dojo.addClass(hourTD, i <= 3?"ganttHourNumberAM":"ganttHourNumberPM");
+			}
+		},
+		incHeightPanelTasks: function(height){
+			var containerTasks = this.contentData.firstChild;
+			containerTasks.style.height = parseInt(containerTasks.style.height) + height + "px";
+		},
+		incHeightPanelNames: function(height){
+			var containerNames = this.panelNames.firstChild;
+			containerNames.style.height = parseInt(containerNames.style.height) + height + "px";
+		},
+		checkPosition: function(){
+			dojo.forEach(this.arrProjects, function(project){
+				dojo.forEach(project.arrTasks, function(task){
+					task.checkPosition();
+				}, this);
+			}, this);
+		},
+		checkHeighPanelTasks: function(){
+			this.contentDataHeight += this.heightTaskItemExtra + this.heightTaskItem;
+			if((parseInt(this.contentData.firstChild.style.height) <= this.contentDataHeight)){
+				this.incHeightPanelTasks(this.heightTaskItem + this.heightTaskItemExtra);
+				this.incHeightPanelNames(this.heightTaskItem + this.heightTaskItemExtra);
+			}
+		},
+		sortTasksByStartTime: function(project){
+			project.parentTasks.sort(this.sortTaskStartTime);
+			for(var i = 0; i < project.parentTasks.length; i++){
+				project.parentTasks[i] = this.sortChildTasks(project.parentTasks[i]);
+			}
+		},
+		sortChildTasks: function(parenttask){
+			parenttask.cldTasks.sort(this.sortTaskStartTime);
+			for(var i = 0; i < parenttask.cldTasks.length; i++){
+				if(parenttask.cldTasks[i].cldTasks.length > 0) this.sortChildTasks(parenttask.cldTasks[i]);
+			}
+			return parenttask;
+		},
+		refresh: function(count, current, multi){
+			//return if no task items
+			if(this.arrProjects.length <= 0){return;}
+			if(this.arrProjects[0].arrTasks.length <= 0){return;}
+			//Show panel of names
+			if(!count || current > count){
+				this.refreshController();
+				if(this.resource){
+					this.resource.refresh();
+				}
+				this.tempDayInPixels = 0;
+				this.panelNameHeadersCover && dojo.style(this.panelNameHeadersCover, "display", "none");
+				return;
+			}
+			if(this.tempDayInPixels == 0){
+				this.tempDayInPixels = this.pixelsPerDay;
+			}
+			this.panelNameHeadersCover && dojo.style(this.panelNameHeadersCover, "display", "");
+			var dip = this.tempDayInPixels + this.tempDayInPixels * (multi - 1) * Math.pow((current / count), 2);
+			this.refreshParams(dip);
+			dojo.forEach(this.arrProjects, function(project){
+				dojo.forEach(project.arrTasks, function(task){
+					task.refresh();
+				}, this);
+				project.refresh();
+			}, this);
+			setTimeout(dojo.hitch(this, function(){
+				this.refresh(count, ++current, multi);
+			}), 15);
+		},
+		switchTeleMicroView: function(dip){
+			var plChild = this.panelTime.firstChild.firstChild;
+			for(var i = 0; i < 5; i++){//0:Y 1:M 2:W 3:D 4:H
+				if(dip > 40){
+					dojo.style(plChild.rows[i], "display", (i==0||i==1)?"none":"");
+				}else if(dip < 20){
+					dojo.style(plChild.rows[i], "display", (i==2||i==4)?"none":"");
+				}else{
+					dojo.style(plChild.rows[i], "display", (i==0||i==4)?"none":"");
+				}
+			}
+		},
+		refreshController: function(){
+			this.contentData.firstChild.style.width = Math.max(1200, this.pixelsPerDay * this.totalDays) + "px";
+			this.panelTime.firstChild.style.width = this.pixelsPerDay * this.totalDays + "px";
+			this.panelTime.firstChild.firstChild.style.width = this.pixelsPerDay * this.totalDays + "px";
+			this.switchTeleMicroView(this.pixelsPerDay);
+			dojo.forEach(this.panelTime.firstChild.firstChild.rows, function(row){
+				dojo.forEach(row.childNodes, function(td){
+					var cs = parseInt(dojo.attr(td, "colSpan") || 1);
+					var idata = dojo.trim(dojo.attr(td, "innerHTMLData")||"");
+					if(idata.length > 0){
+						dojo.attr(td, "innerHTML", this.pixelsPerDay * cs < 20 ? "" : idata);
+					}else{
+						dojo.forEach(td.firstChild.rows[0].childNodes, function(td){
+							var sdata = dojo.trim(dojo.attr(td, "innerHTMLData")||"");
+							dojo.attr(td, "innerHTML", this.pixelsPerDay / this.hsPerDay > 10 ? sdata : "");
+						}, this);
+					}
+					if(cs == 1){
+						dojo.style(td, "width", (this.pixelsPerDay*cs) + "px");
+						if(idata.length <= 0){
+							dojo.forEach(td.firstChild.rows[0].childNodes, function(td){
+								dojo.style(td, "width", (this.pixelsPerDay*cs / this.hsPerDay) + "px");
+							}, this);
+						}
+					}
+				}, this);
+			}, this);
+		},
+		init: function(){
+			this.startDate = this.getStartDate();
+			dojo.style(this.content, {
+				width: this.contentWidth + "px",
+				height: this.contentHeight + "px"
+			});
+			//create Table
+			this.tableControl = dojo.create("table", {
+				cellPadding: "0",
+				cellSpacing: "0",
+				className: "ganttTabelControl"
+			});
+			var newRowTblControl = this.tableControl.insertRow(this.tableControl.rows.length);
+			//Add to content Table
+			this.content.appendChild(this.tableControl);
+			this.countDays = this.getCountDays();
+			//Creation panel of time
+			this.panelTime = dojo.create("div", {className: "ganttPanelTimeContainer"});
+			dojo.style(this.panelTime, "height", this.panelTimeHeight + "px");
+			this.panelTime.appendChild(this.createPanelTime());
+			//Creation panel contentData
+			this.contentData = dojo.create("div", {className: "ganttContentDataContainer"});
+			dojo.style(this.contentData, "height", (this.contentHeight - this.panelTimeHeight) + "px");
+			this.contentData.appendChild(this.createPanelTasks());
+			//Creation panel of names
+			var newCellTblControl = dojo.create("td", {
+				vAlign: "top"
+			});
+			//Creation panel of task header
+			this.panelNameHeaders = dojo.create("div", {className: "ganttPanelNameHeaders"}, newCellTblControl);
+			dojo.style(this.panelNameHeaders, {
+				height: this.panelTimeHeight + "px",
+				width: this.maxWidthPanelNames + "px"
+			});
+			this.panelNameHeaders.appendChild(this.createPanelNamesTasksHeader());
+			this.panelNames = dojo.create("div", {className: "ganttPanelNamesContainer"}, newCellTblControl);
+			this.panelNames.appendChild(this.createPanelNamesTasks());
+			newRowTblControl.appendChild(newCellTblControl);
+			//add to control contentData and dataTime
+			newCellTblControl = dojo.create("td", {
+				vAlign: "top"
+			});
+			var divCell = dojo.create("div", {className: "ganttDivCell"});
+			divCell.appendChild(this.panelTime);
+			divCell.appendChild(this.contentData);
+			newCellTblControl.appendChild(divCell);
+			newRowTblControl.appendChild(newCellTblControl);
+			//Show panel of names
+			dojo.style(this.panelNames, "height", (this.contentHeight - this.panelTimeHeight - this.scrollBarWidth) + "px");
+			dojo.style(this.panelNames, "width", this.maxWidthPanelNames + "px");
+			dojo.style(this.contentData, "width", (this.contentWidth - this.maxWidthPanelNames) + "px");
+			dojo.style(this.contentData.firstChild, "width", this.pixelsPerDay * this.countDays + "px");
+			dojo.style(this.panelTime, "width", (this.contentWidth - this.maxWidthPanelNames - this.scrollBarWidth) + "px");
+			dojo.style(this.panelTime.firstChild, "width", this.pixelsPerDay * this.countDays + "px");
+			if(this.isShowConMenu){
+				this.tabMenu = new dojox.gantt.TabMenu(this);
+			}
+			var _this = this;
+			this.contentData.onscroll = function(){
+				_this.panelTime.scrollLeft = this.scrollLeft;
+				if(_this.panelNames){
+					_this.panelNames.scrollTop = this.scrollTop;
+					if(_this.isShowConMenu){
+						_this.tabMenu.hide();
+					}
+				}
+				if(_this.resource){
+					_this.resource.contentData.scrollLeft = this.scrollLeft;
+				}
+			}
+			this.project.sort(this.sortProjStartDate);
+			for(var i = 0; i < this.project.length; i++){
+				var proj = this.project[i];
+				for(var k = 0; k < proj.parentTasks.length; k++){
+					var ppTask = proj.parentTasks[k];
+					if(!ppTask.startTime){
+						ppTask.startTime = proj.startDate;
+					}
+					this.setStartTimeChild(ppTask);
+					if(this.setPreviousTask(proj)){
+						return;
+					}
+				}
+				for(var k = 0; k < proj.parentTasks.length; k++){
+					var ppTask = proj.parentTasks[k];
+					if(ppTask.startTime < proj.startDate){
+						if(!this.correctError){
+							return;
+						}else{
+							ppTask.startTime = proj.startDate;
+						}
+					}
+					if(this.checkPosParentTaskInTree(ppTask)){
+						return;
+					}
+				}
+				this.sortTasksByStartTime(proj);
+			}
+			for(var i = 0; i < this.project.length; i++){
+				//creation project
+				var proj = this.project[i];
+				var project = new dojox.gantt.GanttProjectControl(this, proj);
+				if(this.arrProjects.length > 0){
+					var previousProject = this.arrProjects[this.arrProjects.length - 1];
+					project.previousProject = previousProject;
+					previousProject.nextProject = project;
+				}
+				project.create();
+				this.checkHeighPanelTasks();
+				this.arrProjects.push(project);
+				this.createTasks(project);
+			}
+			if(this.withResource){
+				this.resource = new dojox.gantt.GanttResourceItem(this);
+				this.resource.create();
+			}
+			this.postLoadData();
+			this.postBindEvents();
+			return this;
+		},
+		postLoadData: function(){
+			dojo.forEach(this.arrProjects, function(project){
+				dojo.forEach(project.arrTasks, function(task){
+					task.postLoadData();
+				}, this);
+				project.postLoadData();
+			}, this);
+			//toolbar cover div
+			var cpos = dojo.coords(this.panelNameHeaders);
+			if(!this.panelNameHeadersCover){
+				this.panelNameHeadersCover = dojo.create("div", {className: "ganttHeaderCover"}, this.panelNameHeaders.parentNode);
+				dojo.style(this.panelNameHeadersCover, {
+					left: cpos.l+"px",
+					top: cpos.t+"px",
+					height: cpos.h+"px",
+					width: cpos.w+"px",
+					display: "none"
+				});
+			}
+		},
+		postBindEvents: function(){
+			//highlight row
+			var pos = dojo.position(this.tableControl, true);
+			!dojo.isIE && this._events.push(
+				dojo.connect(this.tableControl, "onmousemove", this, function(event){
+					var elem = event.srcElement || event.target;
+					if(elem == this.panelNames.firstChild || elem == this.contentData.firstChild){
+						//23: this.heightTaskItem + this.heightTaskItemExtra
+						var rowHeight = this.heightTaskItem + this.heightTaskItemExtra;
+						var hlTop = parseInt(event.layerY / rowHeight) * rowHeight + this.panelTimeHeight - this.contentData.scrollTop;
+						if(hlTop != this.oldHLTop && hlTop < (pos.h - 50)){
+							if(this.highLightDiv){
+								dojo.style(this.highLightDiv, "top", (pos.y + hlTop) + "px");
+							}else{
+								this.highLightDiv = dojo.create("div", {
+									className: "ganttRowHighlight"
+								}, dojo.body());
+								dojo.style(this.highLightDiv, {
+									top: (pos.y + hlTop) + "px",
+									left: pos.x + "px",
+									width: (pos.w - 20) + "px",
+									height: rowHeight + "px"
+								});
+							}
+						}
+						this.oldHLTop = hlTop;
+					}
+				})
+			);
+			//TODO: other event bindings
+		},
+		getStartDate: function(){
+			dojo.forEach(this.project, function(proj){
+				if(this.startDate){
+					if(proj.startDate < this.startDate){
+						this.startDate = new Date(proj.startDate);
+					}
+				}else{
+					this.startDate = new Date(proj.startDate);
+				}
+			}, this);
+			this.initialPos = 24 * this.pixelsPerHour;
+			return this.startDate ? new Date(this.startDate.setHours(this.startDate.getHours() - 24)) : new Date();
+		},
+		getCountDays: function(){
+			return parseInt((this.contentWidth - this.maxWidthPanelNames) / (this.pixelsPerHour * 24));
+		},
+		createTasks: function(project){
+			dojo.forEach(project.project.parentTasks, function(pppTask, i){
+				if(i > 0){
+					project.project.parentTasks[i - 1].nextParentTask = pppTask;
+					pppTask.previousParentTask = project.project.parentTasks[i - 1];
+				}
+				var task = new dojox.gantt.GanttTaskControl(pppTask, project, this);
+				project.arrTasks.push(task);
+				task.create();
+				this.checkHeighPanelTasks();
+				if(pppTask.cldTasks.length > 0){
+					this.createChildItemControls(pppTask.cldTasks, project);
+				}
+			}, this);
+		},
+		createChildItemControls: function(arrChildTasks, project){
+			arrChildTasks && dojo.forEach(arrChildTasks, function(cTask, i){
+				if(i > 0){
+					cTask.previousChildTask = arrChildTasks[i - 1];
+					arrChildTasks[i - 1].nextChildTask = cTask;
+				}
+				var task = new dojox.gantt.GanttTaskControl(cTask, project, this);
+				task.create();
+				this.checkHeighPanelTasks();
+				if(cTask.cldTasks.length > 0){
+					this.createChildItemControls(cTask.cldTasks, project);
+				}
+			}, this);
+		},
+		getPosOnDate: function(startTime){
+			return (startTime - this.startDate) / (60 * 60 * 1000) * this.pixelsPerHour;
+		},
+		getWidthOnDuration: function(duration){
+			return Math.round(this.pixelsPerWorkHour * duration);
+		},
+		getLastChildTask: function(task){
+			return task.childTask.length > 0 ? this.getLastChildTask(task.childTask[task.childTask.length - 1]) : task;
+		},
+		removeCell: function(row){
+			while(row.cells[0]){
+				row.deleteCell(row.cells[0]);
+			}
+		}
+	});
 })();
-}

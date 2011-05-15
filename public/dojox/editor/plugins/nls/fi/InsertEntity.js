@@ -1,1 +1,4 @@
-({"insertEntity":"Lisää symboli"})
+({
+	insertEntity: "Lisää symboli"
+})
+

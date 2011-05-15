@@ -1,192 +1,375 @@
 /*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
+	Status: dont know where this will all live exactly
+	Need to pull in the implementation of the various helper methods
+	Some can be static method, others maybe methods of the ContentSetter (?)
+	
+	Gut the ContentPane, replace its _setContent with our own call to dojox.html.set()
+	
+
 */
 
-
-if(!dojo._hasResource["dojox.html._base"]){
-dojo._hasResource["dojox.html._base"]=true;
 dojo.provide("dojox.html._base");
+
 dojo.require("dojo.html");
-(function(){
-if(dojo.isIE){
-var _1=/(AlphaImageLoader\([^)]*?src=(['"]))(?![a-z]+:|\/)([^\r\n;}]+?)(\2[^)]*\)\s*[;}]?)/g;
-}
-var _2=/(?:(?:@import\s*(['"])(?![a-z]+:|\/)([^\r\n;{]+?)\1)|url\(\s*(['"]?)(?![a-z]+:|\/)([^\r\n;]+?)\3\s*\))([a-z, \s]*[;}]?)/g;
-var _3=dojox.html._adjustCssPaths=function(_4,_5){
-if(!_5||!_4){
-return;
-}
-if(_1){
-_5=_5.replace(_1,function(_6,_7,_8,_9,_a){
-return _7+(new dojo._Url(_4,"./"+_9).toString())+_a;
-});
-}
-return _5.replace(_2,function(_b,_c,_d,_e,_f,_10){
-if(_d){
-return "@import \""+(new dojo._Url(_4,"./"+_d).toString())+"\""+_10;
-}else{
-return "url("+(new dojo._Url(_4,"./"+_f).toString())+")"+_10;
-}
-});
-};
-var _11=/(<[a-z][a-z0-9]*\s[^>]*)(?:(href|src)=(['"]?)([^>]*?)\3|style=(['"]?)([^>]*?)\5)([^>]*>)/gi;
-var _12=dojox.html._adjustHtmlPaths=function(_13,_14){
-var url=_13||"./";
-return _14.replace(_11,function(tag,_15,_16,_17,_18,_19,_1a,end){
-return _15+(_16?(_16+"="+_17+(new dojo._Url(url,_18).toString())+_17):("style="+_19+_3(url,_1a)+_19))+end;
-});
-};
-var _1b=dojox.html._snarfStyles=function(_1c,_1d,_1e){
-_1e.attributes=[];
-return _1d.replace(/(?:<style([^>]*)>([\s\S]*?)<\/style>|<link\s+(?=[^>]*rel=['"]?stylesheet)([^>]*?href=(['"])([^>]*?)\4[^>\/]*)\/?>)/gi,function(_1f,_20,_21,_22,_23,_24){
-var i,_25=(_20||_22||"").replace(/^\s*([\s\S]*?)\s*$/i,"$1");
-if(_21){
-i=_1e.push(_1c?_3(_1c,_21):_21);
-}else{
-i=_1e.push("@import \""+_24+"\";");
-_25=_25.replace(/\s*(?:rel|href)=(['"])?[^\s]*\1\s*/gi,"");
-}
-if(_25){
-_25=_25.split(/\s+/);
-var _26={},tmp;
-for(var j=0,e=_25.length;j<e;j++){
-tmp=_25[j].split("=");
-_26[tmp[0]]=tmp[1].replace(/^\s*['"]?([\s\S]*?)['"]?\s*$/,"$1");
-}
-_1e.attributes[i-1]=_26;
-}
-return "";
-});
-};
-var _27=dojox.html._snarfScripts=function(_28,_29){
-_29.code="";
-_28=_28.replace(/<[!][-][-](.|\s)*?[-][-]>/g,function(_2a){
-return _2a.replace(/<(\/?)script\b/ig,"&lt;$1Script");
-});
-function _2b(src){
-if(_29.downloadRemote){
-src=src.replace(/&([a-z0-9#]+);/g,function(m,_2c){
-switch(_2c){
-case "amp":
-return "&";
-case "gt":
-return ">";
-case "lt":
-return "<";
-default:
-return _2c.charAt(0)=="#"?String.fromCharCode(_2c.substring(1)):"&"+_2c+";";
-}
-});
-dojo.xhrGet({url:src,sync:true,load:function(_2d){
-_29.code+=_2d+";";
-},error:_29.errBack});
-}
-};
-return _28.replace(/<script\s*(?![^>]*type=['"]?(?:dojo\/|text\/html\b))(?:[^>]*?(?:src=(['"]?)([^>]*?)\1[^>]*)?)*>([\s\S]*?)<\/script>/gi,function(_2e,_2f,src,_30){
-if(src){
-_2b(src);
-}else{
-_29.code+=_30;
-}
-return "";
-});
-};
-var _31=dojox.html.evalInGlobal=function(_32,_33){
-_33=_33||dojo.doc.body;
-var n=_33.ownerDocument.createElement("script");
-n.type="text/javascript";
-_33.appendChild(n);
-n.text=_32;
-};
-dojo.declare("dojox.html._ContentSetter",[dojo.html._ContentSetter],{adjustPaths:false,referencePath:".",renderStyles:false,executeScripts:false,scriptHasHooks:false,scriptHookReplacement:null,_renderStyles:function(_34){
-this._styleNodes=[];
-var st,att,_35,doc=this.node.ownerDocument;
-var _36=doc.getElementsByTagName("head")[0];
-for(var i=0,e=_34.length;i<e;i++){
-_35=_34[i];
-att=_34.attributes[i];
-st=doc.createElement("style");
-st.setAttribute("type","text/css");
-for(var x in att){
-st.setAttribute(x,att[x]);
-}
-this._styleNodes.push(st);
-_36.appendChild(st);
-if(st.styleSheet){
-st.styleSheet.cssText=_35;
-}else{
-st.appendChild(doc.createTextNode(_35));
-}
-}
-},empty:function(){
-this.inherited("empty",arguments);
-this._styles=[];
-},onBegin:function(){
-this.inherited("onBegin",arguments);
-var _37=this.content,_38=this.node;
-var _39=this._styles;
-if(dojo.isString(_37)){
-if(this.adjustPaths&&this.referencePath){
-_37=_12(this.referencePath,_37);
-}
-if(this.renderStyles||this.cleanContent){
-_37=_1b(this.referencePath,_37,_39);
-}
-if(this.executeScripts){
-var _3a=this;
-var _3b={downloadRemote:true,errBack:function(e){
-_3a._onError.call(_3a,"Exec","Error downloading remote script in \""+_3a.id+"\"",e);
-}};
-_37=_27(_37,_3b);
-this._code=_3b.code;
-}
-}
-this.content=_37;
-},onEnd:function(){
-var _3c=this._code,_3d=this._styles;
-if(this._styleNodes&&this._styleNodes.length){
-while(this._styleNodes.length){
-dojo.destroy(this._styleNodes.pop());
-}
-}
-if(this.renderStyles&&_3d&&_3d.length){
-this._renderStyles(_3d);
-}
-if(this.executeScripts&&_3c){
-if(this.cleanContent){
-_3c=_3c.replace(/(<!--|(?:\/\/)?-->|<!\[CDATA\[|\]\]>)/g,"");
-}
-if(this.scriptHasHooks){
-_3c=_3c.replace(/_container_(?!\s*=[^=])/g,this.scriptHookReplacement);
-}
-try{
-_31(_3c,this.node);
-}
-catch(e){
-this._onError("Exec","Error eval script in "+this.id+", "+e.message,e);
-}
-}
-this.inherited("onEnd",arguments);
-},tearDown:function(){
-this.inherited(arguments);
-delete this._styles;
-if(this._styleNodes&&this._styleNodes.length){
-while(this._styleNodes.length){
-dojo.destroy(this._styleNodes.pop());
-}
-}
-delete this._styleNodes;
-dojo.mixin(this,dojo.getObject(this.declaredClass).prototype);
-}});
-dojox.html.set=function(_3e,_3f,_40){
-if(!_40){
-return dojo.html._setNodeContent(_3e,_3f,true);
-}else{
-var op=new dojox.html._ContentSetter(dojo.mixin(_40,{content:_3f,node:_3e}));
-return op.set();
-}
-};
+
+(function() {
+
+	if(dojo.isIE){
+		var alphaImageLoader = /(AlphaImageLoader\([^)]*?src=(['"]))(?![a-z]+:|\/)([^\r\n;}]+?)(\2[^)]*\)\s*[;}]?)/g;
+	}
+
+	// css at-rules must be set before any css declarations according to CSS spec
+	// match:
+	// @import 'http://dojotoolkit.org/dojo.css';
+	// @import 'you/never/thought/' print;
+	// @import url("it/would/work") tv, screen;
+	// @import url(/did/you/now.css);
+	// but not:
+	// @namespace dojo "http://dojotoolkit.org/dojo.css"; /* namespace URL should always be a absolute URI */
+	// @charset 'utf-8';
+	// @media print{ #menuRoot {display:none;} }
+		
+	// we adjust all paths that dont start on '/' or contains ':'
+	//(?![a-z]+:|\/)
+
+	var cssPaths = /(?:(?:@import\s*(['"])(?![a-z]+:|\/)([^\r\n;{]+?)\1)|url\(\s*(['"]?)(?![a-z]+:|\/)([^\r\n;]+?)\3\s*\))([a-z, \s]*[;}]?)/g;
+
+	var adjustCssPaths = dojox.html._adjustCssPaths = function(cssUrl, cssText){
+		//	summary:
+		//		adjusts relative paths in cssText to be relative to cssUrl
+		//		a path is considered relative if it doesn't start with '/' and not contains ':'
+		//	description:
+		//		Say we fetch a HTML page from level1/page.html
+		//		It has some inline CSS:
+		//			@import "css/page.css" tv, screen;
+		//			...
+		//			background-image: url(images/aplhaimage.png);
+		//
+		//		as we fetched this HTML and therefore this CSS
+		//		from level1/page.html, these paths needs to be adjusted to:
+		//			@import 'level1/css/page.css' tv, screen;
+		//			...
+		//			background-image: url(level1/images/alphaimage.png);
+		//
+		//		In IE it will also adjust relative paths in AlphaImageLoader()
+		//			filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='images/alphaimage.png');
+		//		will be adjusted to:
+		//			filter:progid:DXImageTransform.Microsoft.AlphaImageLoader(src='level1/images/alphaimage.png');
+		//
+		//		Please note that any relative paths in AlphaImageLoader in external css files wont work, as
+		//		the paths in AlphaImageLoader is MUST be declared relative to the HTML page,
+		//		not relative to the CSS file that declares it
+
+		if(!cssText || !cssUrl){ return; }
+
+		// support the ImageAlphaFilter if it exists, most people use it in IE 6 for transparent PNGs
+		// We are NOT going to kill it in IE 7 just because the PNGs work there. Somebody might have
+		// other uses for it.
+		// If user want to disable css filter in IE6  he/she should
+		// unset filter in a declaration that just IE 6 doesn't understands
+		// like * > .myselector { filter:none; }
+		if(alphaImageLoader){
+			cssText = cssText.replace(alphaImageLoader, function(ignore, pre, delim, url, post){
+				return pre + (new dojo._Url(cssUrl, './'+url).toString()) + post;
+			});
+		}
+
+		return cssText.replace(cssPaths, function(ignore, delimStr, strUrl, delimUrl, urlUrl, media){
+			if(strUrl){
+				return '@import "' + (new dojo._Url(cssUrl, './'+strUrl).toString()) + '"' + media;
+			}else{
+				return 'url(' + (new dojo._Url(cssUrl, './'+urlUrl).toString()) + ')' + media;
+			}
+		});
+	};
+
+	// attributepaths one tag can have multiple paths, example:
+	// <input src="..." style="url(..)"/> or <a style="url(..)" href="..">
+	// <img style='filter:progid...AlphaImageLoader(src="noticeTheSrcHereRunsThroughHtmlSrc")' src="img">
+	var htmlAttrPaths = /(<[a-z][a-z0-9]*\s[^>]*)(?:(href|src)=(['"]?)([^>]*?)\3|style=(['"]?)([^>]*?)\5)([^>]*>)/gi;
+
+	var adjustHtmlPaths = dojox.html._adjustHtmlPaths = function(htmlUrl, cont){
+		var url = htmlUrl || "./";
+
+		return cont.replace(htmlAttrPaths,
+			function(tag, start, name, delim, relUrl, delim2, cssText, end){
+				return start + (name ?
+							(name + '=' + delim + (new dojo._Url(url, relUrl).toString()) + delim)
+						: ('style=' + delim2 + adjustCssPaths(url, cssText) + delim2)
+				) + end;
+			}
+		);
+	};
+	
+	var snarfStyles = dojox.html._snarfStyles = function	(/*String*/cssUrl, /*String*/cont, /*Array*/styles){
+		/****************  cut out all <style> and <link rel="stylesheet" href=".."> **************/
+		// also return any attributes from this tag (might be a media attribute)
+		// if cssUrl is set it will adjust paths accordingly
+		styles.attributes = [];
+
+		return cont.replace(/(?:<style([^>]*)>([\s\S]*?)<\/style>|<link\s+(?=[^>]*rel=['"]?stylesheet)([^>]*?href=(['"])([^>]*?)\4[^>\/]*)\/?>)/gi,
+			function(ignore, styleAttr, cssText, linkAttr, delim, href){
+				// trim attribute
+				var i, attr = (styleAttr||linkAttr||"").replace(/^\s*([\s\S]*?)\s*$/i, "$1");
+				if(cssText){
+					i = styles.push(cssUrl ? adjustCssPaths(cssUrl, cssText) : cssText);
+				}else{
+					i = styles.push('@import "' + href + '";');
+					attr = attr.replace(/\s*(?:rel|href)=(['"])?[^\s]*\1\s*/gi, ""); // remove rel=... and href=...
+				}
+				if(attr){
+					attr = attr.split(/\s+/);// split on both "\n", "\t", " " etc
+					var atObj = {}, tmp;
+					for(var j = 0, e = attr.length; j < e; j++){
+						tmp = attr[j].split('='); // split name='value'
+						atObj[tmp[0]] = tmp[1].replace(/^\s*['"]?([\s\S]*?)['"]?\s*$/, "$1"); // trim and remove ''
+					}
+					styles.attributes[i - 1] = atObj;
+				}
+				return "";
+			}
+		);
+	};
+
+	var snarfScripts = dojox.html._snarfScripts = function(cont, byRef){
+		// summary
+		//		strips out script tags from cont
+		// invoke with
+		//	byRef = {errBack:function(){/*add your download error code here*/, downloadRemote: true(default false)}}
+		//	byRef will have {code: 'jscode'} when this scope leaves
+		byRef.code = "";
+
+		//Update script tags nested in comments so that the script tag collector doesn't pick
+		//them up.
+		cont = cont.replace(/<[!][-][-](.|\s)*?[-][-]>/g,
+			function(comment){
+				return comment.replace(/<(\/?)script\b/ig,"&lt;$1Script");
+			}
+		);
+
+		function download(src){
+			if(byRef.downloadRemote){
+				// console.debug('downloading',src);
+				//Fix up src, in case there were entity character encodings in it.
+				//Probably only need to worry about a subset.
+				src = src.replace(/&([a-z0-9#]+);/g, function(m, name) {
+					switch(name) {
+						case "amp"	: return "&";
+						case "gt"	: return ">";
+						case "lt"	: return "<";
+						default:
+							return name.charAt(0)=="#" ? String.fromCharCode(name.substring(1)) : "&"+name+";";
+					}
+				});
+				dojo.xhrGet({
+					url: src,
+					sync: true,
+					load: function(code){
+						byRef.code += code+";";
+					},
+					error: byRef.errBack
+				});
+			}
+		}
+		
+		// match <script>, <script type="text/..., but not <script type="dojo(/method)...
+		return cont.replace(/<script\s*(?![^>]*type=['"]?(?:dojo\/|text\/html\b))(?:[^>]*?(?:src=(['"]?)([^>]*?)\1[^>]*)?)*>([\s\S]*?)<\/script>/gi,
+			function(ignore, delim, src, code){
+				if(src){
+					download(src);
+				}else{
+					byRef.code += code;
+				}
+				return "";
+			}
+		);
+	};
+	
+	var evalInGlobal = dojox.html.evalInGlobal = function(code, appendNode){
+		// we do our own eval here as dojo.eval doesn't eval in global crossbrowser
+		// This work X browser but but it relies on a DOM
+		// plus it doesn't return anything, thats unrelevant here but not for dojo core
+		appendNode = appendNode || dojo.doc.body;
+		var n = appendNode.ownerDocument.createElement('script');
+		n.type = "text/javascript";
+		appendNode.appendChild(n);
+		n.text = code; // DOM 1 says this should work
+	};
+
+	dojo.declare("dojox.html._ContentSetter", [dojo.html._ContentSetter], {
+		// adjustPaths: Boolean
+		//		Adjust relative paths in html string content to point to this page
+		//		Only useful if you grab content from a another folder than the current one
+		adjustPaths: false,
+		referencePath: ".",
+		renderStyles: false,
+
+		executeScripts: false,
+		scriptHasHooks: false,
+		scriptHookReplacement: null,
+		
+		_renderStyles: function(styles){
+			// insert css from content into document head
+			this._styleNodes = [];
+			var st, att, cssText, doc = this.node.ownerDocument;
+			var head = doc.getElementsByTagName('head')[0];
+
+			for(var i = 0, e = styles.length; i < e; i++){
+				cssText = styles[i]; att = styles.attributes[i];
+				st = doc.createElement('style');
+				st.setAttribute("type", "text/css"); // this is required in CSS spec!
+
+				for(var x in att){
+					st.setAttribute(x, att[x]);
+				}
+
+				this._styleNodes.push(st);
+				head.appendChild(st); // must insert into DOM before setting cssText
+
+				if(st.styleSheet){ // IE
+					st.styleSheet.cssText = cssText;
+				}else{ // w3c
+					st.appendChild(doc.createTextNode(cssText));
+				}
+			}
+		},
+
+		empty: function() {
+			this.inherited("empty", arguments);
+			
+			// empty out the styles array from any previous use
+			this._styles = [];
+		},
+		
+		onBegin: function() {
+			// summary
+			//		Called after instantiation, but before set();
+			//		It allows modification of any of the object properties - including the node and content
+			//		provided - before the set operation actually takes place
+			//		This implementation extends that of dojo.html._ContentSetter
+			//		to add handling for adjustPaths, renderStyles on the html string content before it is set
+			this.inherited("onBegin", arguments);
+			
+			var cont = this.content,
+				node = this.node;
+				
+			var styles = this._styles;// init vars
+
+			if(dojo.isString(cont)){
+				if(this.adjustPaths && this.referencePath){
+					cont = adjustHtmlPaths(this.referencePath, cont);
+				}
+
+				if(this.renderStyles || this.cleanContent){
+					cont = snarfStyles(this.referencePath, cont, styles);
+				}
+
+				// because of a bug in IE, script tags that is first in html hierarchy doesnt make it into the DOM
+				//	when content is innerHTML'ed, so we can't use dojo.query to retrieve scripts from DOM
+				if(this.executeScripts){
+					var _t = this;
+					var byRef = {
+						downloadRemote: true,
+						errBack:function(e){
+							_t._onError.call(_t, 'Exec', 'Error downloading remote script in "'+_t.id+'"', e);
+						}
+					};
+					cont = snarfScripts(cont, byRef);
+					this._code = byRef.code;
+				}
+			}
+			this.content = cont;
+		},
+		
+		onEnd: function() {
+			// summary
+			//		Called after set(), when the new content has been pushed into the node
+			//		It provides an opportunity for post-processing before handing back the node to the caller
+			//		This implementation extends that of dojo.html._ContentSetter
+			
+			var code = this._code,
+				styles = this._styles;
+				
+			// clear old stylenodes from the DOM
+			// these were added by the last set call
+			// (in other words, if you dont keep and reuse the ContentSetter for a particular node
+			// .. you'll have no practical way to do this)
+			if(this._styleNodes && this._styleNodes.length){
+				while(this._styleNodes.length){
+					dojo.destroy(this._styleNodes.pop());
+				}
+			}
+			// render new style nodes
+			if(this.renderStyles && styles && styles.length){
+				this._renderStyles(styles);
+			}
+
+			if(this.executeScripts && code){
+				if(this.cleanContent){
+					// clean JS from html comments and other crap that browser
+					// parser takes care of in a normal page load
+					code = code.replace(/(<!--|(?:\/\/)?-->|<!\[CDATA\[|\]\]>)/g, '');
+				}
+				if(this.scriptHasHooks){
+					// replace _container_ with this.scriptHookReplace()
+					// the scriptHookReplacement can be a string
+					// or a function, which when invoked returns the string you want to substitute in
+					code = code.replace(/_container_(?!\s*=[^=])/g, this.scriptHookReplacement);
+				}
+				try{
+					evalInGlobal(code, this.node);
+				}catch(e){
+					this._onError('Exec', 'Error eval script in '+this.id+', '+e.message, e);
+				}
+			}
+			this.inherited("onEnd", arguments);
+		},
+		tearDown: function() {
+			this.inherited(arguments);
+			delete this._styles;
+			// only tear down -or another set() - will explicitly throw away the
+			// references to the style nodes we added
+			if(this._styleNodes && this._styleNodes.length){
+				while(this._styleNodes.length){
+					dojo.destroy(this._styleNodes.pop());
+				}
+			}
+			delete this._styleNodes;
+			// reset the defaults from the prototype
+			dojo.mixin(this, dojo.getObject(this.declaredClass).prototype);
+		}
+		
+	});
+	
+	dojox.html.set = function(/* DomNode */ node, /* String|DomNode|NodeList */ cont, /* Object? */ params){
+		// TODO: add all the other options
+			// summary:
+			//		inserts (replaces) the given content into the given node
+			//	node:
+			//		the parent element that will receive the content
+			//	cont:
+			//		the content to be set on the parent element.
+			//		This can be an html string, a node reference or a NodeList, dojo.NodeList, Array or other enumerable list of nodes
+			//	params:
+			//		Optional flags/properties to configure the content-setting. See dojo.html._ContentSetter
+			//	example:
+			//		A safe string/node/nodelist content replacement/injection with hooks for extension
+			//		Example Usage:
+			//		dojo.html.set(node, "some string");
+			//		dojo.html.set(node, contentNode, {options});
+			//		dojo.html.set(node, myNode.childNodes, {options});
+	 
+		if(!params){
+			// simple and fast
+			return dojo.html._setNodeContent(node, cont, true);
+		}else{
+			// more options but slower
+			var op = new dojox.html._ContentSetter(dojo.mixin(
+					params,
+					{ content: cont, node: node }
+			));
+			return op.set();
+		}
+	};
+	
 })();
-}

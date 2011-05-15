@@ -2,6 +2,7 @@ if(!dojo._hasResource["scorll.asset.AssetManager"]){
 dojo._hasResource["scorll.asset.AssetManager"]=true;
 dojo.provide("scorll.asset.AssetManager");
 dojo.require("dijit.Dialog");
+
 dojo.declare("scorll.asset.AssetManager",null,{
 	assets: {
 		"text": {
@@ -48,7 +49,7 @@ dojo.declare("scorll.asset.AssetManager",null,{
 		}
 		var className = this.assets[item.type].renderer;
 		try {
-			dojo.require(className);
+			dojo['require'](className);
 		} catch (e) {
 			console.error(e);
 			return null;
@@ -70,7 +71,7 @@ dojo.declare("scorll.asset.AssetManager",null,{
 		}
 		var className = this.assets[item.type].form;
 		try {
-			dojo.require(className);
+			dojo['require'](className);
 		} catch (e) {
 			console.error(e);
 			return null;

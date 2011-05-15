@@ -1,1 +1,4 @@
-({"pageBreak":"Sivunvaihto"})
+({
+	"pageBreak": "Sivunvaihto"
+})
+

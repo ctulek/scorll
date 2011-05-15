@@ -1,1 +1,4 @@
-({"preview":"Eksempel"})
+({
+	"preview": "Eksempel"
+})
+

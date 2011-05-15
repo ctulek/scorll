@@ -1,52 +1,53 @@
-/*
-	Copyright (c) 2004-2011, The Dojo Foundation All Rights Reserved.
-	Available via Academic Free License >= 2.1 OR the modified BSD license.
-	see: http://dojotoolkit.org/license for details
-*/
-
-
-if(!dojo._hasResource["dojox.geo.charting._base"]){
-dojo._hasResource["dojox.geo.charting._base"]=true;
 dojo.provide("dojox.geo.charting._base");
+
 dojo.require("dojo.NodeList-traverse");
 dojo.require("dojox.gfx.matrix");
 dojo.require("dijit.Tooltip");
+
 (function(){
-var _1=dojox.geo.charting;
-_1.showTooltip=function(_2,_3,_4){
-var _5=_1._normalizeArround(_3);
-return dijit.showTooltip(_2,_5,_4);
-};
-_1.hideTooltip=function(_6){
-return dijit.hideTooltip(_6);
-};
-_1._normalizeArround=function(_7){
-var _8=_1._getRealBBox(_7);
-var _9=_7._getRealMatrix()||{xx:1,xy:0,yx:0,yy:1,dx:0,dy:0};
-var _a=dojox.gfx.matrix.multiplyPoint(_9,_8.x,_8.y);
-var _b=dojo.coords(_1._getGfxContainer(_7));
-_7.x=dojo.coords(_b,true).x+_a.x,_7.y=dojo.coords(_b,true).y+_a.y,_7.width=_8.width*_9.xx,_7.height=_8.height*_9.yy;
-return _7;
-};
-_1._getGfxContainer=function(_c){
-return (new dojo.NodeList(_c.rawNode)).parents("div")[0];
-};
-_1._getRealBBox=function(_d){
-var _e=_d.getBoundingBox();
-if(!_e){
-var _f=_d.children;
-var _e=dojo.clone(_1._getRealBBox(_f[0]));
-dojo.forEach(_f,function(_10){
-var _11=_1._getRealBBox(_10);
-_e.x=Math.min(_e.x,_11.x);
-_e.y=Math.min(_e.y,_11.y);
-_e.endX=Math.max(_e.x+_e.width,_11.x+_11.width);
-_e.endY=Math.max(_e.y+_e.height,_11.y+_11.height);
-});
-_e.width=_e.endX-_e.x;
-_e.height=_e.endY-_e.y;
-}
-return _e;
-};
+	var dgc = dojox.geo.charting;
+	dgc.showTooltip = function(/*String*/innerHTML, /*dojox.gfx.shape*/ gfxObject, /*String[]?*/ position){
+		var arroundNode = dgc._normalizeArround(gfxObject);
+		return dijit.showTooltip(innerHTML, arroundNode, position);
+	};
+
+	dgc.hideTooltip = function( /*dojox.gfx.shape*/gfxObject){
+		return dijit.hideTooltip(gfxObject);
+	};
+
+	dgc._normalizeArround = function(gfxObject){
+		var bbox = dgc._getRealBBox(gfxObject);
+		//var bbox = gfxObject.getBoundingBox();
+		//get the real screen coords for gfx object
+		var realMatrix = gfxObject._getRealMatrix() || {xx:1,xy:0,yx:0,yy:1,dx:0,dy:0};
+		var point = dojox.gfx.matrix.multiplyPoint(realMatrix, bbox.x, bbox.y);
+		var gfxDomContainer = dojo.coords(dgc._getGfxContainer(gfxObject));
+		gfxObject.x = dojo.coords(gfxDomContainer,true).x + point.x,
+		gfxObject.y = dojo.coords(gfxDomContainer,true).y + point.y,
+		gfxObject.width = bbox.width * realMatrix.xx,
+		gfxObject.height = bbox.height * realMatrix.yy
+		return gfxObject;
+	};
+
+	dgc._getGfxContainer = function(gfxObject){
+		return (new dojo.NodeList(gfxObject.rawNode)).parents("div")[0];
+	};
+
+	dgc._getRealBBox = function(gfxObject){
+		var bboxObject = gfxObject.getBoundingBox();
+		if(!bboxObject){//the gfx object is group
+			var shapes = gfxObject.children;
+			var bboxObject = dojo.clone(dgc._getRealBBox(shapes[0]));
+			dojo.forEach(shapes, function(item){
+				var nextBBox = dgc._getRealBBox(item);
+				bboxObject.x = Math.min(bboxObject.x, nextBBox.x);
+				bboxObject.y = Math.min(bboxObject.y, nextBBox.y);
+				bboxObject.endX = Math.max(bboxObject.x + bboxObject.width, nextBBox.x + nextBBox.width);
+				bboxObject.endY = Math.max(bboxObject.y + bboxObject.height, nextBBox.y + nextBBox.height);
+			});
+			bboxObject.width = bboxObject.endX - bboxObject.x;
+			bboxObject.height = bboxObject.endY - bboxObject.y;
+		}
+		return bboxObject;
+	};
 })();
-}
