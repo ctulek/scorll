@@ -9,21 +9,22 @@ var call = function(ioclient, method) {
     client.call.apply(client, params);
 }
 
-exports.addAsset = function(client, contentId, item, callback) {
+exports.addAsset = function(client, contentId, item, position, callback) {
    var content = tempData[contentId];
    if(!content) {
     console.error("Content not found");
     callback && callback("Content not found");
     return;
    }
+   position = position || content.items.length;
    asset.post(item, function(err, id) {
        if(err) {
         callback && callback(err);
         return
        }
-       content.items.push(item.id); 
+       content.items.splice(position,0,item.id); 
        groups.each(groups.id(client), function(client) {
-           call(client, '_add', item);
+           call(client, '_add', item, position);
        });
        callback && callback();
    });

@@ -52,9 +52,9 @@ dojo.declare("scorll.content.Content",[scorll.net.ClientComponent],{
 		return this.store.query();
 	},
 	add: function(item) {
-        this.client.call(this, "addAsset", this.id, item);
+        this.client.call(this, "addAsset", this.id, item, null);
 	},
-    _add: function(item) {
+    _add: function(item, position) {
 		this.store.put(item);
     },
 	update: function(item) {
