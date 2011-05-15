@@ -11,7 +11,6 @@
 		http://dojotoolkit.org
 */
 
-dojo.provide("scorll");
 if(!dojo._hasResource["dojo.store.util.QueryResults"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
 dojo._hasResource["dojo.store.util.QueryResults"] = true;
 dojo.provide("dojo.store.util.QueryResults");
@@ -14810,6 +14809,1041 @@ dojo.declare("scorll.stage.Stage",null,{
         });
     }
 });
+}
+
+if(!dojo._hasResource["scorll.asset.Shared"]){
+dojo._hasResource["scorll.asset.Shared"]=true;
+dojo.provide("scorll.asset.Shared");
+
+dojo.declare("scorll.asset.Shared",null,{
+    call: function(methodName) {
+        var args = Array.prototype.slice.call(arguments);  
+        var params = [this, "call", this.getComponentId()].concat(args);
+        this.client.call.apply(this.client, params);
+    },
+    receive: function(methodName) {
+        if(typeof(this[methodName]) == "function") {
+            var args = Array.prototype.slice.call(arguments);  
+            var params = args.slice(1);
+            this[methodName].apply(this, params);
+        }
+    }
+});
+}
+
+if(!dojo._hasResource["scorll.asset.Tracking"]){
+dojo._hasResource["scorll.asset.Tracking"]=true;
+dojo.provide("scorll.asset.Tracking");
+
+dojo.declare("scorll.asset.Tracking",null,{
+    userTrackingData: {},
+    userTrackingDataHistory: {},
+    track: function(params, callback) {
+        var asset = this;
+        params.assetId = this.item.id;
+        if(!asset.user.authenticated) {
+            asset.stage.userLogin(function(err) {
+                if(err) {
+                    callback("The user is not authenticated");
+                } else {
+                    asset.client.call(asset, "track", asset.getComponentId(), params, callback);
+                }
+            });
+        } else {
+            asset.client.call(asset, "track", asset.getComponentId(), params, callback);
+        }
+    }
+    ,collect: function(userid, params) {
+        this.userTrackingData[userid] = params;
+        var history = this.userTrackingDataHistory[userid] || [];
+        history.push(params);
+        this.userTrackingDataHistory[userid] = history;
+    }
+    ,TRACKING_TYPE: {
+        TRUE_FALSE: "true-false"
+        ,CHOICE: "choice"
+        ,FILL_IN: "fill-in"
+        ,LIKERT: "likert"
+        ,MATCHING: "matching"
+        ,PERFORMANCE: "performance"
+        ,SEQUENCING: "sequencing"
+        ,NUMERIC: "numeric"
+        ,OTHER: "other"
+    }
+});
+}
+
+if(!dojo._hasResource["scorll.asset.Persistent"]){
+dojo._hasResource["scorll.asset.Persistent"]=true;
+dojo.provide("scorll.asset.Persistent");
+
+dojo.declare("scorll.asset.Persistent",null,{
+    save: function(objects, callback) {
+        this.client.call(this, 'save', objects, callback);
+    },
+    search: function(conditions, callback) {
+        this.client.call(this, 'search', conditions, callback);
+    },
+    del: function(objects, callback) {
+        this.client.call(this, 'delete', conditions, callback);
+    },
+});
+}
+
+if(!dojo._hasResource["scorll.asset.Asset"]){
+dojo._hasResource["scorll.asset.Asset"]=true;
+dojo.provide("scorll.asset.Asset");
+
+
+
+
+
+
+
+
+
+dojo.declare("scorll.asset.Asset",
+[dijit._Widget, dijit._Templated
+ ,scorll.net.ClientComponent
+ ,scorll.asset.Shared
+ ,scorll.asset.Tracking
+ ,scorll.asset.Persistent
+]
+,{
+    user: null,
+    client: null,
+    content: null,
+    stage: null,
+	item: null,
+
+    // scorll.net.ClientComponent functions
+    getComponentType: function() {
+        return "asset";
+    },
+    getComponentId: function() {
+        return "asset-" + this.item.id;
+    }
+});
+}
+
+if(!dojo._hasResource["scorll.asset.Text"]){
+dojo._hasResource["scorll.asset.Text"]=true;
+dojo.provide("scorll.asset.Text");
+
+
+
+dojo.declare("scorll.asset.Text",[scorll.asset.Asset], {
+    templateString:"<div>\n\t<h2 dojoAttachPoint=\"titleText\"></h2>\n\t<p dojoAttachPoint=\"bodyText\"></p>\n",
+    postCreate: function() {
+        var data = this.item.data;
+        if(data.text) {
+            this.bodyText.innerHTML = data.text;
+        }
+        if(data.title) {
+            this.titleText.innerHTML = data.title;
+        } else {
+            dojo.destroy(this.titleText);
+        }
+        var userid = this.user ? this.user.id : "unknown";
+        this.call("test","Test Message From User " + userid);
+    },
+    test: function(message) {
+        console.log("Message to Test: " + message);
+    }
+});
+}
+
+if(!dojo._hasResource["scorll.asset.AssetForm"]){
+dojo._hasResource["scorll.asset.AssetForm"]=true;
+dojo.provide("scorll.asset.AssetForm");
+
+
+
+
+dojo.declare("scorll.asset.AssetForm",[dijit._Widget, dijit._Templated],{
+	widgetsInTemplate: true,
+	item: {},
+	onSubmit: function(item) {
+	},
+	onCancel: function() {
+	},
+	submit: function() {
+		throw new Error("Implement add function");
+	},
+	cancel: function() {
+		throw new Error("Implement cancel function");
+	}
+	});
+}
+
+if(!dojo._hasResource["dijit.form.SimpleTextarea"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dijit.form.SimpleTextarea"] = true;
+dojo.provide("dijit.form.SimpleTextarea");
+
+
+
+dojo.declare("dijit.form.SimpleTextarea",
+	dijit.form.TextBox,
+	{
+	// summary:
+	//		A simple textarea that degrades, and responds to
+	// 		minimal LayoutContainer usage, and works with dijit.form.Form.
+	//		Doesn't automatically size according to input, like Textarea.
+	//
+	// example:
+	//	|	<textarea dojoType="dijit.form.SimpleTextarea" name="foo" value="bar" rows=30 cols=40></textarea>
+	//
+	// example:
+	//	|	new dijit.form.SimpleTextarea({ rows:20, cols:30 }, "foo");
+
+	baseClass: "dijitTextBox dijitTextArea",
+
+	attributeMap: dojo.delegate(dijit.form._FormValueWidget.prototype.attributeMap, {
+		rows:"textbox", cols: "textbox"
+	}),
+
+	// rows: Number
+	//		The number of rows of text.
+	rows: "3",
+
+	// rows: Number
+	//		The number of characters per line.
+	cols: "20",
+
+	templateString: "<textarea ${!nameAttrSetting} dojoAttachPoint='focusNode,containerNode,textbox' autocomplete='off'></textarea>",
+
+	postMixInProperties: function(){
+		// Copy value from srcNodeRef, unless user specified a value explicitly (or there is no srcNodeRef)
+		// TODO: parser will handle this in 2.0
+		if(!this.value && this.srcNodeRef){
+			this.value = this.srcNodeRef.value;
+		}
+		this.inherited(arguments);
+	},
+
+	buildRendering: function(){
+		this.inherited(arguments);
+		if(dojo.isIE && this.cols){ // attribute selectors is not supported in IE6
+			dojo.addClass(this.textbox, "dijitTextAreaCols");
+		}
+	},
+
+	filter: function(/*String*/ value){
+		// Override TextBox.filter to deal with newlines... specifically (IIRC) this is for IE which writes newlines
+		// as \r\n instead of just \n
+		if(value){
+			value = value.replace(/\r/g,"");
+		}
+		return this.inherited(arguments);
+	},
+
+	_previousValue: "",
+	_onInput: function(/*Event?*/ e){
+		// Override TextBox._onInput() to enforce maxLength restriction
+		if(this.maxLength){
+			var maxLength = parseInt(this.maxLength);
+			var value = this.textbox.value.replace(/\r/g,'');
+			var overflow = value.length - maxLength;
+			if(overflow > 0){
+				if(e){ dojo.stopEvent(e); }
+				var textarea = this.textbox;
+				if(textarea.selectionStart){
+					var pos = textarea.selectionStart;
+					var cr = 0;
+					if(dojo.isOpera){
+						cr = (this.textbox.value.substring(0,pos).match(/\r/g) || []).length;
+					}
+					this.textbox.value = value.substring(0,pos-overflow-cr)+value.substring(pos-cr);
+					textarea.setSelectionRange(pos-overflow, pos-overflow);
+				}else if(dojo.doc.selection){ //IE
+					textarea.focus();
+					var range = dojo.doc.selection.createRange();
+					// delete overflow characters
+					range.moveStart("character", -overflow);
+					range.text = '';
+					// show cursor
+					range.select();
+				}
+			}
+			this._previousValue = this.textbox.value;
+		}
+		this.inherited(arguments);
+	}
+});
+
+}
+
+if(!dojo._hasResource["dijit.form.Textarea"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dijit.form.Textarea"] = true;
+dojo.provide("dijit.form.Textarea");
+
+
+
+dojo.declare(
+	"dijit.form.Textarea",
+	dijit.form.SimpleTextarea,
+	{
+	// summary:
+	//		A textarea widget that adjusts it's height according to the amount of data.
+	//
+	// description:
+	//		A textarea that dynamically expands/contracts (changing it's height) as
+	//		the user types, to display all the text without requiring a scroll bar.
+	//
+	//		Takes nearly all the parameters (name, value, etc.) that a vanilla textarea takes.
+	//		Rows is not supported since this widget adjusts the height.
+	//
+	// example:
+	// |	<textarea dojoType="dijit.form.TextArea">...</textarea>
+
+
+	// TODO: for 2.0, rename this to ExpandingTextArea, and rename SimpleTextarea to Textarea
+
+	baseClass: "dijitTextBox dijitTextArea dijitExpandingTextArea",
+
+	// Override SimpleTextArea.cols to default to width:100%, for backward compatibility
+	cols: "",
+
+	_previousNewlines: 0,
+	_strictMode: (dojo.doc.compatMode != 'BackCompat'), // not the same as !dojo.isQuirks
+
+	_getHeight: function(textarea){
+		var newH = textarea.scrollHeight;
+		if(dojo.isIE){
+			newH += textarea.offsetHeight - textarea.clientHeight - ((dojo.isIE < 8 && this._strictMode) ? dojo._getPadBorderExtents(textarea).h : 0);
+		}else if(dojo.isMoz){
+			newH += textarea.offsetHeight - textarea.clientHeight; // creates room for horizontal scrollbar
+		}else if(dojo.isWebKit){
+			newH += dojo._getBorderExtents(textarea).h;
+		}else{ // Opera 9.6 (TODO: test if this is still needed)
+			newH += dojo._getPadBorderExtents(textarea).h;
+		}
+		return newH;
+	},
+
+	_estimateHeight: function(textarea){
+		// summary:
+		// 		Approximate the height when the textarea is invisible with the number of lines in the text.
+		// 		Fails when someone calls setValue with a long wrapping line, but the layout fixes itself when the user clicks inside so . . .
+		// 		In IE, the resize event is supposed to fire when the textarea becomes visible again and that will correct the size automatically.
+		//
+		textarea.style.maxHeight = "";
+		textarea.style.height = "auto";
+		// #rows = #newlines+1
+		// Note: on Moz, the following #rows appears to be 1 too many.
+		// Actually, Moz is reserving room for the scrollbar.
+		// If you increase the font size, this behavior becomes readily apparent as the last line gets cut off without the +1.
+		textarea.rows = (textarea.value.match(/\n/g) || []).length + 1;
+	},
+
+	_needsHelpShrinking: dojo.isMoz || dojo.isWebKit,
+
+	_onInput: function(){
+		// Override SimpleTextArea._onInput() to deal with height adjustment
+		this.inherited(arguments);
+		if(this._busyResizing){ return; }
+		this._busyResizing = true;
+		var textarea = this.textbox;
+		if(textarea.scrollHeight && textarea.offsetHeight && textarea.clientHeight){
+			var newH = this._getHeight(textarea) + "px";
+			if(textarea.style.height != newH){
+				textarea.style.maxHeight = textarea.style.height = newH;
+			}
+			if(this._needsHelpShrinking){
+				if(this._setTimeoutHandle){
+					clearTimeout(this._setTimeoutHandle);
+				}
+				this._setTimeoutHandle = setTimeout(dojo.hitch(this, "_shrink"), 0); // try to collapse multiple shrinks into 1
+			}
+		}else{
+			// hidden content of unknown size
+			this._estimateHeight(textarea);
+		}
+		this._busyResizing = false;
+	},
+
+	_busyResizing: false,
+	_shrink: function(){
+		// grow paddingBottom to see if scrollHeight shrinks (when it is unneccesarily big)
+		this._setTimeoutHandle = null;
+		if(this._needsHelpShrinking && !this._busyResizing){
+			this._busyResizing = true;
+			var textarea = this.textbox;
+			var empty = false;
+			if(textarea.value == ''){
+				textarea.value = ' '; // prevent collapse all the way back to 0
+				empty = true;
+			}
+			var scrollHeight = textarea.scrollHeight;
+			if(!scrollHeight){
+				this._estimateHeight(textarea);
+			}else{
+				var oldPadding = textarea.style.paddingBottom;
+				var newPadding = dojo._getPadExtents(textarea);
+				newPadding = newPadding.h - newPadding.t;
+				textarea.style.paddingBottom = newPadding + 1 + "px"; // tweak padding to see if height can be reduced
+				var newH = this._getHeight(textarea) - 1 + "px"; // see if the height changed by the 1px added
+				if(textarea.style.maxHeight != newH){ // if can be reduced, so now try a big chunk
+					textarea.style.paddingBottom = newPadding + scrollHeight + "px";
+					textarea.scrollTop = 0;
+					textarea.style.maxHeight = this._getHeight(textarea) - scrollHeight + "px"; // scrollHeight is the added padding
+				}
+				textarea.style.paddingBottom = oldPadding;
+			}
+			if(empty){
+				textarea.value = '';
+			}
+			this._busyResizing = false;
+		}
+	},
+
+	resize: function(){
+		// summary:
+		//		Resizes the textarea vertically (should be called after a style/value change)
+		this._onInput();
+	},
+
+	_setValueAttr: function(){
+		this.inherited(arguments);
+		this.resize();
+	},
+
+	buildRendering: function(){
+		this.inherited(arguments);
+
+		// tweak textarea style to reduce browser differences
+		dojo.style(this.textbox, { overflowY: 'hidden', overflowX: 'auto', boxSizing: 'border-box', MsBoxSizing: 'border-box', WebkitBoxSizing: 'border-box', MozBoxSizing: 'border-box' });
+	},
+
+	postCreate: function(){
+		this.inherited(arguments);
+
+		this.connect(this.textbox, "onscroll", "_onInput");
+		this.connect(this.textbox, "onresize", "_onInput");
+		this.connect(this.textbox, "onfocus", "_onInput"); // useful when a previous estimate was off a bit
+		this._setTimeoutHandle = setTimeout(dojo.hitch(this, "resize"), 0);
+	},
+
+	uninitialize: function(){
+		if(this._setTimeoutHandle){
+			clearTimeout(this._setTimeoutHandle);
+		}
+		this.inherited(arguments);
+	}
+});
+
+}
+
+if(!dojo._hasResource["scorll.asset.TextForm"]){
+dojo._hasResource["scorll.asset.TextForm"]=true;
+dojo.provide("scorll.asset.TextForm");
+
+
+
+
+
+
+dojo.declare("scorll.asset.TextForm",[scorll.asset.AssetForm],{
+		templateString:"<div>\n\t<div style=\"width: 500px;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" cols=\"1\" labelWidth=\"120\" height=\"300px\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"titleText\" title=\"Title (Optional)\"></div>\n\t\t\t<div dojoType=\"dijit.form.Textarea\" dojoAttachPoint=\"bodyText\" title=\"Text\" style=\"min-height: 200px;\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+		postCreate: function() {
+			if(!this.item.data) {
+				return;
+			}
+			var data = this.item.data;
+			if(data.title) {
+				this.titleText.attr('value',data.title);
+			}
+			this.bodyText.attr('value',data.text);
+		},
+		submit: function() {
+			var title = null;
+			if(this.titleText.attr('value').trim() != '') {
+				title = this.titleText.attr('value').trim();
+			}
+			var text = this.bodyText.attr('value').trim();
+			var data = {};
+			if(title) {
+				data.title = title;
+			}
+			data.text = text;
+			this.item.data = data;
+			this.onSubmit(this.item);
+		},
+		cancel: function() {
+			this.onCancel();
+		}
+	});
+}
+
+if(!dojo._hasResource["scorll.asset.Image"]){
+dojo._hasResource["scorll.asset.Image"]=true;
+dojo.provide("scorll.asset.Image");
+
+dojo.declare("scorll.asset.Image",[scorll.asset.Asset],{
+	templateString:"<div>\n\t<img src=\"${item.data.url}\" />\n</div>\n"
+	}
+);
+}
+
+if(!dojo._hasResource["scorll.asset.ImageForm"]){
+dojo._hasResource["scorll.asset.ImageForm"]=true;
+dojo.provide("scorll.asset.ImageForm");
+
+
+
+
+
+dojo.declare("scorll.asset.ImageForm",[scorll.asset.AssetForm],{
+		templateString:"<div>\n\t<div style=\"width: 800px;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" cols=\"1\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"imageUrl\" title=\"Image Url\" style=\"width: 100%\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+		postCreate: function() {
+			if(!this.item.data) {
+				return;
+			}
+			var data = this.item.data;
+			if(data.url) {
+				this.imageUrl.attr('value',data.url);
+			}
+		},
+		submit: function() {
+			var url = this.imageUrl.attr('value').trim();
+			var data = {};
+			data.url = url;
+			this.item.data = data;
+			this.onSubmit(this.item);
+		},
+		cancel: function() {
+			this.onCancel();
+		}
+	});
+}
+
+if(!dojo._hasResource["scorll.asset.MultipleChoice"]){
+dojo._hasResource["scorll.asset.MultipleChoice"]=true;
+dojo.provide("scorll.asset.MultipleChoice");
+
+
+
+
+
+dojo.declare("scorll.asset.MultipleChoice",[scorll.asset.Asset],{
+    templateString:"<div>\n\t<div>${item.data.question}</div>\n</div>\n",
+    postCreate: function() {
+        var asset = this;
+        var data = this.item.data;
+        if(data.answers) {
+            for(var i in data.answers) {
+                var type = "radio";
+                var id = "interaction-" + this.item.id + "-" + i;
+                var name = "interaction" + this.item.id;
+                var value = i;
+                var label = data.answers[i];
+                var html = dojo.string.substitute(
+                    '<p><label for="${0}">${1}</label></p>',
+                    [id, label]);
+                var p = dojo.place(html, this.domNode);
+                html = dojo.string.substitute(
+                    '<input type="${0}" id="${1}" name="${2}" value="${3}" />',
+                    [type, id, name, value]);
+                var input = dojo.place(html, p, "first");
+                dojo.connect(input, "change", function() {
+                    var params = {
+                        type: asset.TRACKING_TYPE.CHOICE,
+                        response: this.value
+                    };
+                    asset.track(params, function(err) {
+                    });
+                });
+
+            }
+        }
+    }
+}
+);
+}
+
+if(!dojo._hasResource["scorll.asset.MultipleChoiceForm"]){
+dojo._hasResource["scorll.asset.MultipleChoiceForm"]=true;
+dojo.provide("scorll.asset.MultipleChoiceForm");
+
+
+
+
+dojo.declare("scorll.asset.MultipleChoiceForm",[scorll.asset.AssetForm],{
+		templateString:"<div>\n\t<div style=\"width: 800px;\">\n\t\t<div>Question:</div>\n\t\t<div dojoType=\"dijit.form.Textarea\"\n\t\t\tdojoAttachPoint=\"questionBox\"\n\t\t\tstyle=\"width: 100%;\" ></div>\n\t\t<div>Answers:</div>\n\t\t<div dojoType=\"dijit.form.Textarea\"\n\t\t\tdojoAttachPoint=\"answersBox\"\n\t\t\tstyle=\"width: 100%; min-height: 200px;\" ></div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+		postCreate: function() {
+			if(!this.item.data) {
+				return;
+			}
+			var data = this.item.data;
+			this.questionBox.attr('value',data.question);
+			if(data.answers) {
+				var answersString = "";
+				for(var i in data.answers) {
+					answersString += data.answers[i] + "\n";
+				}
+				this.answersBox.attr('value',answersString.trim());
+			}
+		},
+		submit: function() {
+			var question = this.questionBox.attr('value').trim();
+			var answers = this.answersBox.attr('value').trim().split("\n");
+			var data = {};
+			data.question = question;
+			data.answers = answers;
+			this.item.data = data;
+			this.onSubmit(this.item);
+		},
+		cancel: function() {
+			this.onCancel();
+		}
+	});
+}
+
+if(!dojo._hasResource["scorll.asset.YouTube"]){
+dojo._hasResource["scorll.asset.YouTube"]=true;
+dojo.provide("scorll.asset.YouTube");
+
+dojo.declare("scorll.asset.YouTube",[scorll.asset.Asset],{
+	templateString:"<div style=\"text-align: center\">\n\t<iframe title=\"YouTube video player\" width=\"640\" height=\"510\" src=\"http://www.youtube.com/embed/${item.data.video}?rel=0&wmode=transparent\" frameborder=\"0\" allowfullscreen></iframe>\n</div>\n"
+	}
+);
+}
+
+if(!dojo._hasResource["scorll.asset.YouTubeForm"]){
+dojo._hasResource["scorll.asset.YouTubeForm"]=true;
+dojo.provide("scorll.asset.YouTubeForm");
+
+
+
+
+
+dojo.declare("scorll.asset.YouTubeForm",[scorll.asset.AssetForm],{
+		templateString:"<div title=\"YouTube Video\">\n\t<div style=\"width: 500px;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" cols=\"1\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"videoUrl\" title=\"Video Url\" style=\"width: 100%\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+		postCreate: function() {
+			if(!this.item.data) {
+				return;
+			}
+			var data = this.item.data;
+			if(data.video) {
+				var url = "http://www.youtube.com/watch?v=" + data.video;
+				this.videoUrl.attr('value',url);
+			}
+		},
+		submit: function() {
+			var regex = new RegExp("v=([^&]+)");
+			var match = regex.exec(this.videoUrl.attr('value').trim());
+			var video = match[1];
+			var data = {};
+			data.video = video;
+			this.item.data = data;
+			this.onSubmit(this.item);
+		},
+		cancel: function() {
+			this.onCancel();
+		}
+	});
+}
+
+if(!dojo._hasResource["scorll.asset.SlideShare"]){
+dojo._hasResource["scorll.asset.SlideShare"]=true;
+dojo.provide("scorll.asset.SlideShare");
+
+dojo.declare("scorll.asset.SlideShare",[scorll.asset.Asset],{
+	templateString:"<div style=\"text-align: center\">\n</div>\n"
+	}
+);
+}
+
+if(!dojo._hasResource["dojo.io.script"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojo.io.script"] = true;
+dojo.provide("dojo.io.script");
+
+dojo.getObject("io", true, dojo);
+
+/*=====
+dojo.declare("dojo.io.script.__ioArgs", dojo.__IoArgs, {
+	constructor: function(){
+		//	summary:
+		//		All the properties described in the dojo.__ioArgs type, apply to this
+		//		type as well, EXCEPT "handleAs". It is not applicable to
+		//		dojo.io.script.get() calls, since it is implied by the usage of
+		//		"jsonp" (response will be a JSONP call returning JSON)
+		//		or the response is pure JavaScript defined in
+		//		the body of the script that was attached.
+		//	callbackParamName: String
+		//		Deprecated as of Dojo 1.4 in favor of "jsonp", but still supported for
+		// 		legacy code. See notes for jsonp property.
+		//	jsonp: String
+		//		The URL parameter name that indicates the JSONP callback string.
+		//		For instance, when using Yahoo JSONP calls it is normally,
+		//		jsonp: "callback". For AOL JSONP calls it is normally
+		//		jsonp: "c".
+		//	checkString: String
+		//		A string of JavaScript that when evaluated like so:
+		//		"typeof(" + checkString + ") != 'undefined'"
+		//		being true means that the script fetched has been loaded.
+		//		Do not use this if doing a JSONP type of call (use callbackParamName instead).
+		//	frameDoc: Document
+		//		The Document object for a child iframe. If this is passed in, the script
+		//		will be attached to that document. This can be helpful in some comet long-polling
+		//		scenarios with Firefox and Opera.
+		this.callbackParamName = callbackParamName;
+		this.jsonp = jsonp;
+		this.checkString = checkString;
+		this.frameDoc = frameDoc;
+	}
+});
+=====*/
+(function(){
+	var loadEvent = dojo.isIE ? "onreadystatechange" : "load",
+		readyRegExp = /complete|loaded/;
+
+	dojo.io.script = {
+		get: function(/*dojo.io.script.__ioArgs*/args){
+			//	summary:
+			//		sends a get request using a dynamically created script tag.
+			var dfd = this._makeScriptDeferred(args);
+			var ioArgs = dfd.ioArgs;
+			dojo._ioAddQueryToUrl(ioArgs);
+	
+			dojo._ioNotifyStart(dfd);
+
+			if(this._canAttach(ioArgs)){
+				var node = this.attach(ioArgs.id, ioArgs.url, args.frameDoc);
+
+				//If not a jsonp callback or a polling checkString case, bind
+				//to load event on the script tag.
+				if(!ioArgs.jsonp && !ioArgs.args.checkString){
+					var handle = dojo.connect(node, loadEvent, function(evt){
+						if(evt.type == "load" || readyRegExp.test(node.readyState)){
+							dojo.disconnect(handle);
+							ioArgs.scriptLoaded = evt;
+						}
+					});
+				}
+			}
+
+			dojo._ioWatch(dfd, this._validCheck, this._ioCheck, this._resHandle);
+			return dfd;
+		},
+	
+		attach: function(/*String*/id, /*String*/url, /*Document?*/frameDocument){
+			//	summary:
+			//		creates a new <script> tag pointing to the specified URL and
+			//		adds it to the document.
+			//	description:
+			//		Attaches the script element to the DOM.  Use this method if you
+			//		just want to attach a script to the DOM and do not care when or
+			//		if it loads.
+			var doc = (frameDocument || dojo.doc);
+			var element = doc.createElement("script");
+			element.type = "text/javascript";
+			element.src = url;
+			element.id = id;
+			element.charset = "utf-8";
+			return doc.getElementsByTagName("head")[0].appendChild(element);
+		},
+	
+		remove: function(/*String*/id, /*Document?*/frameDocument){
+			//summary: removes the script element with the given id, from the given frameDocument.
+			//If no frameDocument is passed, the current document is used.
+			dojo.destroy(dojo.byId(id, frameDocument));
+			
+			//Remove the jsonp callback on dojo.io.script, if it exists.
+			if(this["jsonp_" + id]){
+				delete this["jsonp_" + id];
+			}
+		},
+	
+		_makeScriptDeferred: function(/*Object*/args){
+			//summary:
+			//		sets up a Deferred object for an IO request.
+			var dfd = dojo._ioSetArgs(args, this._deferredCancel, this._deferredOk, this._deferredError);
+	
+			var ioArgs = dfd.ioArgs;
+			ioArgs.id = dojo._scopeName + "IoScript" + (this._counter++);
+			ioArgs.canDelete = false;
+	
+			//Special setup for jsonp case
+			ioArgs.jsonp = args.callbackParamName || args.jsonp;
+			if(ioArgs.jsonp){
+				//Add the jsonp parameter.
+				ioArgs.query = ioArgs.query || "";
+				if(ioArgs.query.length > 0){
+					ioArgs.query += "&";
+				}
+				ioArgs.query += ioArgs.jsonp
+					+ "="
+					+ (args.frameDoc ? "parent." : "")
+					+ dojo._scopeName + ".io.script.jsonp_" + ioArgs.id + "._jsonpCallback";
+	
+				ioArgs.frameDoc = args.frameDoc;
+	
+				//Setup the Deferred to have the jsonp callback.
+				ioArgs.canDelete = true;
+				dfd._jsonpCallback = this._jsonpCallback;
+				this["jsonp_" + ioArgs.id] = dfd;
+			}
+			return dfd; // dojo.Deferred
+		},
+		
+		_deferredCancel: function(/*Deferred*/dfd){
+			//summary: canceller function for dojo._ioSetArgs call.
+	
+			//DO NOT use "this" and expect it to be dojo.io.script.
+			dfd.canceled = true;
+			if(dfd.ioArgs.canDelete){
+				dojo.io.script._addDeadScript(dfd.ioArgs);
+			}
+		},
+	
+		_deferredOk: function(/*Deferred*/dfd){
+			//summary: okHandler function for dojo._ioSetArgs call.
+	
+			//DO NOT use "this" and expect it to be dojo.io.script.
+			var ioArgs = dfd.ioArgs;
+	
+			//Add script to list of things that can be removed.
+			if(ioArgs.canDelete){
+				dojo.io.script._addDeadScript(ioArgs);
+			}
+	
+			//Favor JSONP responses, script load events then lastly ioArgs.
+			//The ioArgs are goofy, but cannot return the dfd since that stops
+			//the callback chain in Deferred. The return value is not that important
+			//in that case, probably a checkString case.
+			return ioArgs.json || ioArgs.scriptLoaded || ioArgs;
+		},
+	
+		_deferredError: function(/*Error*/error, /*Deferred*/dfd){
+			//summary: errHandler function for dojo._ioSetArgs call.
+	
+			if(dfd.ioArgs.canDelete){
+				//DO NOT use "this" and expect it to be dojo.io.script.
+				if(error.dojoType == "timeout"){
+					//For timeouts, remove the script element immediately to
+					//avoid a response from it coming back later and causing trouble.
+					dojo.io.script.remove(dfd.ioArgs.id, dfd.ioArgs.frameDoc);
+				}else{
+					dojo.io.script._addDeadScript(dfd.ioArgs);
+				}
+			}
+			console.log("dojo.io.script error", error);
+			return error;
+		},
+	
+		_deadScripts: [],
+		_counter: 1,
+	
+		_addDeadScript: function(/*Object*/ioArgs){
+			//summary: sets up an entry in the deadScripts array.
+			dojo.io.script._deadScripts.push({id: ioArgs.id, frameDoc: ioArgs.frameDoc});
+			//Being extra paranoid about leaks:
+			ioArgs.frameDoc = null;
+		},
+	
+		_validCheck: function(/*Deferred*/dfd){
+			//summary: inflight check function to see if dfd is still valid.
+	
+			//Do script cleanup here. We wait for one inflight pass
+			//to make sure we don't get any weird things by trying to remove a script
+			//tag that is part of the call chain (IE 6 has been known to
+			//crash in that case).
+			var _self = dojo.io.script;
+			var deadScripts = _self._deadScripts;
+			if(deadScripts && deadScripts.length > 0){
+				for(var i = 0; i < deadScripts.length; i++){
+					//Remove the script tag
+					_self.remove(deadScripts[i].id, deadScripts[i].frameDoc);
+					deadScripts[i].frameDoc = null;
+				}
+				dojo.io.script._deadScripts = [];
+			}
+	
+			return true;
+		},
+	
+		_ioCheck: function(/*Deferred*/dfd){
+			//summary: inflight check function to see if IO finished.
+			var ioArgs = dfd.ioArgs;
+			//Check for finished jsonp
+			if(ioArgs.json || (ioArgs.scriptLoaded && !ioArgs.args.checkString)){
+				return true;
+			}
+	
+			//Check for finished "checkString" case.
+			var checkString = ioArgs.args.checkString;
+			if(checkString && eval("typeof(" + checkString + ") != 'undefined'")){
+				return true;
+			}
+	
+			return false;
+		},
+	
+		_resHandle: function(/*Deferred*/dfd){
+			//summary: inflight function to handle a completed response.
+			if(dojo.io.script._ioCheck(dfd)){
+				dfd.callback(dfd);
+			}else{
+				//This path should never happen since the only way we can get
+				//to _resHandle is if _ioCheck is true.
+				dfd.errback(new Error("inconceivable dojo.io.script._resHandle error"));
+			}
+		},
+	
+		_canAttach: function(/*Object*/ioArgs){
+			//summary: A method that can be overridden by other modules
+			//to control when the script attachment occurs.
+			return true;
+		},
+		
+		_jsonpCallback: function(/*JSON Object*/json){
+			//summary:
+			//		generic handler for jsonp callback. A pointer to this function
+			//		is used for all jsonp callbacks.  NOTE: the "this" in this
+			//		function will be the Deferred object that represents the script
+			//		request.
+			this.ioArgs.json = json;
+		}
+	};
+})();
+
+}
+
+if(!dojo._hasResource["scorll.asset.SlideShareForm"]){
+dojo._hasResource["scorll.asset.SlideShareForm"]=true;
+dojo.provide("scorll.asset.SlideShareForm");
+
+
+
+
+
+
+dojo.declare("scorll.asset.SlideShareForm",[scorll.asset.AssetForm],{
+		templateString:"<div>\n\t<div style=\"width: 500px;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" cols=\"1\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"slideShareUrl\" title=\"SlideShare URL\" style=\"width: 100%\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+		postCreate: function() {
+			if(!this.item.data) {
+				return;
+			}
+			var data = this.item.data;
+			if(data.url) {
+				this.slideShareUrl.attr('value',data.url);
+			}
+		},
+		submit: function() {
+			var thisObject = this;
+			var url = "http://www.slideshare.net/api/oembed/1?url=" + this.slideShareUrl.attr('value').trim() + "&format=json";
+			dojo.io.script.get({
+				url: url,
+				preventCache: true,
+				checkString: false,
+				load: function(data) {
+					console.log(data);
+					var data = {};
+					data.url = url;
+					data.html = data.html
+					thisObject.item.data = data;
+					thisObject.onSubmit(thisObject.item);
+				}
+			});
+		},
+		cancel: function() {
+			this.onCancel();
+		}
+	});
+}
+
+if(!dojo._hasResource["scorll.asset.Scribd"]){
+dojo._hasResource["scorll.asset.Scribd"]=true;
+dojo.provide("scorll.asset.Scribd");
+
+dojo.declare("scorll.asset.Scribd",[scorll.asset.Asset],{
+	templateString:"<div style=\"text-align: center\">\n    <iframe class=\"scribd_iframe_embed\"\n        id=\"${item.id}\"\n        src=\"http://www.scribd.com/embeds/${item.data.scribd}/content?start_page=1&view_mode=slideshow\"\n        data-auto-height=\"true\" data-aspect-ratio=\"0.772727272727273\"\n        scrolling=\"no\"\n        width=\"100%\" height=\"600\"\n        frameborder=\"0\"></iframe><script type=\"text/javascript\">(function() { var scribd = document.createElement(\"script\"); scribd.type = \"text/javascript\"; scribd.async = true; scribd.src = \"http://www.scribd.com/javascripts/embed_code/inject.js\"; var s = document.getElementsByTagName(\"script\")[0]; s.parentNode.insertBefore(scribd, s); })();</script>\n</div>\n"
+	}
+);
+}
+
+if(!dojo._hasResource["scorll.asset.ScribdForm"]){
+dojo._hasResource["scorll.asset.ScribdForm"]=true;
+dojo.provide("scorll.asset.ScribdForm");
+
+
+
+
+
+dojo.declare("scorll.asset.ScribdForm",[scorll.asset.AssetForm],{
+		templateString:"<div>\n\t<div style=\"width: 500px;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" cols=\"1\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"scribdUrl\" title=\"Scribd Url\" style=\"width: 100%\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+		postCreate: function() {
+			if(!this.item.data) {
+				return;
+			}
+			var data = this.item.data;
+			if(data.scribd) {
+				var url = "http://www.scribd.com/doc/" + data.scribd
+                    + "/" + data.prettyUrl;
+				this.scribdUrl.attr('value',url);
+			}
+		},
+		submit: function() {
+			var regex = new RegExp("/doc/([^/]+)/(.+)");
+			var match = regex.exec(this.scribdUrl.attr('value').trim());
+			var scribd = match[1];
+			var prettyUrl = match[2];
+			var data = {};
+			data.scribd = scribd;
+			data.prettyUrl = prettyUrl;
+			this.item.data = data;
+			this.onSubmit(this.item);
+		},
+		cancel: function() {
+			this.onCancel();
+		}
+	});
+}
+
+if(!dojo._hasResource["scorll.asset.Vimeo"]){
+dojo._hasResource["scorll.asset.Vimeo"]=true;
+dojo.provide("scorll.asset.Vimeo");
+
+dojo.declare("scorll.asset.Vimeo",[scorll.asset.Asset],{
+	templateString:"<div style=\"text-align: center\">\n    <iframe src=\"http://player.vimeo.com/video/${item.data.video}?title=0&amp;byline=0&amp;portrait=0\" width=\"640\" height=\"510\" frameborder=\"0\"></iframe>\n</div>\n"
+	}
+);
+}
+
+if(!dojo._hasResource["scorll.asset.VimeoForm"]){
+dojo._hasResource["scorll.asset.VimeoForm"]=true;
+dojo.provide("scorll.asset.VimeoForm");
+
+
+
+
+
+dojo.declare("scorll.asset.VimeoForm",[scorll.asset.AssetForm],{
+		templateString:"<div title=\"Vimeo Video\">\n\t<div style=\"width: 500px;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" cols=\"1\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"videoUrl\" title=\"Video Url\" style=\"width: 100%\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+		postCreate: function() {
+			if(!this.item.data) {
+				return;
+			}
+			var data = this.item.data;
+			if(data.video) {
+				var url = "http://www.vimeo.com/" + data.video;
+				this.videoUrl.attr('value',url);
+			}
+		},
+		submit: function() {
+			var regex = new RegExp("com\/([^&]+)");
+			var match = regex.exec(this.videoUrl.attr('value').trim());
+			var video = match[1];
+			var data = {};
+			data.video = video;
+			this.item.data = data;
+			this.onSubmit(this.item);
+		},
+		cancel: function() {
+			this.onCancel();
+		}
+	});
 }
 
 

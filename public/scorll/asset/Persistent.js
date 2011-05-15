@@ -9,7 +9,7 @@ dojo.declare("scorll.asset.Persistent",null,{
     search: function(conditions, callback) {
         this.client.call(this, 'search', conditions, callback);
     },
-    delete: function(objects, callback) {
+    del: function(objects, callback) {
         this.client.call(this, 'delete', conditions, callback);
     },
 });

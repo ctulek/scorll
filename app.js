@@ -6,7 +6,7 @@ var io = require('socket.io');
 var express = require('express');
 
 var app = express.createServer(
-	//express.logger(),
+	express.logger(),
 	express.static(__dirname + '/public'),
 	express.bodyParser(),
 	express.methodOverride(),
