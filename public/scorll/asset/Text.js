@@ -4,7 +4,8 @@ dojo.provide("scorll.asset.Text");
 
 dojo.require("scorll.asset.Asset");
 
-dojo.declare("scorll.asset.Text",[scorll.asset.Asset], {
+dojo.declare("scorll.asset.Text",
+    [scorll.asset.Asset, scorll.asset.Shared], {
     templatePath    : dojo.moduleUrl('scorll.asset', 'Text.html'),
     postCreate: function() {
         var data = this.item.data;

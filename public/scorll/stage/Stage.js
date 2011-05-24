@@ -4,6 +4,7 @@ dojo.provide("scorll.stage.Stage");
 
 dojo.require("dojo.store.Observable");
 dojo.require("dijit.form.Button");
+dojo.require("dijit.Dialog");
 
 dojo.require("scorll.stage.Menu");
 dojo.require("scorll.stage.Login");

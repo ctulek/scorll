@@ -12,11 +12,16 @@ dojo.declare("scorll.asset.MultipleChoiceForm",[scorll.asset.AssetForm],{
 				return;
 			}
 			var data = this.item.data;
+            var correctResponse = data['correctResponses'] ? data.correctResponses[0] : [];
 			this.questionBox.attr('value',data.question);
 			if(data.answers) {
 				var answersString = "";
 				for(var i in data.answers) {
-					answersString += data.answers[i] + "\n";
+                    var answerString = data.answers[i].trim();
+                    if(correctResponse.indexOf(i) > -1) {
+                        answerString = "* " + answerString;
+                    }
+					answersString +=  answerString + "\n";
 				}
 				this.answersBox.attr('value',answersString.trim());
 			}
@@ -24,9 +29,18 @@ dojo.declare("scorll.asset.MultipleChoiceForm",[scorll.asset.AssetForm],{
 		submit: function() {
 			var question = this.questionBox.attr('value').trim();
 			var answers = this.answersBox.attr('value').trim().split("\n");
+            var correctResponse = [];
+            for(var i in answers) {
+                if(answers[i].indexOf("* ") == 0) {
+                    correctResponse.push(i);
+                    answers[i] = answers[i].slice(2);
+                }
+            }
 			var data = {};
+            data.type = correctResponse.length > 1 ? "checkbox" : "radio";
 			data.question = question;
 			data.answers = answers;
+            data.correctResponses = [correctResponse];
 			this.item.data = data;
 			this.onSubmit(this.item);
 		},

@@ -2,12 +2,19 @@ if(!dojo._hasResource["scorll.asset.Tracking"]){
 dojo._hasResource["scorll.asset.Tracking"]=true;
 dojo.provide("scorll.asset.Tracking");
 
+dojo.require("dijit.Dialog");
+
+dojo.require("scorll.asset.TrackingStats");
+dojo.require("dojo.store.Memory");
+dojo.require("dojo.data.ObjectStore");
+
 dojo.declare("scorll.asset.Tracking",null,{
-    userTrackingData: {},
+    userTrackingData: new dojo.store.Memory(),
     userTrackingDataHistory: {},
+    statsForm: null,
     track: function(params, callback) {
         var asset = this;
-        params.assetId = this.item.id;
+        params.assetId = asset.item.id;
         if(!asset.user.authenticated) {
             asset.stage.userLogin(function(err) {
                 if(err) {
@@ -20,11 +27,50 @@ dojo.declare("scorll.asset.Tracking",null,{
             asset.client.call(asset, "track", asset.getComponentId(), params, callback);
         }
     }
-    ,collect: function(userid, params) {
-        this.userTrackingData[userid] = params;
-        var history = this.userTrackingDataHistory[userid] || [];
-        history.push(params);
-        this.userTrackingDataHistory[userid] = history;
+    ,getTrackingResult: function(callback) {
+        var asset = this;
+        var params = {assetId: asset.item.id, userId: asset.user.id};
+        asset.client.call(asset, "getTrackingResults",
+            asset.getComponentId(), params, callback);
+    }
+    ,collect: function(userId, username, response, result) {
+        var asset = this;
+        asset.userTrackingData.put({id: userId, username: username, response: response, result: result});
+        asset.statsForm && asset.statsForm.resultsGrid._refresh();
+        var history = asset.userTrackingDataHistory[userId] || [];
+        history.push({response: response, result: result});
+        asset.userTrackingDataHistory[userId] = history;
+    }
+    ,showStats: function() {
+        var asset = this;
+        var params = {assetId: asset.item.id};
+        asset.client.call(asset, "getTrackingResults", asset.getComponentId(), params,
+        function(err, results) {
+            for(var userId in results) {
+                var username = results[userId].username;
+                var response = results[userId].response;
+                var result = results[userId].result;
+                asset.userTrackingData.put({id: userId, username: username, response: response, result: result});
+            }
+            var form = new scorll.asset.TrackingStats();
+            var dialog = new dijit.Dialog();
+            form.placeAt(dialog.containerNode);
+            dialog.show();
+            var data = new dojo.data.ObjectStore({
+                objectStore: asset.userTrackingData
+                });
+            form.resultsGrid.setStore(data);
+            asset.statsForm = form;
+            dojo.connect(form,"onCancel",function() {
+                tracking.statsForm = null;
+                dialog.hide();
+            });
+        });
+    }
+    // Override this function to show a user friendly label
+    // in TrackingStats
+    ,getLearnerResponseAsString: function(learnerResponse) {
+        return "hebe";
     }
     ,TRACKING_TYPE: {
         TRUE_FALSE: "true-false"

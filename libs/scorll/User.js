@@ -3,6 +3,7 @@ var authentication = require('./Authentication.js');
 
 exports.join = function(client, params, callback) {
     var user = {id: Date.now()};
+    user.username = params.username || "unknown";
     authentication.link(user.id, params, function(err) {
         if(err) {
             callback(err);

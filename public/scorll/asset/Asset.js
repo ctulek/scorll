@@ -13,9 +13,6 @@ dojo.require("scorll.net.ClientComponent");
 dojo.declare("scorll.asset.Asset",
 [dijit._Widget, dijit._Templated
  ,scorll.net.ClientComponent
- ,scorll.asset.Shared
- ,scorll.asset.Tracking
- ,scorll.asset.Persistent
 ]
 ,{
     user: null,

@@ -32,9 +32,18 @@ dojo.declare("scorll.stage.Menu",[dijit._Widget, dijit._Templated],{
 	_delete: function() {
 		this.onDelete(this.widget);
 	},
+    stats: function() {
+        this.hide(true);
+        this.widget.showStats();
+    },
 	show: function(node) {
 		clearTimeout(this._timeout);
 		this.widget = dijit.byNode(node);
+        if(this.widget.isInstanceOf(scorll.asset.Tracking)) {
+            this.statsButton.domNode.style.display = "inline";
+        } else {
+            this.statsButton.domNode.style.display = "none";
+        }
 		var position = dojo.position(node, {includeScroll: true});
 		this.domNode.style.left = position.x + position.w;
 		this.domNode.style.top = position.y;
