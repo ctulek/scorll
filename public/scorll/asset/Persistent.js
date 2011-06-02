@@ -1,8 +1,6 @@
-if(!dojo._hasResource["scorll.asset.Persistent"]){
-dojo._hasResource["scorll.asset.Persistent"]=true;
 dojo.provide("scorll.asset.Persistent");
 
-dojo.declare("scorll.asset.Persistent",null,{
+dojo.declare("scorll.asset.Persistent", null, {
     save: function(objects, callback) {
         this.client.call(this, 'save', objects, callback);
     },
@@ -13,4 +11,3 @@ dojo.declare("scorll.asset.Persistent",null,{
         this.client.call(this, 'delete', conditions, callback);
     },
 });
-}
