@@ -1,55 +1,52 @@
-if(!dojo._hasResource["scorll.net.Client"]){
-dojo._hasResource["scorll.net.Client"]=true;
 dojo.provide("scorll.net.Client");
-dojo.declare("scorll.net.Client",null,{
+dojo.declare("scorll.net.Client", null, {
     socket: null,
     connected: false,
     _callbacks: {},
     _components: {},
     _callbackIdCounter: 2,
-    onConnect: function() {
-    },
-    constructor: function(/* Object */ args) {
+    onConnect: function () {},
+    constructor: function ( /* Object */ args) {
         var client = this;
-        if(io.Socket) {
+        if (io.Socket) {
             client.socket = new io.Socket();
-            client.socket.on('connect', function(){
+            client.socket.on('connect', function () {
                 client.connected = true;
                 console.log("Connected to server");
                 client.onConnect();
-            }); 
-            client.socket.on('disconnect', function(){
+            });
+            client.socket.on('disconnect', function () {
                 client.connected = false;
                 console.log("Disconnected from server");
-            }); 
-            client.socket.on('message', function(message) {
+            });
+            client.socket.on('message', function (message) {
                 client._message(message);
             });
         }
     },
-    connect: function() {
-        if(!this.connected && this.socket) {
+    connect: function () {
+        if (!this.connected && this.socket) {
             this.socket.connect();
         }
     },
-    register: function(/* scorll.net.ClientComponent */ component) {
+    register: function ( /* scorll.net.ClientComponent */ component) {
         this._components[component.getComponentId()] = component;
         component.client = this;
     },
-    _message: function(/* Object */ message) {
+    _message: function ( /* Object */ message) {
         var client = this;
         if (message.componentId) {
             var callbackId = message.callbackId;
-            var callback = function(err) {
-                if(callbackId) {
-                    var message = {};
-                    message.callbackId = callbackId;
-                    message.params = Array.prototype.slice.call(arguments);
-                    client.socket.send(message);
+            var callback = function (err) {
+                    if (callbackId) {
+                        var message = {};
+                        message.callbackId = callbackId;
+                        message.params = Array.prototype.slice.call(arguments);
+                        client.socket.send(message);
+                    }
                 }
-            }
             var component = client._components[message.componentId];
-            if(component) {
+            if (component) {
                 var params = message.params || [];
                 params.push(callback);
                 var method = component[message.method] || null;
@@ -57,9 +54,9 @@ dojo.declare("scorll.net.Client",null,{
             } else {
                 console.error("Undefined component id");
             }
-        } else if(message.callbackId) {
+        } else if (message.callbackId) {
             var callback = client._callbacks[message.callbackId];
-            if(callback) {
+            if (callback) {
                 callback.apply(null, message.params);
                 delete client._callbacks[message.callbackId];
             } else {
@@ -69,14 +66,13 @@ dojo.declare("scorll.net.Client",null,{
             console.error("Invalid message:", message);
         }
     },
-    call: function(/* scorll.net.ClientComponent */ component,
-                   /* String */ method) {
+    call: function ( /* scorll.net.ClientComponent */ component, /* String */ method) {
         window.hebele = this;
         var client = this;
-        var args = Array.prototype.slice.call(arguments);  
+        var args = Array.prototype.slice.call(arguments);
         var params = args.slice(2);
         var callback = params.pop();
-        if(typeof callback != "function") {
+        if (typeof callback != "function") {
             params.push(callback);
             callback = null;
         }
@@ -84,11 +80,11 @@ dojo.declare("scorll.net.Client",null,{
         message.component = component.getComponentType();
         message.method = method;
         message.params = params;
-        if(client.connected && client.socket) {
-            if(callback) {
+        if (client.connected && client.socket) {
+            if (callback) {
                 var callbackId = client._callbackIdCounter++;
                 client._callbacks[callbackId] = callback;
-                message.callbackId = callbackId; 
+                message.callbackId = callbackId;
             }
             client.socket.send(message);
         } else {
@@ -96,4 +92,3 @@ dojo.declare("scorll.net.Client",null,{
         }
     }
 });
-}
