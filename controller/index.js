@@ -28,7 +28,7 @@ var showContent = function(req, res, next) {
         if(err || !exists) {
             next("Content not found", 404);
         } else {
-            res.render('index.html');
+            res.render('index');
         }
     })
 }

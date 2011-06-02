@@ -3,13 +3,12 @@ dojo._hasResource["scorll.stage.Stage"]=true;
 dojo.provide("scorll.stage.Stage");
 
 dojo.require("dojo.store.Observable");
-dojo.require("dijit.form.Button");
-dojo.require("dijit.Dialog");
 
 dojo.require("scorll.stage.Menu");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
 dojo.require("scorll.asset.AssetManager");
+dojo.require("scorll.asset.Dialog");
 
 dojo.declare("scorll.stage.Stage",null,{
 	mode: "guest",
@@ -57,7 +56,7 @@ dojo.declare("scorll.stage.Stage",null,{
 			if(!form) {
 				return;
 			}
-			var dialog = new dijit.Dialog();
+			var dialog = new scorll.asset.Dialog();
 			form.placeAt(dialog.containerNode);
 			dialog.show();
 			dojo.connect(form,"onSubmit",function(item) {
@@ -112,7 +111,7 @@ dojo.declare("scorll.stage.Stage",null,{
     newUserRegister: function(fromLoginForm, callback) {
         var stage = this;
         var widget = new scorll.stage.Register();
-        var dialog = new dijit.Dialog();
+        var dialog = new scorll.asset.Dialog();
         widget.placeAt(dialog.containerNode);
         dialog.show();
         dojo.connect(widget,"onSubmit",function(username, password) {
@@ -145,7 +144,7 @@ dojo.declare("scorll.stage.Stage",null,{
     userLogin: function(callback) {
         var stage = this;
         var widget = new scorll.stage.Login();
-        var dialog = new dijit.Dialog();
+        var dialog = new scorll.asset.Dialog();
         widget.placeAt(dialog.containerNode);
         dialog.show();
         dojo.connect(widget,"onSubmit",function(username, password) {

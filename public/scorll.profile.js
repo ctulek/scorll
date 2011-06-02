@@ -4,10 +4,6 @@ dependencies = {
         name: "scorll.js",
         dependencies: [
             "dojo",
-            "dojo.store.Memory",
-            "dojo.dnd.Source",
-            "dijit.form.Button",
-            "dijit.Dialog",
             "scorll.content.Content",
             "scorll.net.Client",
             "scorll.net.User",
@@ -26,10 +22,7 @@ dependencies = {
 			"scorll.asset.ScribdForm",
 			"scorll.asset.Vimeo",
 			"scorll.asset.VimeoForm"
-            ],
-        layerDependencies: [
-            "scorll.asset.AssetManager"
-        ]
+            ]
         }
     ],
     prefixes: [

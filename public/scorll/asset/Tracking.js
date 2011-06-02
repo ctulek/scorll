@@ -2,7 +2,7 @@ if(!dojo._hasResource["scorll.asset.Tracking"]){
 dojo._hasResource["scorll.asset.Tracking"]=true;
 dojo.provide("scorll.asset.Tracking");
 
-dojo.require("dijit.Dialog");
+dojo.require("scorll.asset.Dialog");
 
 dojo.require("scorll.asset.TrackingStats");
 dojo.require("dojo.store.Memory");
@@ -53,7 +53,7 @@ dojo.declare("scorll.asset.Tracking",null,{
                 asset.userTrackingData.put({id: userId, username: username, response: response, result: result});
             }
             var form = new scorll.asset.TrackingStats();
-            var dialog = new dijit.Dialog();
+            var dialog = new scorll.asset.Dialog();
             form.placeAt(dialog.containerNode);
             dialog.show();
             var data = new dojo.data.ObjectStore({

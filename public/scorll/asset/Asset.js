@@ -1,5 +1,3 @@
-if(!dojo._hasResource["scorll.asset.Asset"]){
-dojo._hasResource["scorll.asset.Asset"]=true;
 dojo.provide("scorll.asset.Asset");
 
 dojo.require("dijit._Widget");
@@ -29,4 +27,3 @@ dojo.declare("scorll.asset.Asset",
         return "asset-" + this.item.id;
     }
 });
-}

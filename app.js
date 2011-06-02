@@ -14,7 +14,7 @@ var app = express.createServer(
 	express.session({secret: 'Test'})
 	);
 
-app.set( "view engine", "html" );
+app.set( "view engine", "jade" );
 app.register( ".html", require( "jade" ) );
 
 require('controller/index.js')(app);
