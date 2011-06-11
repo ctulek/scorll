@@ -2,18 +2,28 @@ dojo.provide("scorll.net.Client");
 dojo.declare("scorll.net.Client", null, {
     socket: null,
     connected: false,
+    groupId: null,
     _callbacks: {},
     _components: {},
     _callbackIdCounter: 2,
     onConnect: function () {},
     constructor: function ( /* Object */ args) {
+        for(var i in args) {
+            this[i] = args[i];
+        }
         var client = this;
         if (io.Socket) {
             client.socket = new io.Socket();
             client.socket.on('connect', function () {
-                client.connected = true;
                 console.log("Connected to server");
-                client.onConnect();
+                client.connected = true;
+                client.call(null, 'join', client.groupId, function(err) {
+                    if(err) {
+                        console.error(err);
+                        return;
+                    }
+                    client.onConnect();
+                });
             });
             client.socket.on('disconnect', function () {
                 client.connected = false;
@@ -67,7 +77,6 @@ dojo.declare("scorll.net.Client", null, {
         }
     },
     call: function ( /* scorll.net.ClientComponent */ component, /* String */ method) {
-        window.hebele = this;
         var client = this;
         var args = Array.prototype.slice.call(arguments);
         var params = args.slice(2);
@@ -77,7 +86,7 @@ dojo.declare("scorll.net.Client", null, {
             callback = null;
         }
         var message = {};
-        message.component = component.getComponentType();
+        message.componentId = component && component.getComponentId();
         message.method = method;
         message.params = params;
         if (client.connected && client.socket) {

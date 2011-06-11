@@ -18,11 +18,11 @@ dojo.declare("scorll.asset.Tracking", null, {
                 if (err) {
                     callback("The user is not authenticated");
                 } else {
-                    asset.client.call(asset, "track", asset.getComponentId(), params, callback);
+                    asset.client.call(asset, "track", params, callback);
                 }
             });
         } else {
-            asset.client.call(asset, "track", asset.getComponentId(), params, callback);
+            asset.client.call(asset, "track", params, callback);
         }
     },
     getTrackingResult: function(callback) {
@@ -31,7 +31,7 @@ dojo.declare("scorll.asset.Tracking", null, {
             assetId: asset.item.id,
             userId: asset.user.id
         };
-        asset.client.call(asset, "getTrackingResults", asset.getComponentId(), params, callback);
+        asset.client.call(asset, "getTrackingResults", params, callback);
     },
     collect: function(userId, username, response, result) {
         var asset = this;
@@ -54,7 +54,7 @@ dojo.declare("scorll.asset.Tracking", null, {
         var params = {
             assetId: asset.item.id
         };
-        asset.client.call(asset, "getTrackingResults", asset.getComponentId(), params, function(err, results) {
+        asset.client.call(asset, "getTrackingResults", params, function(err, results) {
             for (var userId in results) {
                 var username = results[userId].username;
                 var response = results[userId].response;
@@ -85,7 +85,7 @@ dojo.declare("scorll.asset.Tracking", null, {
     // in TrackingStats
     ,
     getLearnerResponseAsString: function(learnerResponse) {
-        return "hebe";
+        return "test";
     },
     TRACKING_TYPE: {
         TRUE_FALSE: "true-false",

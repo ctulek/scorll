@@ -1,8 +1,8 @@
 html
     head
         title Scorll
-        link(rel="stylesheet", rel="stylesheet", href="/release/r3/dijit/themes/claro/claro.css")
-        //link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
+        //link(rel="stylesheet", rel="stylesheet", href="/release/r3/dijit/themes/claro/claro.css")
+        link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
         link(type="text/css", rel="stylesheet", href="/css/main.css") 
         link(type="text/css", rel="stylesheet", href="/css/stage.css") 
     body.claro
@@ -15,9 +15,9 @@ html
                     script(type="dojo/connect", event="onClick", args="evt")
                         | dijit.byId("newAssetDialog").show();
         div#newAssetDialog(dojoType="dijit.Dialog", title="Add New Asset", style="width: 300px;")
-        //script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        script(src="/release/r3/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        script(src="/release/r3/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
+        script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        //script(src="/release/r3/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        //script(src="/release/r3/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
         script(src="/socket.io/socket.io.js")
         script(type="text/javascript", language="javascript")
             // <![CDATA[
@@ -33,12 +33,17 @@ html
             dojo.require("scorll.asset.AssetManager");
             dojo.addOnLoad(
                 function() {
+                    var clientArgs = {
+                        groupId: '#{contentId}'
+                    };
+                    var contentArgs = {
+                        id: '#{contentId}'
+                    };
                     var args = {
-                        client: new scorll.net.Client(),
+                        client: new scorll.net.Client(clientArgs),
                         user: new scorll.net.User(),
-                        content: new scorll.content.Content(),
+                        content: new scorll.content.Content(contentArgs),
                         requireLogin: false,
-                        contentId: '#{contentId}'
                     };
                     var stage = new scorll.stage.Stage(args);
                     var assetManager = new scorll.asset.AssetManager();

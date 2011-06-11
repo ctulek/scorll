@@ -2,15 +2,12 @@ dojo.provide("scorll.asset.Shared");
 
 dojo.declare("scorll.asset.Shared", null, {
     call: function(methodName) {
-        var args = Array.prototype.slice.call(arguments);
-        var params = [this, "call", this.getComponentId()].concat(args);
-        this.client.call.apply(this.client, params);
+        var params = Array.prototype.slice.call(arguments, 1);
+        this.client.call(this, 'call', methodName, params);
     },
-    receive: function(methodName) {
+    receive: function(methodName, args) {
         if (typeof(this[methodName]) == "function") {
-            var args = Array.prototype.slice.call(arguments);
-            var params = args.slice(1);
-            this[methodName].apply(this, params);
+            this[methodName].apply(this, args);
         }
     }
 });

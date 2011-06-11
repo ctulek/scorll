@@ -13,7 +13,6 @@ dojo.declare("scorll.stage.Stage", null, {
     user: null,
     client: null,
     content: null,
-    contentId: null,
     observer: null,
     menu: null,
     requireLogin: false,
@@ -31,13 +30,13 @@ dojo.declare("scorll.stage.Stage", null, {
                     console.log(err);
                     stage.userLogin();
                 } else {
-                    stage.content.load(stage.contentId);
+                    stage.content.load();
                 }
             });
         });
         // USER
         var user = stage.user;
-        client.register(user);
+        user.client = client;
         // CONTENT
         var content = stage.content;
         client.register(content);
@@ -112,18 +111,17 @@ dojo.declare("scorll.stage.Stage", null, {
         var dialog = new scorll.asset.Dialog();
         widget.placeAt(dialog.containerNode);
         dialog.show();
-        dojo.connect(widget, "onSubmit", function (username, password) {
+        dojo.connect(widget, "onSubmit", function (email, password) {
             var params = {
-                strategy: "password",
-                username: username,
-                password: password,
-                rememberme: true
+                strategy: "email",
+                email: email,
+                password: password
             }
-            stage.user.join(params, function (err) {
+            stage.user.register(params, function (err) {
                 if (!err) {
                     dialog.hide();
                     if (stage.content.loaded == false) {
-                        stage.content.load(stage.contentId, callback);
+                        stage.content.load(callback);
                     } else {
                         callback && callback();
                     }
@@ -147,7 +145,7 @@ dojo.declare("scorll.stage.Stage", null, {
         dialog.show();
         dojo.connect(widget, "onSubmit", function (username, password) {
             var params = {
-                strategy: "password",
+                strategy: "email",
                 username: username,
                 password: password,
                 rememberme: true
@@ -156,7 +154,7 @@ dojo.declare("scorll.stage.Stage", null, {
                 if (!err) {
                     dialog.hide();
                     if (stage.content.loaded == false) {
-                        stage.content.load(stage.contentId, callback);
+                        stage.content.load(callback);
                     } else {
                         callback && callback();
                     }
@@ -166,7 +164,7 @@ dojo.declare("scorll.stage.Stage", null, {
             });
         });
         dojo.connect(widget, "onCancel", function () {
-            callback("Cancelled");
+            callback && callback("Cancelled");
             dialog.hide();
         });
         dojo.connect(widget, "onRegister", function () {

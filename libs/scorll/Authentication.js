@@ -1,14 +1,14 @@
 var strategies = {
-    password: require('./PasswordStrategy.js'),
+    email: require('./EmailStrategy.js'),
     cookie: require('./CookieStrategy.js')
 };
 
-exports.auth = function(params, callback) {
+exports.auth = function(user, params, callback) {
     var strategy = strategies[params.strategy] || null;
     if(!strategy) {
         callback("Undefined strategy: " + params.strategy);
     } else {
-        strategy.auth(params, callback);
+        strategy.auth(user, params, callback);
     }
 }
 

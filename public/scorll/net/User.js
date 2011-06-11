@@ -4,19 +4,13 @@ dojo.require("dojo.cookie");
 
 dojo.require("scorll.net.ClientComponent");
 
-dojo.declare("scorll.net.User", [scorll.net.ClientComponent], {
+dojo.declare("scorll.net.User", null, {
     authenticated: false,
     profile: {},
     roles: [],
-    getComponentType: function () {
-        return "user";
-    },
-    getComponentId: function () {
-        return "user";
-    },
     auth: function (params, callback) {
         var userComponent = this;
-        userComponent.client.call(userComponent, "auth", params, function (err, user) {
+        userComponent.client.call(null, "authN", params, function (err, user) {
             if (!err) {
                 userComponent.id = user.id;
                 userComponent.authenticated = true;
@@ -34,9 +28,9 @@ dojo.declare("scorll.net.User", [scorll.net.ClientComponent], {
             callback(err);
         });
     },
-    join: function (params, callback) {
+    register: function (params, callback) {
         var userComponent = this;
-        userComponent.client.call(userComponent, "join", params, function (err, user) {
+        userComponent.client.call(null, "register", params, function (err, user) {
             if (!err) {
                 userComponent.authenticated = true;
                 if (user.cookie) {

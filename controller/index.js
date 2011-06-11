@@ -1,6 +1,9 @@
 var content = require('libs/scorll/Content.js');
 
-module.exports = function(app) {
+var app;
+
+module.exports = function(appObj) {
+    app = appObj;
     app.get('/new(.html)?', newContent);
     app.get('/:contentId.html', showContent);
     app.get('/(index.html)?', defaultIndex, showContent);
@@ -24,8 +27,8 @@ var newContent = function(req, res, next) {
 
 var showContent = function(req, res, next) {
     res.local('contentId') || res.local('contentId', req.params.contentId);
-    content.exists(res.local('contentId'), function(err, exists) {
-        if(err || !exists) {
+    app.contentSet.findById(res.local('contentId'), function(err, content) {
+        if(err || !content) {
             next("Content not found", 404);
         } else {
             res.render('index');

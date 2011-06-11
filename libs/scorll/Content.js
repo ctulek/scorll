@@ -1,125 +1,110 @@
-var groups = require('libs/scorll/Groups.js');
-var client = require('libs/scorll/Client.js');
-var asset = require('libs/scorll/Asset.js');
+var async = require('async');
 
-var call = function(ioclient, method) {
-    var args = Array.prototype.slice.call(arguments);  
-    var params = args.slice(2);
-    params = [ioclient, 'content', method].concat(params);
-    client.call.apply(client, params);
+var Asset = require('libs/scorll/Asset');
+
+var Content = function (args) {
+        this.user = null;
+        this.title = "";
+        this.description = "";
+        for (var i in args) {
+            this[i] = args[i];
+        }
+        this.assets = [];
+        this.id = this.id || Date.now();
+    }
+
+Content.prototype.getId = function () {
+    return this.id;
 }
 
-exports.addAsset = function(client, contentId, item, position, callback) {
-   var content = tempData[contentId];
-   if(!content) {
-    console.error("Content not found");
-    callback && callback("Content not found");
-    return;
-   }
-   position = position || content.items.length;
-   asset.post(item, function(err, id) {
-       if(err) {
-        callback && callback(err);
-        return
-       }
-       content.items.splice(position,0,item.id); 
-       groups.each(groups.id(client), function(client) {
-           call(client, '_add', item, position);
-       });
-       callback && callback();
-   });
+Content.prototype.save = function (callback) {
+    this.id = this.id || Date.now();
+    callback && callback();
 }
 
-exports.updateAsset = function(client, contentId, item, callback) {
-    var content = tempData[contentId];
-    if(!content) {
-        callback && callback("Content not found");
-        return;
-    }
-    var id = item.id;
-    if(content.items.indexOf(id) < 0) {
-        callback && callback("Asset not found");
-        return;
-    }
-    asset.put(id, item, function(err) {
-        if(err) {
+Content.prototype.delete = function (callback) {
+    callback && callback();
+}
+
+Content.prototype.addAsset = function (client, assetData, position, callback) {
+    var content = this;
+    var asset = new Asset(assetData);
+    position = position || content.assets.length;
+    asset.save(function (err) {
+        if (err) {
             callback && callback(err);
             return;
         }
-        groups.each(groups.id(client), function(client) {
-           call(client, '_update', item);
+        content.assetSet.add(asset, function (err) {
+            if (err) {
+                callback && callback(err);
+                return;
+            }
+            content.assets.splice(position, 0, asset.getId());
+            content.clientComponentSet && content.clientComponentSet.add(asset);
+            client && client.broadcast(content.getId(), '_add', assetData, position);
+            callback && callback();
         });
-        callback && callback();
     });
 }
 
-exports.deleteAsset = function(client, contentId, item, callback) {
-    var content = tempData[contentId];
-    if(!content) {
-        callback && callback("Content not found");
-        return;
-    }
-    var id = item.id;
-    var position = content.items.indexOf(id);
-    if(position < 0) {
-        callback && callback("Asset not found");
-        return;
-    }
-    asset.delete(id, function(err) {
-        if(err) {
+Content.prototype.updateAsset = function (client, assetData, callback) {
+    var content = this;
+    this.assetSet.findById(assetData.id, function (err, asset) {
+        if (err) {
             callback && callback(err);
             return;
         }
-        content.items.splice(position,1);
-        groups.each(groups.id(client), function(client) {
-           call(client, '_remove', item);
+        asset.populate(assetData);
+        asset.save(function (err) {
+            if (err) {
+                callback && callback(err);
+                return;
+            }
+            client && client.broadcast(content.getId(), '_update', assetData);
+            callback && callback();
         });
-        callback && callback();
     });
 }
 
-exports.post = function(params, callback) {
-    var id = Date.now();
-    var content = {};
-    content['id'] = id;
-    content.title = '';
-    content.items = [];
-    for(var k in params) {
-        content[k] = params[k];
-    }
-    tempData[id] = content;
-    callback && callback(null, id);
-}
-
-exports.get = function(client, contentId, callback) {
-    groups.add(contentId, client);
-    var content = tempData[contentId];
-    if(!content) {
-        callback && callback("Not found");
-        return;
-    }
-    asset.get(content.items, function(err, assets) {
-        if(err) {
+Content.prototype.deleteAsset = function (client, assetId, callback) {
+    var content = this;
+    this.assetSet.findById(assetId, function (err, asset) {
+        if (err) {
             callback && callback(err);
             return;
         }
-        var c = {
+        asset.delete(function (err) {
+            if (err) {
+                callback && callback(err);
+                return;
+            }
+            var position = content.assets.indexOf(assetId);
+            if (position > -1) {
+                content.assets.splice(position, 1);
+                client && client.broadcast(content.getId(), '_remove', assetId);
+                callback && callback();
+            }
+        });
+    });
+}
+
+Content.prototype.load = function (client, callback) {
+    var content = this;
+    async.map(this.assets, function (assetId, callback) {
+        content.assetSet.findById(assetId, function (err, asset) {
+            callback(null, asset.toAssetData());
+        });
+    }, function (err, assets) {
+        var data = {
             id: content.id,
             title: content.title,
-            items: assets
+            description: content.description,
+            assets: assets
         }
-        callback && callback(null, c);
+        callback(err, data);
     });
 }
 
-exports.exists = function(contentId, callback) {
-    callback && callback(null, !!tempData[contentId])
-}
+module.exports = Content;
 
-var tempData = {
-    "1": {
-        id: 1,
-        title: "Test test test",
-        items: ["test", "test2", "image1", "question1", "video1", "video2"]
-        }
-}

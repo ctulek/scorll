@@ -22,23 +22,23 @@ dojo.declare("scorll.content.Content", [
         return "content";
     },
     getComponentId: function() {
-        return "content";
+        return this.id;
     },
     onLoad: function() {},
-    load: function(id, callback) {
+    load: function(callback) {
         var content = this;
-        content.client.call(this, "get", id, function(err, data) {
+        content.client.call(this, "load", function(err, data) {
             if (err) {
+                console.error(err);
                 callback && callback(err);
                 return;
             }
-            content.id = data.id;
             content.title = data.title;
-            if (data.items) {
-                for (var i in data.items) {
-                    var item = data.items[i];
-                    if (item) {
-                        content._add(item);
+            if (data.assets) {
+                for (var i in data.assets) {
+                    var asset = data.assets[i];
+                    if (asset) {
+                        content._add(asset);
                     }
                 }
             }
@@ -50,22 +50,22 @@ dojo.declare("scorll.content.Content", [
     query: function() {
         return this.store.query();
     },
-    add: function(item) {
-        this.client.call(this, "addAsset", this.id, item, null);
+    add: function(asset) {
+        this.client.call(this, "addAsset", asset, null);
     },
-    _add: function(item, position) {
-        this.store.put(item);
+    _add: function(asset, position) {
+        this.store.put(asset);
     },
-    update: function(item) {
-        this.client.call(this, "updateAsset", this.id, item);
+    update: function(asset) {
+        this.client.call(this, "updateAsset", asset);
     },
-    _update: function(item) {
-        this.store.put(item);
+    _update: function(asset) {
+        this.store.put(asset);
     },
-    remove: function(item) {
-        this.client.call(this, "deleteAsset", this.id, item);
+    remove: function(asset) {
+        this.client.call(this, "deleteAsset", asset.id);
     },
-    _remove: function(item) {
-        this.store.remove(item.id);
+    _remove: function(id) {
+        this.store.remove(id);
     }
 });

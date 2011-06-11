@@ -9,7 +9,7 @@ dojo.require("scorll.asset.Persistent");
 dojo.require("scorll.net.ClientComponent");
 
 dojo.declare("scorll.asset.Asset", [
-    dijit._Widget, dijit._Templated
+    dijit._Widget, dijit._Templated,
     scorll.net.ClientComponent
     ], {
     user: null,
@@ -19,10 +19,10 @@ dojo.declare("scorll.asset.Asset", [
     item: null,
 
     // scorll.net.ClientComponent functions
-    getComponentType: function() {
+    getComponentType: function () {
         return "asset";
     },
-    getComponentId: function() {
-        return "asset-" + this.item.id;
+    getComponentId: function () {
+        return this.item.id;
     }
 });

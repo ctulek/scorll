@@ -15,9 +15,9 @@ dojo.declare("scorll.stage.Register", [
     onSubmit: function (item) {},
     onCancel: function () {},
     submit: function () {
-        var username = this.username.attr('value').trim();
+        var email = this.email.attr('value').trim();
         var password = this.password.attr('value').trim();
-        this.onSubmit(username, password);
+        this.onSubmit(email, password);
     },
     cancel: function () {
         this.onCancel();
