@@ -11,7 +11,7 @@ dojo.declare("scorll.asset.Text", [
     postCreate: function() {
         var data = this.item.data;
         if (data.text) {
-            this.bodyText.innerHTML = data.text;
+            this.bodyText.innerHTML = this.parseText(data.text);
         }
         if (data.title) {
             this.titleText.innerHTML = data.title;
@@ -23,5 +23,27 @@ dojo.declare("scorll.asset.Text", [
     },
     test: function(message) {
         console.log("Message to Test: " + message);
+    },
+    parseText: function(text) {
+        // Clear Empty chars
+        text = text.trim(text);
+        // Clean HTML
+        text = text.replace(/<\/?([^>])*>/gm, "");
+        // Italic
+        text = text.replace(/([^:])\/\/(.+?)\/\//gm, "$1<i>$2</i>");
+        // Underline
+        text = text.replace(/__(.+?)__/gm, "<u>$1</u>");
+        // Bold
+        text = text.replace(/\*\*(.+?)\*\*/gm, "<strong>$1</strong>");
+        // Link
+        text = text.replace(/\[\[(http:\/\/[^ ]+?)\]\]/gm, '<a href="$1" target="_blank">$1</a>');
+        // Link with Label
+        text = text.replace(/\[\[(http:\/\/[^ ]+?)( .+?)\]\]/gm, '<a href="$1" target="_blank">$2</a>');
+        // List Item
+        text = text.replace(/^\* (.+?)$/gm, "<li>$1</li>");
+        // New Line
+        text = "<p>" + text.replace(/\n+/gm, "</p><p>") + "</p>";
+        console.log(text);
+        return text;
     }
 });

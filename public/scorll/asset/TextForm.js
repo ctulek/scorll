@@ -11,7 +11,8 @@ dojo.declare("scorll.asset.TextForm", [
     templatePath: dojo.moduleUrl("scorll.asset", "TextForm.html"),
     postCreate: function() {
         if (!this.item.data) {
-            return;
+            this.item.data = {};
+            this.item.data.text = this.getHelpText();
         }
         var data = this.item.data;
         if (data.title) {
@@ -35,5 +36,8 @@ dojo.declare("scorll.asset.TextForm", [
     },
     cancel: function() {
         this.onCancel();
+    },
+    getHelpText: function() {
+        return "This text will appear when you press 'Submit' button.\nEach new line becomes a paragraph.\nYou can add basic formatting to your text very easily:\n* Use 2 underscore characters to __underline text__\n* Use //2 slash characters// or **2 asteriks** to emphasize text\n* As you can guess each line starting with an asteriks followed by a space becomes a bullet list item\n* You can create links with [[http://google.com]] or links with labels [[http://google.com Google]]";
     }
 });
