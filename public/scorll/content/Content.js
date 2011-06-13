@@ -56,6 +56,10 @@ dojo.declare("scorll.content.Content", [
     _add: function(asset, position) {
         this.store.put(asset);
     },
+    setTitle: function(value) {
+        this.client.call(this, "setTitle", value);
+        this.title = value;
+    },
     update: function(asset) {
         this.client.call(this, "updateAsset", asset);
     },

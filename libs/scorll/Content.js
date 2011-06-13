@@ -26,6 +26,11 @@ Content.prototype.delete = function (callback) {
     callback && callback();
 }
 
+Content.prototype.setTitle = function (client, newTitle, callback) {
+    this.title = newTitle;
+    callback && callback();
+}
+
 Content.prototype.addAsset = function (client, assetData, position, callback) {
     var content = this;
     var asset = new Asset(assetData);

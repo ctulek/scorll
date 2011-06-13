@@ -1,6 +1,3 @@
-var groups = require('libs/scorll/Groups.js');
-var client = require('libs/scorll/Client.js');
-
 var Asset = function(args) {
     for(var k in args) {
         this[k] = args[k];

@@ -2,6 +2,9 @@ dojo.provide("scorll.stage.Stage");
 
 dojo.require("dojo.store.Observable");
 
+dojo.require("dijit.InlineEditBox");
+dojo.require("dijit.form.TextBox");
+
 dojo.require("scorll.stage.Menu");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
@@ -41,6 +44,14 @@ dojo.declare("scorll.stage.Stage", null, {
         var content = stage.content;
         client.register(content);
         stage.observe();
+        dojo.connect(content, "onLoad", function() {
+            contentTitleBox.set("value", content.title);
+        });
+        // CONTENT TITLE
+        var contentTitleBox = new dijit.InlineEditBox({editor: "dijit.form.TextBox"}, "title");
+        dojo.connect(contentTitleBox, "onChange", function(value) {
+            content.setTitle(value);
+        });
         // MENU
         var menu = stage.menu = new scorll.stage.Menu();
         stage.menu = menu;

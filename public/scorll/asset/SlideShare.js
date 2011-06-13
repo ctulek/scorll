@@ -7,4 +7,3 @@ dojo.declare("scorll.asset.SlideShare", [
     ], {
     templatePath: dojo.moduleUrl('scorll.asset', 'SlideShare.html')
 });
-}

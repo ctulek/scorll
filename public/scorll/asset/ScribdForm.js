@@ -34,4 +34,3 @@ dojo.declare("scorll.asset.ScribdForm", [
         this.onCancel();
     }
 });
-}

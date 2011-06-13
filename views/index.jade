@@ -1,23 +1,22 @@
 html
     head
         title Scorll
-        //link(rel="stylesheet", rel="stylesheet", href="/release/r3/dijit/themes/claro/claro.css")
-        link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
+        link(rel="stylesheet", rel="stylesheet", href="/release/r4/dijit/themes/claro/claro.css")
+        //link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
         link(type="text/css", rel="stylesheet", href="/css/main.css") 
         link(type="text/css", rel="stylesheet", href="/css/stage.css") 
     body.claro
         div#stage-container
-            div#title
-                h1 Lorem Lorem Lorem
+            h1#title Loading...
             div#stage
             div
                 div(dojoType="dijit.form.Button") Add New Asset
                     script(type="dojo/connect", event="onClick", args="evt")
                         | dijit.byId("newAssetDialog").show();
         div#newAssetDialog(dojoType="dijit.Dialog", title="Add New Asset", style="width: 300px;")
-        script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        //script(src="/release/r3/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        //script(src="/release/r3/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
+        //script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        script(src="/release/r4/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        script(src="/release/r4/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
         script(src="/socket.io/socket.io.js")
         script(type="text/javascript", language="javascript")
             // <![CDATA[

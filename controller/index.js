@@ -1,4 +1,5 @@
-var content = require('libs/scorll/Content.js');
+var Content = require('libs/scorll/Content');
+var Group = require('libs/scorll/Group');
 
 var app;
 
@@ -15,13 +16,30 @@ var defaultIndex = function(req, res, next) {
 }
 
 var newContent = function(req, res, next) {
-    var params = {title: "New Content"};
-    content.post(params, function(err, id) {
+    var args = {
+        title: "New Content Title (Click to Change)",
+        assetSet: app.assetSet,
+        clientComponentSet: app.clientComponentSet
+    }
+    var content = new Content(args);
+    content.save(function(err) {
         if(err) {
             res.send(err, 500);
             return;
         }
-        res.redirect("/" + id + ".html", 303);
+        res.redirect("/" + content.id + ".html", 303);
+        app.contentSet.add(content);
+        app.clientComponentSet.add(content);
+        var args = {id: content.id};
+        var group = new Group(args);
+        app.groupSet.add(group);
+        var assetData = {
+            type: "text",
+            data: {
+                text: "You have successfuly created a new content. You can change content title by clicking/tapping to it.\nTo add new asset press the \"Add New Asset\" button and choose an asset type. This help message itsef is an asset, too. You can delete/edit it from menu that appears when you put mouse over/tap it."
+            }
+        }
+        content.addAsset(null, assetData);
     });
 }
 

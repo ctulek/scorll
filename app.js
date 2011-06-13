@@ -10,11 +10,13 @@ var ClientSet = require('libs/scorll/ClientSet');
 var ClientComponentSet = require('libs/scorll/ClientComponentSet');
 var GroupSet = require('libs/scorll/GroupSet');
 var ContentSet = require('libs/scorll/ContentSet');
+var AssetSet = require('libs/scorll/AssetSet');
 
 var clientSet = new ClientSet();
 var clientComponentSet = new ClientComponentSet();
 var groupSet = new GroupSet();
 var contentSet = new ContentSet();
+var assetSet = new AssetSet();
 
 var app = express.createServer(
     //express.logger(),
@@ -29,6 +31,9 @@ app.set("view engine", "jade");
 app.register(".html", require("jade"));
 
 app.contentSet = contentSet;
+app.assetSet = assetSet;
+app.groupSet = groupSet;
+app.clientComponentSet = clientComponentSet;
 require('controller/index.js')(app);
 
 var port = 8080;
@@ -51,12 +56,11 @@ socket.on('connection', function (ioClient) {
 (function() {
     var Content = require('libs/scorll/Content');
     var Group = require('libs/scorll/Group');
-    var AssetSet = require('libs/scorll/AssetSet');
 
     var args = {
         id: 1,
         title: "Test test test",
-        assetSet: new AssetSet(),
+        assetSet: assetSet,
         clientComponentSet: clientComponentSet
     }
     var content = new Content(args);
