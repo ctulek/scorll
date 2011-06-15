@@ -43,7 +43,6 @@ dojo.declare("scorll.asset.Text", [
         text = text.replace(/^\* (.+?)$/gm, "<li>$1</li>");
         // New Line
         text = "<p>" + text.replace(/\n+/gm, "</p><p>") + "</p>";
-        console.log(text);
         return text;
     }
 });
