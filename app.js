@@ -59,7 +59,7 @@ socket.on('connection', function (ioClient) {
 
     var args = {
         id: 1,
-        title: "Test test test",
+        title: "Scorll (Early Alpha)",
         assetSet: assetSet,
         clientComponentSet: clientComponentSet
     }
@@ -75,13 +75,14 @@ socket.on('connection', function (ioClient) {
     var assets = [{
         type: "text",
         data: {
-            text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec vulputate dictum egestas. Curabitur nisi nisi, pellentesque quis sodales id, euismod ut magna. Ut dui lectus, volutpat id dictum sit amet, accumsan nec tortor. Aliquam ac dui non leo aliquam lacinia. Ut egestas nisi a magna elementum scelerisque. Sed mattis facilisis nunc quis elementum. Aenean nisl dui, lobortis sed vehicula porttitor, consectetur nec ante. Vivamus vestibulum dignissim sollicitudin. Aliquam vulputate, est vel vehicula convallis, mi nunc consectetur dui, quis condimentum ligula augue sed elit."
+            title: "What is Scorll?",
+            text: "It's a tool for teachers to quickly prepare learning content and share with their students.\n\nA content is basically a list of assets created by teachers either from scratch (like Text, Quizzes, Graphs) or added from Internet by simply passing the URL (like YouTube, Vimeo, Scribd, SlideShare)."
         }
     }, {
         type: "text",
         data: {
-            title: "Lorem bolem",
-            text: "Curabitur congue, leo a sodales pulvinar, lacus mi consectetur libero, a blandit turpis sapien a nisi. Donec fringilla enim faucibus risus tincidunt pretium. Integer rhoncus tincidunt pulvinar. Ut quis enim vitae dui tristique rhoncus et non tellus. Sed convallis turpis ut arcu sagittis lobortis. Quisque commodo posuere venenatis. Morbi aliquet rutrum auctor. Phasellus facilisis justo vel purus fringilla eget tristique est varius."
+            title: "How does it work?",
+            text: "To create a Scorll Document, Teachers don't need to manage a class/school/group etc. In that respect, Scorll is different from a classical LMS. Creating a document and using it in your class is as simple as visiting http://scorll.com/new and sharing the unique URL with your students.\n\nThis document itself is a Scorll Document. Feel free to play with it. Please remember that this is an early alpha preview so your documents won't persist for too long (each server restart basically kills everything)"
         }
     }, {
         type: "image",
