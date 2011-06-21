@@ -94,6 +94,18 @@ Content.prototype.deleteAsset = function (client, assetId, callback) {
     });
 }
 
+Content.prototype.moveAsset = function (client, assetId, position, callback) {
+    for(var i in this.assets) {
+        if(this.assets[i] == assetId) {
+            var asset = this.assets.splice(i, 1);
+            this.assets.splice(position, 0, assetId);
+            break;
+        }
+    }
+    client && client.broadcast(this.getId(), '_move', assetId, position);
+    callback && callback();
+}
+
 Content.prototype.load = function (client, callback) {
     var content = this;
     async.map(this.assets, function (assetId, callback) {

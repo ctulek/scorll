@@ -1,6 +1,6 @@
 dojo.provide("scorll.stage.Stage");
 
-dojo.require("dojo.store.Observable");
+dojo.require("dojo.dnd.Source");
 
 dojo.require("dijit.InlineEditBox");
 dojo.require("dijit.form.TextBox");
@@ -18,6 +18,7 @@ dojo.declare("scorll.stage.Stage", null, {
     content: null,
     observer: null,
     menu: null,
+    stage: null,
     requireLogin: false,
     constructor: function ( /* Object */ args) {
         var stage = this;
@@ -52,6 +53,8 @@ dojo.declare("scorll.stage.Stage", null, {
         dojo.connect(contentTitleBox, "onChange", function(value) {
             content.setTitle(value);
         });
+        // ASSET MANAGER
+        var assetManager = stage.assetManager = new scorll.asset.AssetManager();
         // MENU
         var menu = stage.menu = new scorll.stage.Menu();
         stage.menu = menu;
@@ -59,7 +62,6 @@ dojo.declare("scorll.stage.Stage", null, {
         menu.hide();
         dojo.connect(menu, "onEdit", function (widget) {
             menu.hide(true);
-            var assetManager = new scorll.asset.AssetManager();
             var form = assetManager.getAssetForm(widget.item);
             if (!form) {
                 return;
@@ -79,30 +81,67 @@ dojo.declare("scorll.stage.Stage", null, {
             menu.hide(true);
             stage.content.remove(widget.item);
         });
+        // STAGE
+        stage.stage = new dojo.dnd.Source("stage", {delay: 10});
+        dojo.connect(stage.stage, "onDropInternal", function(nodes, copy) {
+            var children = dojo.query("#stage > div");
+            var tokens = nodes[0].id.split("-");
+            var id = tokens[2];
+            for(var i in children) {
+                if(children[i] == nodes[0]) {
+                    var position = i;
+                    content.move(id, position);
+                    break;
+                }
+            }
+        });
     },
     observe: function () {
         var stage = this;
-        stage.observer = new dojo.store.Observable(stage.content.store);
-        var assetManager = new scorll.asset.AssetManager();
-        var result = this.observer.query();
-        result.forEach(function (item) {
-            var widget = assetManager.getAssetRenderer(stage, item);
-            dojo.place(widget.domNode, "stage");
+        dojo.connect(stage.content, "onAdd", function(asset, position) {
+            var widget = stage.assetManager.getAssetRenderer(stage, asset);
+            var sibling = null;
+            if(position) {
+                var siblings = dojo.query("#stage > div");
+                sibling = siblings[position];
+            }
+            var assetWrapper = dojo.place('<div id="asset-wrapper-'+asset.id+'" class="dojoDndItem"></div>', "stage");
+            dojo.place(widget.domNode, assetWrapper);
+            if(sibling) {
+                stage.stage.insertNodes(false, [assetWrapper], true, sibling);
+            } else {
+                stage.stage.insertNodes(false, [assetWrapper]);
+            }
             stage.registerAsset(widget);
         });
-        result.observe(function (item, removedFrom, insertedInto) {
-            if (removedFrom > -1) { // existing object removed
-                var node = dijit.byId("asset-" + item.id);
-                if (node) {
-                    node.destroyRecursive();
-                }
+        dojo.connect(stage.content, "onUpdate", function(asset) {
+            var oldWidget = dojo.byId("asset-" + asset.id);
+            var widget = stage.assetManager.getAssetRenderer(stage, asset);
+            if(oldWidget) {
+                dojo.place(widget, oldWidget, "replace");
             }
-            if (insertedInto > -1) { // new or updated object inserted
-                var widget = assetManager.getAssetRenderer(stage, item);
-                dojo.place(widget.domNode, "stage", insertedInto);
-                stage.registerAsset(widget);
+        });
+        dojo.connect(stage.content, "onRemove", function(id) {
+            var node = dijit.byId("asset-" + id);
+            if (node) {
+                node.destroyRecursive();
             }
-        }, true);
+            dojo.destroy("asset-wrapper-" + id);
+        });
+        dojo.connect(stage.content, "onMove", function(id, position) {
+            var assetWrapper = dojo.byId("asset-wrapper-" + id);
+            if(!assetWrapper) {
+                return;
+            }
+            dojo.byId("stage").removeChild(assetWrapper);
+            var sibling = dojo.query("#stage > div");
+            sibling = sibling[position];
+            if(sibling) {
+                dojo.place(assetWrapper, sibling, "before");
+            } else {
+                dojo.place(assetWrapper, "stage");
+            }
+        });
     },
     registerAsset: function (widget) {
         var stage = this;

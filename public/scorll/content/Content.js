@@ -1,7 +1,5 @@
 dojo.provide("scorll.content.Content");
 
-dojo.require("dojo.store.Memory");
-
 dojo.require("scorll.net.ClientComponent");
 
 dojo.declare("scorll.content.Content", [
@@ -16,7 +14,6 @@ dojo.declare("scorll.content.Content", [
         for (var k in args) {
             content[k] = args[k];
         }
-        content.store = new dojo.store.Memory();
     },
     getComponentType: function() {
         return "content";
@@ -47,14 +44,13 @@ dojo.declare("scorll.content.Content", [
             callback && callback();
         });
     },
-    query: function() {
-        return this.store.query();
-    },
     add: function(asset) {
         this.client.call(this, "addAsset", asset, null);
     },
     _add: function(asset, position) {
-        this.store.put(asset);
+        this.onAdd(asset, position);
+    },
+    onAdd: function(asset, position) {
     },
     setTitle: function(value) {
         this.client.call(this, "setTitle", value);
@@ -64,12 +60,24 @@ dojo.declare("scorll.content.Content", [
         this.client.call(this, "updateAsset", asset);
     },
     _update: function(asset) {
-        this.store.put(asset);
+        this.onUpdate(asset);
+    },
+    onUpdate: function(asset) {
     },
     remove: function(asset) {
         this.client.call(this, "deleteAsset", asset.id);
     },
     _remove: function(id) {
-        this.store.remove(id);
+        this.onRemove(id);
+    },
+    onRemove: function(id) {
+    },
+    move: function(id, position) {
+        this.client.call(this, "moveAsset", id, position);
+    },
+    _move: function(id, position) {
+        this.onMove(id, position);
+    },
+    onMove: function(id, position) {
     }
 });
