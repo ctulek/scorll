@@ -1,8 +1,8 @@
 html
     head
         title Scorll
-        link(rel="stylesheet", rel="stylesheet", href="/release/r4/dijit/themes/claro/claro.css")
-        //link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
+        //link(rel="stylesheet", rel="stylesheet", href="/release/r4/dijit/themes/claro/claro.css")
+        link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
         link(type="text/css", rel="stylesheet", href="/css/main.css") 
         link(type="text/css", rel="stylesheet", href="/css/stage.css") 
     body.claro
@@ -10,20 +10,18 @@ html
             h1#title Loading...
             div#stage
             div
-                div(dojoType="dijit.form.Button") Add New Asset
-                    script(type="dojo/connect", event="onClick", args="evt")
-                        | dijit.byId("newAssetDialog").show();
+                div#newAssetButton(dojoType="dijit.form.Button") Add New Asset
         div#newAssetDialog(dojoType="dijit.Dialog", title="Add New Asset", style="width: 300px;")
-        //script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        script(src="/release/r4/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        script(src="/release/r4/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
+        script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        //script(src="/release/r4/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+        //script(src="/release/r4/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
         script(src="/socket.io/socket.io.js")
         script(type="text/javascript", language="javascript")
             // <![CDATA[
             dojo.require("dojo.store.Memory");
-            dojo.require("dojo.dnd.Source");
             dojo.require("dijit.form.Button");
             dojo.require("dijit.Dialog");
+            dojo.require("dojo.dnd.Source");
 
             dojo.require("scorll.content.Content");
             dojo.require("scorll.net.Client");
@@ -45,28 +43,33 @@ html
                         requireLogin: false,
                     };
                     var stage = new scorll.stage.Stage(args);
-                    var assetManager = new scorll.asset.AssetManager();
-                    for(var type in assetManager.assets) {
-                        var button = new dijit.form.Button();
-                        var label = assetManager.assets[type].label;
-                        button.attr('label',label);
-                        button.widgetType = type;
-                        dojo.connect(button,"onClick",function() {
-                            var form = assetManager.getAssetForm({type: this.widgetType});
-                            var dialog = new dijit.Dialog();
-                            form.placeAt(dialog.containerNode);
-                            dialog.show();
-                            dojo.connect(form,"onSubmit",function(item) {
-                                dialog.destroy();
-                                stage.content.add(item);
+                    var newAssetButon = dijit.byId("newAssetButton");
+                    dojo.connect(newAssetButon, "onClick", function() {
+                        var container = dojo.place("<div></div>", dojo.byId("stage"));
+                        var assetManager = new scorll.asset.AssetManager();
+                        for(var type in assetManager.assets) {
+                            var button = new dijit.form.Button();
+                            var label = assetManager.assets[type].label;
+                            button.attr('label',label);
+                            button.widgetType = type;
+                            dojo.connect(button,"onClick",function() {
+                                var form = assetManager.getAssetForm({type: this.widgetType});
+                                var dialog = new dijit.Dialog();
+                                form.placeAt(dialog.containerNode);
+                                dialog.show();
+                                dojo.connect(form,"onSubmit",function(item) {
+                                    dojo.destroy(container);
+                                    stage.content.add(item);
+                                    dialog.destroy();
+                                });
+                                dojo.connect(form,"onCancel",function() {
+                                    dialog.destroy();
+                                    dojo.destroy(container);
+                                });
                             });
-                            dojo.connect(form,"onCancel",function() {
-                                dialog.destroy();
-                            });
-                            dijit.byId("newAssetDialog").hide();
-                            });
-                        button.placeAt(dijit.byId("newAssetDialog").containerNode);
-                    }
+                            button.placeAt(container);
+                        }
+                    });
                 }
             );
             // ]]>

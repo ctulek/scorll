@@ -15,9 +15,9 @@ div#stage {
 	width: 720px;
 }
 
-div#stage > div {
-	margin: 10px 10px;
-	z-index: 2;
+div.asset-wrapper {
+    margin: 20px 0px;
+    z-index: 2;
 }
 
 div#notes {
