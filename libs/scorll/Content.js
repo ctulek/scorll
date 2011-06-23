@@ -47,7 +47,7 @@ Content.prototype.addAsset = function (client, assetData, position, callback) {
             }
             content.assets.splice(position, 0, asset.getId());
             content.clientComponentSet && content.clientComponentSet.add(asset);
-            client && client.broadcast(content.getId(), '_add', assetData, position);
+            client && client.broadcast(content.getId(), '_add', asset.toAssetData(), position);
             callback && callback();
         });
     });
@@ -66,7 +66,7 @@ Content.prototype.updateAsset = function (client, assetData, callback) {
                 callback && callback(err);
                 return;
             }
-            client && client.broadcast(content.getId(), '_update', assetData);
+            client && client.broadcast(content.getId(), '_update', asset.toAssetData());
             callback && callback();
         });
     });
