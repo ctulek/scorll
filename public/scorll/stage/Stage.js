@@ -46,8 +46,8 @@ dojo.declare("scorll.stage.Stage", null, {
         var content = stage.content;
         client.register(content);
         stage.observe();
-        dojo.connect(content, "onLoad", function() {
-            contentTitleBox.set("value", content.title);
+        dojo.connect(content, "onTitleChange", function(title) {
+            contentTitleBox.set("value", title);
         });
         // CONTENT TITLE
         var contentTitleBox = new dijit.InlineEditBox({editor: "dijit.form.TextBox"}, "title");
@@ -63,19 +63,23 @@ dojo.declare("scorll.stage.Stage", null, {
         menu.hide();
         dojo.connect(menu, "onEdit", function (widget) {
             menu.hide(true);
+            widget.domNode.style.display = "none";
             var form = assetManager.getAssetForm(widget.item);
             if (!form) {
                 return;
             }
-            var dialog = new scorll.asset.Dialog();
-            form.placeAt(dialog.containerNode);
-            dialog.show();
+            var container = new dijit.TitlePane({title: "Edit Asset", toggleable: false});
+            dojo.destroy(container.arrowNode);
+            form.placeAt(container.containerNode);
+            container.placeAt(widget.domNode, "before");
+            container.domNode.scrollIntoView();
             dojo.connect(form, "onSubmit", function (item) {
-                dialog.hide();
+                container.destroyRecursive();
                 stage.content.update(item);
             });
             dojo.connect(form, "onCancel", function () {
-                dialog.hide();
+                container.destroyRecursive();
+                widget.domNode.style.display = "block";
             });
         });
         dojo.connect(menu, "onDelete", function (widget) {

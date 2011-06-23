@@ -1,13 +1,15 @@
 <div>
-	<div style="width: 800px;">
-		<div>Question:</div>
+	<div style="width: 100%;">
+		<div dojoType="dojox.layout.TableContainer" dojoAttachPoint="formContainer" cols="1" orientation="vert" labelWidth="120">
 		<div dojoType="dijit.form.Textarea"
 			dojoAttachPoint="questionBox"
-			style="width: 100%;" ></div>
-		<div>Answers:</div>
+            title="Question"
+			style="width: 100%; min-height: 21px;" ></div>
 		<div dojoType="dijit.form.Textarea"
 			dojoAttachPoint="answersBox"
+            title="Answers"
 			style="width: 100%; min-height: 200px;" ></div>
+        </div>
 		<div style="text-align: right;">
 			<div dojoType="dijit.form.Button"
 				dojoAttachEvent="onClick:submit">Submit</div>

@@ -7,8 +7,10 @@ dojo.require("dojox.layout.TableContainer");
 dojo.declare("scorll.asset.ImageForm", [
     scorll.asset.AssetForm
     ], {
+    widgetsInTemplate: true,
     templatePath: dojo.moduleUrl("scorll.asset", "ImageForm.html"),
     postCreate: function() {
+        this.formContainer.startup();
         if (!this.item.data) {
             return;
         }

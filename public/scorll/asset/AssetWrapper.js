@@ -21,8 +21,10 @@ dojo.declare("scorll.asset.AssetWrapper", [
         this.widget && dojo.place(this.widget.domNode, this.domNode);
     },
     updateAsset: function (asset) {
+        this.asset = asset;
         this.widget && this.widget.destroyRecursive();
         this.widget = this.assetManager.getAssetRenderer(this.stage, this.asset);
         this.widget && dojo.place(this.widget.domNode, this.domNode);
+        this.stage.registerAsset(this.widget);
     }
 });

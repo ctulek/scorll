@@ -8,8 +8,10 @@ dojo.require("scorll.asset.AssetForm");
 dojo.declare("scorll.asset.ScribdForm", [
     scorll.asset.AssetForm
     ], {
+    widgetsInTemplate: true,
     templatePath: dojo.moduleUrl("scorll.asset", "ScribdForm.html"),
     postCreate: function() {
+        this.formContainer.startup();
         if (!this.item.data) {
             return;
         }

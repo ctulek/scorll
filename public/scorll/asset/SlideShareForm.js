@@ -9,8 +9,10 @@ dojo.require("scorll.asset.AssetForm");
 dojo.declare("scorll.asset.SlideShareForm", [
     scorll.asset.AssetForm
     ], {
+    widgetsInTemplate: true,
     templatePath: dojo.moduleUrl("scorll.asset", "SlideShareForm.html"),
     postCreate: function() {
+        this.formContainer.startup();
         if (!this.item.data) {
             return;
         }

@@ -8,8 +8,10 @@ dojo.require("dojox.layout.TableContainer");
 dojo.declare("scorll.asset.TextForm", [
     scorll.asset.AssetForm
     ], {
+    widgetsInTemplate: true,
     templatePath: dojo.moduleUrl("scorll.asset", "TextForm.html"),
     postCreate: function() {
+        this.formContainer.startup();
         if (!this.item.data) {
             this.item.data = {};
             this.item.data.text = this.getHelpText();
@@ -38,6 +40,6 @@ dojo.declare("scorll.asset.TextForm", [
         this.onCancel();
     },
     getHelpText: function() {
-        return "This text will appear when you press 'Submit' button.\nEach new line becomes a paragraph.\nYou can add basic formatting to your text very easily:\n* Use 2 underscore characters to __underline text__\n* Use //2 slash characters// or **2 asteriks** to emphasize text\n* As you can guess each line starting with an asteriks followed by a space becomes a bullet list item\n* You can create links with [[http://google.com]] or links with labels [[http://google.com Google]]";
+        return "This text will appear when you press 'Submit' button.\nEach new line becomes a paragraph.\nBasic Formatting:\n__underline__\n//italic//\n**bold**\n* list item\nLink: [[http://google.com]]\nLink with label: [[http://google.com Google]]";
     }
 });

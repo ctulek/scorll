@@ -8,6 +8,7 @@ dojo.declare("scorll.asset.MultipleChoiceForm", [
     ], {
     templatePath: dojo.moduleUrl("scorll.asset", "MultipleChoiceForm.html"),
     postCreate: function() {
+        this.formContainer.startup();
         if (!this.item.data) {
             return;
         }

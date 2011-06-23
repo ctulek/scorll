@@ -28,6 +28,7 @@ Content.prototype.delete = function (callback) {
 
 Content.prototype.setTitle = function (client, newTitle, callback) {
     this.title = newTitle;
+    client && client.broadcast(this.getId(), '_setTitle', newTitle);
     callback && callback();
 }
 

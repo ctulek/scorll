@@ -82,7 +82,7 @@ socket.on('connection', function (ioClient) {
         type: "text",
         data: {
             title: "How does it work?",
-            text: "To create a Scorll Document, Teachers don't need to manage a class/school/group etc. In that respect, Scorll is different from a classical LMS. Creating a document and using it in your class is as simple as visiting http://scorll.com/new and sharing the unique URL with your students.\n\nThis document itself is a Scorll Document. Feel free to play with it. Please remember that this is an early alpha preview so your documents won't persist for too long (each server restart basically kills everything)"
+            text: "To create a Scorll Document, Teachers don't need to manage a class/school/group etc. In that respect, Scorll is different from a classical LMS. Creating a document and using it in your class is as simple as visiting [[http://scorll.com/new]] and sharing the unique URL with your students.\n\nThis document itself is a Scorll Document. Feel free to play with it. Please remember that this is an early alpha preview so your documents won't persist for too long (each server restart basically kills everything)"
         }
     }, {
         type: "image",

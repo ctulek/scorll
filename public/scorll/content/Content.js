@@ -30,7 +30,7 @@ dojo.declare("scorll.content.Content", [
                 callback && callback(err);
                 return;
             }
-            content.title = data.title;
+            content._setTitle(data.title);
             if (data.assets) {
                 for (var i in data.assets) {
                     var asset = data.assets[i];
@@ -54,7 +54,12 @@ dojo.declare("scorll.content.Content", [
     },
     setTitle: function(value) {
         this.client.call(this, "setTitle", value);
+    },
+    _setTitle: function(value) {
         this.title = value;
+        this.onTitleChange(value);
+    },
+    onTitleChange: function(value) {
     },
     update: function(asset) {
         this.client.call(this, "updateAsset", asset);

@@ -1,8 +1,8 @@
 <div>
-	<div style="width: 500px;">
-		<div dojoType="dojox.layout.TableContainer" cols="1" labelWidth="120" height="300px">
-			<div dojoType="dijit.form.TextBox" dojoAttachPoint="titleText" title="Title (Optional)"></div>
-			<div dojoType="dijit.form.Textarea" dojoAttachPoint="bodyText" title="Text" style="min-height: 200px;"></div>
+	<div style="width: 100%;">
+		<div dojoType="dojox.layout.TableContainer" dojoAttachPoint="formContainer" cols="1" orientation="vert" labelWidth="120">
+			<div dojoType="dijit.form.TextBox" dojoAttachPoint="titleText" title="Title (Optional)" style="width:100%"></div>
+			<div dojoType="dijit.form.Textarea" dojoAttachPoint="bodyText" title="Text" style="min-height: 100px;"></div>
 		</div>
 		<div style="text-align: right;">
 			<div dojoType="dijit.form.Button" dojoAttachEvent="onClick:submit">Submit</div>

@@ -8,8 +8,10 @@ dojo.require("scorll.asset.AssetForm");
 dojo.declare("scorll.asset.VimeoForm", [
     scorll.asset.AssetForm
     ], {
+    widgetsInTemplate: true,
     templatePath: dojo.moduleUrl("scorll.asset", "VimeoForm.html"),
     postCreate: function() {
+        this.formContainer.startup();
         if (!this.item.data) {
             return;
         }

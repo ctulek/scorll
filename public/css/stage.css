@@ -20,6 +20,11 @@ div.asset-wrapper {
     z-index: 2;
 }
 
+div.asset-types-container {
+    margin: 20px 0px;
+    border: 3px solid silver;
+}
+
 div#notes {
 	background-color: yellow;
 	padding-bottom: 100px;
