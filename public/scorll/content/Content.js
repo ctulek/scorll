@@ -53,11 +53,14 @@ dojo.declare("scorll.content.Content", [
     onAdd: function(asset, position) {
     },
     setTitle: function(value) {
+        this.title = value;
         this.client.call(this, "setTitle", value);
     },
     _setTitle: function(value) {
-        this.title = value;
-        this.onTitleChange(value);
+        if(this.title != value) {
+            this.title = value;
+            this.onTitleChange(value);
+        }
     },
     onTitleChange: function(value) {
     },
