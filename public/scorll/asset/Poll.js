@@ -15,15 +15,15 @@ dojo.declare("scorll.asset.Poll", [
     _userIdVoteHash : {}, // userId -> value
     _voteCnt : 0,
     postCreate: function() {
-        dojo.connect(this, "onCollect", function(data) {
+        dojo.connect(this, "onCollect", dojo.hitch(this, function(data) {
             //data : {userId, username, response, result}
             if(this._userIdVoteHash[data.userId]) {
                 return;
             }
             this._recordVote(data.userId, data.response) && this.redraw();
-        }.bind(this));
+        }));
         
-        this.getAllTrackingResults(function(err, result) {
+        this.getAllTrackingResults(dojo.hitch(this, function(err, result) {
             //todo
             //handle error
             var answers = result || {};
@@ -32,11 +32,11 @@ dojo.declare("scorll.asset.Poll", [
             this._optionValueHash = {};
             this._voteCnt = 0;
             
-            dojox.lang.functional.forIn(answers, function(answer, userId) {
+            dojox.lang.functional.forIn(answers, dojo.hitch(this,function(answer, userId) {
                 this._recordVote(userId, answer.response);
-            }.bind(this));
+            }));
             this.redraw();
-        }.bind(this));
+        }));
     },
     
     _recordVote : function(userId, option) {
