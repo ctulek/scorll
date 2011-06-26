@@ -21,7 +21,9 @@ dependencies = {
 			"scorll.asset.Scribd",
 			"scorll.asset.ScribdForm",
 			"scorll.asset.Vimeo",
-			"scorll.asset.VimeoForm"
+			"scorll.asset.VimeoForm",
+			"scorll.asset.Poll",
+			"scorll.asset.PollForm"
             ]
         }
     ],
