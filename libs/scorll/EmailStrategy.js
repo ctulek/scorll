@@ -1,4 +1,4 @@
-exports.auth = function (params, callback) {
+exports.auth = function (user, params, callback) {
     var email = params.email;
     var password = params.password;
     var record = store[email] || null;
@@ -11,7 +11,7 @@ exports.auth = function (params, callback) {
         user.email = record.email;
         callback && callback(null);
     }
-}
+};
 
 exports.link = function (user, params, callback) {
     var email = params.email;
@@ -27,6 +27,6 @@ exports.link = function (user, params, callback) {
         user.email = email;
         callback(null);
     }
-}
+};
 
 var store = {};
