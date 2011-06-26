@@ -24,7 +24,7 @@ var Client = function (args) {
 util.inherits(Client, events.EventEmitter);
 
 Client.prototype.getId = function () {
-    return this.ioClient && this.ioClient.sessionId;
+    return this.ioClient && this.ioClient.id;
 }
 
 Client.prototype.join = function (groupId, callback) {
