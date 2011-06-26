@@ -45,6 +45,8 @@ var newContent = function(req, res, next) {
 
 var showContent = function(req, res, next) {
     res.local('contentId') || res.local('contentId', req.params.contentId);
+    res.local('release', app.enabled('release'));
+    res.local('revision', app.set('revision'));
     app.contentSet.findById(res.local('contentId'), function(err, content) {
         if(err || !content) {
             next("Content not found", 404);

@@ -1,7 +1,6 @@
 // Scorll.org Web Application
 require.paths.unshift(__dirname);
 var express = require('express');
-var io = require('socket.io');
 
 var express = require('express');
 
@@ -19,7 +18,6 @@ var contentSet = new ContentSet();
 var assetSet = new AssetSet();
 
 var app = express.createServer(
-    //express.logger(),
     express.static(__dirname + '/public'),
     express.bodyParser(),
     express.methodOverride(),
@@ -27,8 +25,7 @@ var app = express.createServer(
     express.session({secret: 'Test' })
     );
 
-app.set("view engine", "jade");
-app.register(".html", require("jade"));
+new require('./config.js')(app);
 
 app.contentSet = contentSet;
 app.assetSet = assetSet;
@@ -36,13 +33,11 @@ app.groupSet = groupSet;
 app.clientComponentSet = clientComponentSet;
 require('controller/index.js')(app);
 
-var port = 8080;
-app.listen(port);
-console.log("Ready to serve requests on port " + port + ". Enjoy...");
+app.listen(app.set("port"));
+console.log("Ready to serve requests on port " + app.set('port') + ". Enjoy...");
 
-
-var socket = io.listen(app);
-socket.on('connection', function (ioClient) {
+var io = require("socket.io").listen(app);
+io.sockets.on('connection', function (ioClient) {
     var args = {
         ioClient: ioClient,
         clientComponentSet: clientComponentSet,

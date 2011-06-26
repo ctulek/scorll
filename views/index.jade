@@ -1,8 +1,10 @@
 html
     head
         title Scorll
-        link(rel="stylesheet", rel="stylesheet", href="/release/r6/dijit/themes/claro/claro.css")
-        //link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
+        - if (release)
+            link(rel="stylesheet", rel="stylesheet", href="/release/#{revision}/dijit/themes/claro/claro.css")
+        - else
+            link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
         link(type="text/css", rel="stylesheet", href="/css/main.css") 
         link(type="text/css", rel="stylesheet", href="/css/stage.css") 
     body.claro
@@ -12,9 +14,11 @@ html
             div
                 div#newAssetButton(dojoType="dijit.form.Button") Add New Asset
         div#newAssetDialog(dojoType="dijit.Dialog", title="Add New Asset", style="width: 300px;")
-        //script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        script(src="/release/r6/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-        script(src="/release/r6/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
+        - if (release)
+            script(src="/release/#{revision}/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+            script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
+        - else
+            script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
         script(src="/socket.io/socket.io.js")
         script(type="text/javascript", language="javascript")
             // <![CDATA[

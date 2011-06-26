@@ -75,7 +75,7 @@ Client.prototype.handleComponentMessage = function (message) {
                         callbackId: callbackId,
                         params: Array.prototype.slice.call(arguments)
                     }
-                    client.ioClient.send(message);
+                    client.ioClient.json.send(message);
                 }
             }
         var method = component[message.method] || null;
@@ -109,7 +109,7 @@ Client.prototype.handleMethodCallMessage = function (message) {
                     callbackId: callbackId,
                     params: Array.prototype.slice.call(arguments)
                 }
-                client.ioClient.send(message);
+                client.ioClient.json.send(message);
             }
         }
     var params = message.params || [];
@@ -132,6 +132,7 @@ Client.prototype.handleCallbackMessage = function (message) {
 }
 
 Client.prototype.call = function (componentId, method) {
+    console.log(arguments);
     var message = {};
     message.componentId = componentId;
     message.method = method;
@@ -146,7 +147,7 @@ Client.prototype.call = function (componentId, method) {
         message.callbackId = callbackId;
     }
     message.params = params;
-    this.ioClient.send(message);
+    this.ioClient.json.send(message);
 }
 
 Client.prototype.broadcast = function() {
