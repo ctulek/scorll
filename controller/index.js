@@ -6,6 +6,7 @@ var app;
 module.exports = function(appObj) {
     app = appObj;
     app.get('/new(.html)?', newContent);
+    app.get('/list(.html)?', listContents);
     app.get('/:contentId.html', showContent);
     app.get('/(index.html)?', defaultIndex, showContent);
 }
@@ -41,6 +42,15 @@ var newContent = function(req, res, next) {
         }
         content.addAsset(null, assetData);
     });
+}
+
+var listContents = function(req, res, next) {
+    var ids = [];
+    for(var i in app.contentSet.contents) {
+        ids.push(i);
+    }
+    res.local("contentIds", ids);
+    res.render("list");
 }
 
 var showContent = function(req, res, next) {
