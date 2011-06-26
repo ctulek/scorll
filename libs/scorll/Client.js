@@ -30,10 +30,17 @@ Client.prototype.getId = function () {
 Client.prototype.join = function (groupId, callback) {
     var client = this;
     this.groupSet.findById(groupId, function (err, group) {
+        if(err) {
+            console.error(err);
+            callback && callback(err);
+            return;
+        }
         if (group) {
             group.join(client, function (err) {
                 if (!err) {
                     client.group = group;
+                } else {
+                    console.error(err);
                 }
             });
         }
@@ -132,7 +139,6 @@ Client.prototype.handleCallbackMessage = function (message) {
 }
 
 Client.prototype.call = function (componentId, method) {
-    console.log(arguments);
     var message = {};
     message.componentId = componentId;
     message.method = method;
