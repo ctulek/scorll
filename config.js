@@ -1,3 +1,5 @@
+var fs = require('fs');
+
 var express = require('express');
 
 module.exports = function(app) {
@@ -11,6 +13,7 @@ module.exports = function(app) {
     app.configure("production", function() {
         app.set("port", 80);
         app.enable("release");
-        app.set("revision", "r7");
+        var revision = fs.readFileSync("config.release-revision") + "";
+        app.set("revision", revision.trim());
     });
 }
