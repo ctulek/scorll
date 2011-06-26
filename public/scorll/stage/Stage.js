@@ -72,7 +72,6 @@ dojo.declare("scorll.stage.Stage", null, {
             dojo.destroy(container.arrowNode);
             form.placeAt(container.containerNode);
             container.placeAt(widget.domNode, "before");
-            container.domNode.scrollIntoView();
             dojo.connect(form, "onSubmit", function (item) {
                 container.destroyRecursive();
                 stage.content.update(item);

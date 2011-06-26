@@ -66,6 +66,7 @@ html
                                 container.attr('title', this.attr('label'));
                                 var form = assetManager.getAssetForm({type: this.widgetType});
                                 dojo.place(form.domNode, container.containerNode, "only");
+                                window.scrollTo(0, document.body.scrollHeight);
                                 dojo.connect(form,"onSubmit",function(item) {
                                     dojo.fadeIn({node: newAssetButton.domNode}).play();
                                     stage.content.add(item);
@@ -77,6 +78,7 @@ html
                                 });
                             });
                             button.placeAt(container.containerNode);
+                            container.containerNode.scrollIntoView()
                         }
                     });
                 }
