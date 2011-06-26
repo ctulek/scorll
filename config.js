@@ -9,7 +9,7 @@ module.exports = function(app) {
         app.set("port", 8080);
     });
     app.configure("production", function() {
-        app.set("port", 8080);
+        app.set("port", 80);
         app.enable("release");
         app.set("revision", "r7");
     });
