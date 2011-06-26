@@ -434,6 +434,7 @@ dojo.declare("scorll.net.User", null, {
         var userComponent = this;
         userComponent.client.call(null, "register", params, function (err, user) {
             if (!err) {
+                userComponent.id = user.id;
                 userComponent.authenticated = true;
                 if (user.cookie) {
                     var expiresAt = params.rememberme ? user.cookieExpiresAt : null;
@@ -11224,6 +11225,11 @@ dojo.declare("scorll.asset.AssetManager", null, {
             label: "Vimeo Video",
             renderer: "scorll.asset.Vimeo",
             form: "scorll.asset.VimeoForm"
+        },
+        "poll": {
+            label: "Poll",
+            renderer: "scorll.asset.Poll",
+            form: "scorll.asset.PollForm"
         }
 
     },
@@ -14899,7 +14905,6 @@ dojo.declare("scorll.stage.Stage", null, {
             dojo.destroy(container.arrowNode);
             form.placeAt(container.containerNode);
             container.placeAt(widget.domNode, "before");
-            container.domNode.scrollIntoView();
             dojo.connect(form, "onSubmit", function (item) {
                 container.destroyRecursive();
                 stage.content.update(item);
@@ -24506,7 +24511,15 @@ dojo.declare("scorll.asset.Tracking", null, {
         };
         asset.client.call(asset, "getTrackingResults", params, callback);
     },
-    collect: function(userId, username, response, result) {
+    getAllTrackingResults: function(callback) {
+        var asset = this;
+        var params = {
+            assetId: asset.item.id,
+            userId: null
+        };
+        asset.client.call(asset, "getTrackingResults", params, callback);
+    },
+    collect : function(userId, username, response, result) {
         var asset = this;
         asset.userTrackingData.put({
             id: userId,
@@ -24521,6 +24534,14 @@ dojo.declare("scorll.asset.Tracking", null, {
             result: result
         });
         asset.userTrackingDataHistory[userId] = history;
+        this.onCollect({
+            userId : userId,
+            username : username,
+            response : response,
+            result : result
+        });
+    },
+    onCollect : function(collectedData) {
     },
     showStats: function() {
         var asset = this;
@@ -25668,6 +25689,549 @@ dojo.declare("scorll.asset.VimeoForm", [
         var data = {};
         data.video = video;
         this.item.data = data;
+        this.onSubmit(this.item);
+    },
+    cancel: function() {
+        this.onCancel();
+    }
+});
+
+}
+
+if(!dojo._hasResource["dojox.lang.functional.lambda"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.lang.functional.lambda"] = true;
+dojo.provide("dojox.lang.functional.lambda");
+
+// This module adds high-level functions and related constructs:
+//	- anonymous functions built from the string
+
+// Acknoledgements:
+//	- lambda() is based on work by Oliver Steele
+//		(http://osteele.com/sources/javascript/functional/functional.js)
+//		which was published under MIT License
+
+// Notes:
+//	- lambda() produces functions, which after the compilation step are
+//		as fast as regular JS functions (at least theoretically).
+
+// Lambda input values:
+//	- returns functions unchanged
+//	- converts strings to functions
+//	- converts arrays to a functional composition
+
+(function(){
+	var df = dojox.lang.functional, lcache = {};
+
+	// split() is augmented on IE6 to ensure the uniform behavior
+	var split = "ab".split(/a*/).length > 1 ? String.prototype.split :
+			function(sep){
+				 var r = this.split.call(this, sep),
+					 m = sep.exec(this);
+				 if(m && m.index == 0){ r.unshift(""); }
+				 return r;
+			};
+			
+	var lambda = function(/*String*/ s){
+		var args = [], sects = split.call(s, /\s*->\s*/m);
+		if(sects.length > 1){
+			while(sects.length){
+				s = sects.pop();
+				args = sects.pop().split(/\s*,\s*|\s+/m);
+				if(sects.length){ sects.push("(function(" + args + "){return (" + s + ")})"); }
+			}
+		}else if(s.match(/\b_\b/)){
+			args = ["_"];
+		}else{
+			var l = s.match(/^\s*(?:[+*\/%&|\^\.=<>]|!=)/m),
+				r = s.match(/[+\-*\/%&|\^\.=<>!]\s*$/m);
+			if(l || r){
+				if(l){
+					args.push("$1");
+					s = "$1" + s;
+				}
+				if(r){
+					args.push("$2");
+					s = s + "$2";
+				}
+			}else{
+				// the point of the long regex below is to exclude all well-known
+				// lower-case words from the list of potential arguments
+				var vars = s.
+					replace(/(?:\b[A-Z]|\.[a-zA-Z_$])[a-zA-Z_$\d]*|[a-zA-Z_$][a-zA-Z_$\d]*:|this|true|false|null|undefined|typeof|instanceof|in|delete|new|void|arguments|decodeURI|decodeURIComponent|encodeURI|encodeURIComponent|escape|eval|isFinite|isNaN|parseFloat|parseInt|unescape|dojo|dijit|dojox|window|document|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/g, "").
+					match(/([a-z_$][a-z_$\d]*)/gi) || [], t = {};
+				dojo.forEach(vars, function(v){
+					if(!(v in t)){
+						args.push(v);
+						t[v] = 1;
+					}
+				});
+			}
+		}
+		return {args: args, body: s};	// Object
+	};
+
+	var compose = function(/*Array*/ a){
+		return a.length ?
+					function(){
+						var i = a.length - 1, x = df.lambda(a[i]).apply(this, arguments);
+						for(--i; i >= 0; --i){ x = df.lambda(a[i]).call(this, x); }
+						return x;
+					}
+				:
+					// identity
+					function(x){ return x; };
+	};
+
+	dojo.mixin(df, {
+		// lambda
+		rawLambda: function(/*String*/ s){
+			// summary:
+			//		builds a function from a snippet, or array (composing),
+			//		returns an object describing the function; functions are
+			//		passed through unmodified.
+			// description:
+			//		This method is to normalize a functional representation (a
+			//		text snippet) to an object that contains an array of
+			//		arguments, and a body , which is used to calculate the
+			//		returning value.
+			return lambda(s);	// Object
+		},
+		buildLambda: function(/*String*/ s){
+			// summary:
+			//		builds a function from a snippet, returns a string, which
+			//		represents the function.
+			// description:
+			//		This method returns a textual representation of a function
+			//		built from the snippet. It is meant to be evaled in the
+			//		proper context, so local variables can be pulled from the
+			//		environment.
+			s = lambda(s);
+			return "function(" + s.args.join(",") + "){return (" + s.body + ");}";	// String
+		},
+		lambda: function(/*Function|String|Array*/ s){
+			// summary:
+			//		builds a function from a snippet, or array (composing),
+			//		returns a function object; functions are passed through
+			//		unmodified.
+			// description:
+			//		This method is used to normalize a functional
+			//		representation (a text snippet, an array, or a function) to
+			//		a function object.
+			if(typeof s == "function"){ return s; }
+			if(s instanceof Array){ return compose(s); }
+			if(s in lcache){ return lcache[s]; }
+			s = lambda(s);
+			return lcache[s] = new Function(s.args, "return (" + s.body + ");");	// Function
+		},
+		clearLambdaCache: function(){
+			// summary:
+			//		clears internal cache of lambdas
+			lcache = {};
+		}
+	});
+})();
+
+}
+
+if(!dojo._hasResource["dojox.lang.functional.array"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.lang.functional.array"] = true;
+dojo.provide("dojox.lang.functional.array");
+
+
+
+// This module adds high-level functions and related constructs:
+//	- array-processing functions similar to standard JS functions
+
+// Notes:
+//	- this module provides JS standard methods similar to high-level functions in dojo/_base/array.js:
+//		forEach, map, filter, every, some
+
+// Defined methods:
+//	- take any valid lambda argument as the functional argument
+//	- operate on dense arrays
+//	- take a string as the array argument
+//	- take an iterator objects as the array argument
+
+(function(){
+	var d = dojo, df = dojox.lang.functional, empty = {};
+
+	d.mixin(df, {
+		// JS 1.6 standard array functions, which can take a lambda as a parameter.
+		// Consider using dojo._base.array functions, if you don't need the lambda support.
+		filter: function(/*Array|String|Object*/ a, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: creates a new array with all elements that pass the test
+			//	implemented by the provided function.
+			if(typeof a == "string"){ a = a.split(""); }
+			o = o || d.global; f = df.lambda(f);
+			var t = [], v, i, n;
+			if(d.isArray(a)){
+				// array
+				for(i = 0, n = a.length; i < n; ++i){
+					v = a[i];
+					if(f.call(o, v, i, a)){ t.push(v); }
+				}
+			}else if(typeof a.hasNext == "function" && typeof a.next == "function"){
+				// iterator
+				for(i = 0; a.hasNext();){
+					v = a.next();
+					if(f.call(o, v, i++, a)){ t.push(v); }
+				}
+			}else{
+				// object/dictionary
+				for(i in a){
+					if(!(i in empty)){
+						v = a[i];
+						if(f.call(o, v, i, a)){ t.push(v); }
+					}
+				}
+			}
+			return t;	// Array
+		},
+		forEach: function(/*Array|String|Object*/ a, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: executes a provided function once per array element.
+			if(typeof a == "string"){ a = a.split(""); }
+			o = o || d.global; f = df.lambda(f);
+			var i, n;
+			if(d.isArray(a)){
+				// array
+				for(i = 0, n = a.length; i < n; f.call(o, a[i], i, a), ++i);
+			}else if(typeof a.hasNext == "function" && typeof a.next == "function"){
+				// iterator
+				for(i = 0; a.hasNext(); f.call(o, a.next(), i++, a));
+			}else{
+				// object/dictionary
+				for(i in a){
+					if(!(i in empty)){
+						f.call(o, a[i], i, a);
+					}
+				}
+			}
+			return o;	// Object
+		},
+		map: function(/*Array|String|Object*/ a, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: creates a new array with the results of calling
+			//	a provided function on every element in this array.
+			if(typeof a == "string"){ a = a.split(""); }
+			o = o || d.global; f = df.lambda(f);
+			var t, n, i;
+			if(d.isArray(a)){
+				// array
+				t = new Array(n = a.length);
+				for(i = 0; i < n; t[i] = f.call(o, a[i], i, a), ++i);
+			}else if(typeof a.hasNext == "function" && typeof a.next == "function"){
+				// iterator
+				t = [];
+				for(i = 0; a.hasNext(); t.push(f.call(o, a.next(), i++, a)));
+			}else{
+				// object/dictionary
+				t = [];
+				for(i in a){
+					if(!(i in empty)){
+						t.push(f.call(o, a[i], i, a));
+					}
+				}
+			}
+			return t;	// Array
+		},
+		every: function(/*Array|String|Object*/ a, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: tests whether all elements in the array pass the test
+			//	implemented by the provided function.
+			if(typeof a == "string"){ a = a.split(""); }
+			o = o || d.global; f = df.lambda(f);
+			var i, n;
+			if(d.isArray(a)){
+				// array
+				for(i = 0, n = a.length; i < n; ++i){
+					if(!f.call(o, a[i], i, a)){
+						return false;	// Boolean
+					}
+				}
+			}else if(typeof a.hasNext == "function" && typeof a.next == "function"){
+				// iterator
+				for(i = 0; a.hasNext();){
+					if(!f.call(o, a.next(), i++, a)){
+						return false;	// Boolean
+					}
+				}
+			}else{
+				// object/dictionary
+				for(i in a){
+					if(!(i in empty)){
+						if(!f.call(o, a[i], i, a)){
+							return false;	// Boolean
+						}
+					}
+				}
+			}
+			return true;	// Boolean
+		},
+		some: function(/*Array|String|Object*/ a, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: tests whether some element in the array passes the test
+			//	implemented by the provided function.
+			if(typeof a == "string"){ a = a.split(""); }
+			o = o || d.global; f = df.lambda(f);
+			var i, n;
+			if(d.isArray(a)){
+				// array
+				for(i = 0, n = a.length; i < n; ++i){
+					if(f.call(o, a[i], i, a)){
+						return true;	// Boolean
+					}
+				}
+			}else if(typeof a.hasNext == "function" && typeof a.next == "function"){
+				// iterator
+				for(i = 0; a.hasNext();){
+					if(f.call(o, a.next(), i++, a)){
+						return true;	// Boolean
+					}
+				}
+			}else{
+				// object/dictionary
+				for(i in a){
+					if(!(i in empty)){
+						if(f.call(o, a[i], i, a)){
+							return true;	// Boolean
+						}
+					}
+				}
+			}
+			return false;	// Boolean
+		}
+	});
+})();
+
+}
+
+if(!dojo._hasResource["dojox.lang.functional.object"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.lang.functional.object"] = true;
+dojo.provide("dojox.lang.functional.object");
+
+
+
+// This module adds high-level functions and related constructs:
+//	- object/dictionary helpers
+
+// Defined methods:
+//	- take any valid lambda argument as the functional argument
+//	- skip all attributes that are present in the empty object
+//		(IE and/or 3rd-party libraries).
+
+(function(){
+	var d = dojo, df = dojox.lang.functional, empty = {};
+
+	d.mixin(df, {
+		// object helpers
+		keys: function(/*Object*/ obj){
+			// summary: returns an array of all keys in the object
+			var t = [];
+			for(var i in obj){
+				if(!(i in empty)){
+					t.push(i);
+				}
+			}
+			return	t; // Array
+		},
+		values: function(/*Object*/ obj){
+			// summary: returns an array of all values in the object
+			var t = [];
+			for(var i in obj){
+				if(!(i in empty)){
+					t.push(obj[i]);
+				}
+			}
+			return	t; // Array
+		},
+		filterIn: function(/*Object*/ obj, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: creates new object with all attributes that pass the test
+			//	implemented by the provided function.
+			o = o || d.global; f = df.lambda(f);
+			var t = {}, v, i;
+			for(i in obj){
+				if(!(i in empty)){
+					v = obj[i];
+					if(f.call(o, v, i, obj)){ t[i] = v; }
+				}
+			}
+			return t;	// Object
+		},
+		forIn: function(/*Object*/ obj, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: iterates over all object attributes.
+			o = o || d.global; f = df.lambda(f);
+			for(var i in obj){
+				if(!(i in empty)){
+					f.call(o, obj[i], i, obj);
+				}
+			}
+			return o;	// Object
+		},
+		mapIn: function(/*Object*/ obj, /*Function|String|Array*/ f, /*Object?*/ o){
+			// summary: creates new object with the results of calling
+			//	a provided function on every attribute in this object.
+			o = o || d.global; f = df.lambda(f);
+			var t = {}, i;
+			for(i in obj){
+				if(!(i in empty)){
+					t[i] = f.call(o, obj[i], i, obj);
+				}
+			}
+			return t;	// Object
+		}
+	});
+})();
+
+}
+
+if(!dojo._hasResource["dojox.lang.functional"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.lang.functional"] = true;
+dojo.provide("dojox.lang.functional");
+
+
+
+
+
+}
+
+if(!dojo._hasResource["scorll.asset.Poll"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["scorll.asset.Poll"] = true;
+dojo.provide("scorll.asset.Poll");
+
+
+
+
+
+
+dojo.declare("scorll.asset.Poll", [
+    scorll.asset.Asset,
+    scorll.asset.Tracking
+    ], {
+    templateString:"<div>\n</div>\n",
+    responses: [],
+    _optionValueHash : {}, // optionKey -> value
+    _userIdVoteHash : {}, // userId -> value
+    _voteCnt : 0,
+    postCreate: function() {
+        dojo.connect(this, "onCollect", dojo.hitch(this, function(data) {
+            //data : {userId, username, response, result}
+            if(this._userIdVoteHash[data.userId]) {
+                return;
+            }
+            this._recordVote(data.userId, data.response) && this.redraw();
+        }));
+        
+        this.getAllTrackingResults(dojo.hitch(this, function(err, result) {
+            //todo
+            //handle error
+            var answers = result || {};
+            //reset data
+            this._userIdVoteHash = {};
+            this._optionValueHash = {};
+            this._voteCnt = 0;
+            
+            dojox.lang.functional.forIn(answers, dojo.hitch(this,function(answer, userId) {
+                this._recordVote(userId, answer.response);
+            }));
+            this.redraw();
+        }));
+    },
+    
+    _recordVote : function(userId, option) {
+        if(this._userIdVoteHash[userId] !== undefined) {
+            return false;
+        }
+        this._userIdVoteHash[userId] = option;
+        this._optionValueHash[option] = this._optionValueHash[option] || 0;
+        this._optionValueHash[option] ++;
+        this._voteCnt ++;
+        return true;
+    },
+    getOptionValue : function(option) {
+        return this._optionValueHash[option] || 0;
+    },
+    
+    getOptionRatio : function(option) {
+        return this._voteCnt ? parseInt(100 * this.getOptionValue(option) / this._voteCnt) : 0;
+    },
+
+    redraw : function() {        
+        var asset = this;
+        var data = this.item.data;
+
+        //clear dom
+        dojo.empty(asset.domNode);
+        
+        var title = dojo.string.substitute("<div>${0}  (${1} total vote${2})</div>", [data.question, this._voteCnt, this._voteCnt > 1 ? 's' : '']);
+        dojo.place(title,asset.domNode, "first");
+        var myVote = asset.user.id ? this._userIdVoteHash[asset.user.id] : undefined;
+        data.options = data.options || {};
+        
+        if(myVote !== undefined) {
+            var html = "<ul>";
+            dojo.forEach(data.options, function(option) {
+                html += dojo.string.substitute("<li>${0} ${2}% (${1})</li>",[option, asset.getOptionValue(option), asset.getOptionRatio(option)]);
+            });
+            html += "</ul>";
+            dojo.place(html, asset.domNode);
+        } else {
+            dojo.forEach(data.options, function(option) {
+                var id = ("interaction-" + asset.item.id + "-" + option).replace(' ','_');
+                var name = ("interaction-" + asset.item.id).replace(' ','_');
+
+                var html = dojo.string.substitute('<p><label for="${0}">${1}</label></p>', [id, option]);
+                var p = dojo.place(html, asset.domNode);
+                // Checked
+                html = dojo.string.substitute('<input name="${2}" type="radio" id="${0}" value="${1}"/>', [id, option, name]);
+                var input = dojo.place(html, p, "first");
+                dojo.connect(input, "change", function() {
+                    var params = {
+                        type: asset.TRACKING_TYPE.LIKERT,
+                        response: option
+                    };
+                    asset.track(params, function(err) {
+                        // TODO: You can add feedback here
+                        err && console.log(err);
+                    });
+                });
+            });                
+        }
+    }
+});
+
+}
+
+if(!dojo._hasResource["scorll.asset.PollForm"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["scorll.asset.PollForm"] = true;
+dojo.provide("scorll.asset.PollForm");
+
+
+
+
+dojo.declare("scorll.asset.PollForm", [
+    scorll.asset.AssetForm
+    ], {
+    templateString:"<div>\n\t<div style=\"width: 100%;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" orientation=\"vert\" labelWidth=\"120\">\n\t\t<div dojoType=\"dijit.form.Textarea\"\n\t\t\tdojoAttachPoint=\"questionBox\"\n            title=\"Question\"\n\t\t\tstyle=\"width: 100%; min-height: 21px;\" ></div>\n\t\t<div dojoType=\"dijit.form.Textarea\"\n\t\t\tdojoAttachPoint=\"optionBox\"\n            title=\"Options\"\n\t\t\tstyle=\"width: 100%; min-height: 200px;\" ></div>\n        </div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+    postCreate: function() {
+        this.formContainer.startup();
+        if (!this.item.data) {
+            return;
+        }
+        var data = this.item.data;
+        this.questionBox.attr('value', data.question);
+    },
+    submit: function() {
+        var question = this.questionBox.attr('value').trim();
+        var entries = this.optionBox.attr('value').trim().split("\n");
+        var options = [];
+        var uniq = {};
+        dojo.forEach(entries, function(entry) {
+            if(!uniq[entry]) {
+                options.push(entry);
+                uniq[entry] = true;
+            }
+        });
+        this.item.data = {
+          question : question,
+          options : options
+        };
         this.onSubmit(this.item);
     },
     cancel: function() {

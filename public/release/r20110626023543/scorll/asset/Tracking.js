@@ -42,7 +42,15 @@ dojo.declare("scorll.asset.Tracking", null, {
         };
         asset.client.call(asset, "getTrackingResults", params, callback);
     },
-    collect: function(userId, username, response, result) {
+    getAllTrackingResults: function(callback) {
+        var asset = this;
+        var params = {
+            assetId: asset.item.id,
+            userId: null
+        };
+        asset.client.call(asset, "getTrackingResults", params, callback);
+    },
+    collect : function(userId, username, response, result) {
         var asset = this;
         asset.userTrackingData.put({
             id: userId,
@@ -57,6 +65,14 @@ dojo.declare("scorll.asset.Tracking", null, {
             result: result
         });
         asset.userTrackingDataHistory[userId] = history;
+        this.onCollect({
+            userId : userId,
+            username : username,
+            response : response,
+            result : result
+        });
+    },
+    onCollect : function(collectedData) {
     },
     showStats: function() {
         var asset = this;

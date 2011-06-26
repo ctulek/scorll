@@ -45,6 +45,11 @@ dojo.declare("scorll.asset.AssetManager", null, {
             label: "Vimeo Video",
             renderer: "scorll.asset.Vimeo",
             form: "scorll.asset.VimeoForm"
+        },
+        "poll": {
+            label: "Poll",
+            renderer: "scorll.asset.Poll",
+            form: "scorll.asset.PollForm"
         }
 
     },
