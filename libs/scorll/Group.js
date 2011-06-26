@@ -12,7 +12,7 @@ Group.prototype.getId = function() {
 
 Group.prototype.join = function(client, callback) {
     if(this.clients[client.getId()]) {
-        callback && callback('Already joined');
+        callback && callback(null);
         return;
     }
     this.clients[client.getId()] = client;
