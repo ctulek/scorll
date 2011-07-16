@@ -2,7 +2,7 @@ dojo.provide("scorll.stage.Login");
 
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
-dojo.require("dijit.form.TextBox");
+dojo.require("dijit.form.ValidationTextBox");
 dojo.require("dojox.layout.TableContainer");
 
 dojo.declare("scorll.stage.Login", [
@@ -16,9 +16,11 @@ dojo.declare("scorll.stage.Login", [
     onCancel: function () {},
     onRegister: function () {},
     submit: function () {
-        var username = this.username.attr('value').trim();
-        var password = this.password.attr('value').trim();
-        this.onSubmit(username, password);
+        if (this.isValid()) {
+          var username = this.username.attr('value').trim();
+          var password = this.password.attr('value').trim();
+          this.onSubmit(username, password);
+        }
     },
     cancel: function () {
         this.onCancel();
@@ -26,7 +28,13 @@ dojo.declare("scorll.stage.Login", [
     register: function () {
         this.onRegister();
     },
+    isValid: function () {
+      return this.username.isValid()
+        && this.password.isValid();
+    },
     showError: function (err) {
+        this.errorMessage.innerHTML = err;
+        this.errorMessage.style.display = "block";
         console.error(err);
     }
 });

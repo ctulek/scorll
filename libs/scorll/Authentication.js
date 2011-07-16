@@ -1,5 +1,5 @@
 var strategies = {
-    email: require('./EmailStrategy.js'),
+    user: require('./UserStrategy.js'),
     cookie: require('./CookieStrategy.js')
 };
 

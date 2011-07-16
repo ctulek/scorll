@@ -11,6 +11,7 @@ dojo.require("scorll.stage.Register");
 dojo.require("scorll.asset.AssetManager");
 dojo.require("scorll.asset.AssetWrapper");
 dojo.require("scorll.asset.Dialog");
+dojo.require("scorll.stage.Note");
 
 dojo.declare("scorll.stage.Stage", null, {
     mode: "guest",
@@ -168,9 +169,10 @@ dojo.declare("scorll.stage.Stage", null, {
         var dialog = new scorll.asset.Dialog();
         widget.placeAt(dialog.containerNode);
         dialog.show();
-        dojo.connect(widget, "onSubmit", function (email, password) {
+        dojo.connect(widget, "onSubmit", function (username, email, password) {
             var params = {
-                strategy: "email",
+                strategy: "user",
+                username: username,
                 email: email,
                 password: password
             }
@@ -202,7 +204,7 @@ dojo.declare("scorll.stage.Stage", null, {
         dialog.show();
         dojo.connect(widget, "onSubmit", function (username, password) {
             var params = {
-                strategy: "email",
+                strategy: "user",
                 username: username,
                 password: password,
                 rememberme: true
