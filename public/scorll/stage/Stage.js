@@ -5,13 +5,12 @@ dojo.require("dojo.dnd.Source");
 dojo.require("dijit.InlineEditBox");
 dojo.require("dijit.form.TextBox");
 
-dojo.require("scorll.stage.Menu");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
 dojo.require("scorll.asset.AssetManager");
 dojo.require("scorll.asset.AssetWrapper");
 dojo.require("scorll.asset.Dialog");
-dojo.require("scorll.stage.Note");
+
 
 dojo.declare("scorll.stage.Stage", null, {
     mode: "guest",
@@ -19,7 +18,6 @@ dojo.declare("scorll.stage.Stage", null, {
     client: null,
     content: null,
     observer: null,
-    menu: null,
     stage: null,
     requireLogin: false,
     constructor: function ( /* Object */ args) {
@@ -57,35 +55,6 @@ dojo.declare("scorll.stage.Stage", null, {
         });
         // ASSET MANAGER
         var assetManager = stage.assetManager = new scorll.asset.AssetManager();
-        // MENU
-        var menu = stage.menu = new scorll.stage.Menu();
-        stage.menu = menu;
-        menu.placeAt(dojo.body());
-        menu.hide();
-        dojo.connect(menu, "onEdit", function (widget) {
-            menu.hide(true);
-            widget.domNode.style.display = "none";
-            var form = assetManager.getAssetForm(widget.item);
-            if (!form) {
-                return;
-            }
-            var container = new dijit.TitlePane({title: "Edit Asset", toggleable: false});
-            dojo.destroy(container.arrowNode);
-            form.placeAt(container.containerNode);
-            container.placeAt(widget.domNode, "before");
-            dojo.connect(form, "onSubmit", function (item) {
-                container.destroyRecursive();
-                stage.content.update(item);
-            });
-            dojo.connect(form, "onCancel", function () {
-                container.destroyRecursive();
-                widget.domNode.style.display = "block";
-            });
-        });
-        dojo.connect(menu, "onDelete", function (widget) {
-            menu.hide(true);
-            stage.content.remove(widget.item);
-        });
         // STAGE
         stage.stage = new dojo.dnd.Source("stage", {delay: 10});
         dojo.connect(stage.stage, "onDropInternal", function(nodes, copy) {
@@ -156,12 +125,6 @@ dojo.declare("scorll.stage.Stage", null, {
         stage.client.register(widget);
         widget.user = stage.user;
         widget.stage = stage;
-        dojo.connect(widget, "onMouseOver", function () {
-            stage.menu.show(this.domNode);
-        });
-        dojo.connect(widget, "onMouseOut", function () {
-            stage.menu.hide();
-        });
     },
     newUserRegister: function (fromLoginForm, callback) {
         var stage = this;

@@ -5,12 +5,12 @@ dojo.require("dojo.fx.Toggler");
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
 
-dojo.declare("scorll.stage.Menu", [
+dojo.declare("scorll.asset.AssetMenu", [
     dijit._Widget,
     dijit._Templated
     ], {
     widgetsInTemplate: true,
-    templatePath: dojo.moduleUrl("scorll.stage", "Menu.html"),
+    templatePath: dojo.moduleUrl("scorll.asset", "AssetMenu.html"),
     widget: null,
     _toggler: null,
     _timeout: null,
@@ -38,19 +38,13 @@ dojo.declare("scorll.stage.Menu", [
         this.hide(true);
         this.widget.showStats();
     },
-    show: function (node) {
+    show: function () {
         clearTimeout(this._timeout);
-        this.widget = dijit.byNode(node);
         if (this.widget.isInstanceOf(scorll.asset.Tracking)) {
             this.statsButton.domNode.style.display = "inline";
         } else {
             this.statsButton.domNode.style.display = "none";
         }
-        var position = dojo.position(node, {
-            includeScroll: true
-        });
-        this.domNode.style.left = position.x + position.w;
-        this.domNode.style.top = position.y;
         this._toggler.show();
     },
     hide: function (immediately) {
