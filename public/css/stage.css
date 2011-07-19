@@ -1,15 +1,15 @@
 body {
-    font-family: Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
+    font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
     font-size: 16px;
 }
 
 .dijitTextBox {
-    font-family: Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
+    font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
     font-size: 16px;
 }
 
 div#stage-container {
-    font-family: Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
+    font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
 	margin-left: 20px;
 	padding-bottom: 100px;
 	position: absolute;
