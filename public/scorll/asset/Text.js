@@ -42,7 +42,9 @@ dojo.declare("scorll.asset.Text", [
         // List Item
         text = text.replace(/^\* (.+?)$/gm, "<li>$1</li>");
         // New Line
-        text = "<p>" + text.replace(/\n+/gm, "</p><p>") + "</p>";
+        text = '<p style="margin-bottom: 0px;">'
+            + text.replace(/\n+/gm, '</p><p style="margin-bottom: 0px;">')
+            + "</p>";
         return text;
     }
 });
