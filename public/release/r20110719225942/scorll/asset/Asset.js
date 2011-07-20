@@ -27,6 +27,9 @@ dojo.declare("scorll.asset.Asset", [
     stage: null,
     item: null,
 
+    // Events
+    onLoginRequired: function() {
+    },
     // scorll.net.ClientComponent functions
     getComponentType: function () {
         return "asset";

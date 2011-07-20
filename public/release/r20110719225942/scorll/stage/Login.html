@@ -1,6 +1,8 @@
 <div>
-	<div style="width: 500px;">
-		<div dojoType="dojox.layout.TableContainer" cols="1" labelWidth="120" height="300px">
+	<div>
+		<div dojoType="dojox.layout.TableContainer"
+            dojoAttachPoint="tableContainer"
+            cols="1" labelWidth="120" height="300px">
 			<div dojoType="dijit.form.ValidationTextBox" dojoAttachPoint="username"
         required="true" title="Login"></div>
 			<div dojoType="dijit.form.ValidationTextBox" dojoAttachPoint="password"

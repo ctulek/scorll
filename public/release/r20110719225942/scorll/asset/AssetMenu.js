@@ -50,7 +50,7 @@ dojo.declare("scorll.asset.AssetMenu", [
     show: function () {
         clearTimeout(this._timeout);
         if (this.widget.isInstanceOf(scorll.asset.Tracking)) {
-            this.statsButton.domNode.style.display = "inline";
+            this.statsButton.domNode.style.display = "";
         } else {
             this.statsButton.domNode.style.display = "none";
         }

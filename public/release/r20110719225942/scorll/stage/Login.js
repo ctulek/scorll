@@ -19,8 +19,10 @@ dojo.declare("scorll.stage.Login", [
     dijit._Templated
     ], {
     widgetsInTemplate: true,
-    templateString:"<div>\n\t<div style=\"width: 500px;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" cols=\"1\" labelWidth=\"120\" height=\"300px\">\n\t\t\t<div dojoType=\"dijit.form.ValidationTextBox\" dojoAttachPoint=\"username\"\n        required=\"true\" title=\"Login\"></div>\n\t\t\t<div dojoType=\"dijit.form.ValidationTextBox\" dojoAttachPoint=\"password\"\n        required=\"true\" type=\"password\" title=\"Password\"></div>\n\t\t</div>\n    <div dojoAttachPoint=\"errorMessage\"\n      style=\"display: none; color: red\"></div>\n\t\t<div style=\"text-align: left; float: left;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:register\">Register</div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
-    postCreate: function () {},
+    templateString:"<div>\n\t<div>\n\t\t<div dojoType=\"dojox.layout.TableContainer\"\n            dojoAttachPoint=\"tableContainer\"\n            cols=\"1\" labelWidth=\"120\" height=\"300px\">\n\t\t\t<div dojoType=\"dijit.form.ValidationTextBox\" dojoAttachPoint=\"username\"\n        required=\"true\" title=\"Login\"></div>\n\t\t\t<div dojoType=\"dijit.form.ValidationTextBox\" dojoAttachPoint=\"password\"\n        required=\"true\" type=\"password\" title=\"Password\"></div>\n\t\t</div>\n    <div dojoAttachPoint=\"errorMessage\"\n      style=\"display: none; color: red\"></div>\n\t\t<div style=\"text-align: left; float: left;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:register\">Register</div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+    postCreate: function () {
+        this.tableContainer.startup();
+    },
     onSubmit: function (item) {},
     onCancel: function () {},
     onRegister: function () {},

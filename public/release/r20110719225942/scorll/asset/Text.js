@@ -16,7 +16,7 @@ dojo.declare("scorll.asset.Text", [
     scorll.asset.Asset,
     scorll.asset.Shared
     ], {
-    templateString:"<div>\n\t<h2 dojoAttachPoint=\"titleText\"></h2>\n\t<p dojoAttachPoint=\"bodyText\"></p>\n",
+    templateString:"<div>\n\t<h2 style=\"margin-top: 0px;\" dojoAttachPoint=\"titleText\"></h2>\n\t<p style=\"margin-bottom: 0px;\" dojoAttachPoint=\"bodyText\"></p>\n",
     postCreate: function() {
         var data = this.item.data;
         if (data.text) {
@@ -51,7 +51,9 @@ dojo.declare("scorll.asset.Text", [
         // List Item
         text = text.replace(/^\* (.+?)$/gm, "<li>$1</li>");
         // New Line
-        text = "<p>" + text.replace(/\n+/gm, "</p><p>") + "</p>";
+        text = '<p style="margin-bottom: 0px;">'
+            + text.replace(/\n+/gm, '</p><p style="margin-bottom: 0px;">')
+            + "</p>";
         return text;
     }
 });

@@ -34,7 +34,7 @@ dojo.declare("scorll.asset.MultipleChoice", [
                     var name = "interaction" + asset.item.id;
                     var value = i;
                     var label = data.answers[i];
-                    var html = dojo.string.substitute('<p><label for="${0}">${1}</label></p>', [id, label]);
+                    var html = dojo.string.substitute('<p style="margin-bottom: 0px"><label for="${0}">${1}</label></p>', [id, label]);
                     var p = dojo.place(html, asset.domNode);
                     // Checked
                     if (learnerResponse) {
