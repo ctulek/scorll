@@ -11,7 +11,9 @@ dojo.declare("scorll.stage.Login", [
     ], {
     widgetsInTemplate: true,
     templatePath: dojo.moduleUrl("scorll.stage", "Login.html"),
-    postCreate: function () {},
+    postCreate: function () {
+        this.tableContainer.startup();
+    },
     onSubmit: function (item) {},
     onCancel: function () {},
     onRegister: function () {},

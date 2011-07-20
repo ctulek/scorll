@@ -13,7 +13,9 @@ dojo.declare("scorll.stage.Register", [
 dijit._Widget, dijit._Templated], {
   widgetsInTemplate: true,
   templatePath: dojo.moduleUrl("scorll.stage", "Register.html"),
-  postCreate: function() {},
+  postCreate: function() {
+    this.tableContainer.startup();
+  },
   onSubmit: function(username, email, password) {},
   onCancel: function() {},
   submit: function() {
