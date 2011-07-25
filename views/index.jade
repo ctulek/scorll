@@ -34,17 +34,13 @@ html
         script(src="/socket.io/socket.io.js")
         script(type="text/javascript", language="javascript")
             // <![CDATA[
-            dojo.require("dojo.store.Memory");
-            dojo.require("dijit.form.Button");
-            dojo.require("dijit.Dialog");
-            dojo.require("dijit.TitlePane");
             dojo.require("dojo.dnd.Source");
 
             dojo.require("scorll.content.Content");
             dojo.require("scorll.net.Client");
             dojo.require("scorll.net.User");
             dojo.require("scorll.stage.Stage");
-            dojo.require("scorll.asset.AssetManager");
+            dojo.require("scorll.asset.NewAssetForm");
             dojo.addOnLoad(
                 function() {
                     var clientArgs = {
@@ -64,34 +60,17 @@ html
                     dojo.connect(newAssetButon, "onClick", function() {
                         var newAssetButton = this;
                         dojo.fadeOut({node: newAssetButton.domNode}).play();
-                        var container = new dijit.TitlePane({title: "Asset Types", toggleable: false});
-                        dojo.destroy(container.arrowNode);
-                        container.placeAt(dojo.byId("stage"));
-                        container.startup();
-                        var assetManager = new scorll.asset.AssetManager();
-                        for(var type in assetManager.assets) {
-                            var button = new dijit.form.Button();
-                            var label = assetManager.assets[type].label;
-                            button.attr('label',label);
-                            button.widgetType = type;
-                            dojo.connect(button,"onClick",function() {
-                                container.attr('title', this.attr('label'));
-                                var form = assetManager.getAssetForm({type: this.widgetType});
-                                dojo.place(form.domNode, container.containerNode, "only");
-                                window.scrollTo(0, document.body.scrollHeight);
-                                dojo.connect(form,"onSubmit",function(item) {
-                                    dojo.fadeIn({node: newAssetButton.domNode}).play();
-                                    stage.content.add(item);
-                                    container.destroyRecursive();
-                                });
-                                dojo.connect(form,"onCancel",function() {
-                                    dojo.fadeIn({node: newAssetButton.domNode}).play();
-                                    container.destroyRecursive();
-                                });
-                            });
-                            button.placeAt(container.containerNode);
-                            container.containerNode.scrollIntoView()
-                        }
+                        var form = new scorll.asset.NewAssetForm(
+                          {stage: stage});
+                        form.placeAt(dojo.byId("stage"));
+                        dojo.connect(form, "onSubmit", function() {
+                          dojo.fadeIn({node: newAssetButton.domNode}).play();
+                          form.destroyRecursive();
+                        });
+                        dojo.connect(form, "onCancel", function() {
+                          dojo.fadeIn({node: newAssetButton.domNode}).play();
+                          form.destroyRecursive();
+                        });
                     });
                 }
             );
