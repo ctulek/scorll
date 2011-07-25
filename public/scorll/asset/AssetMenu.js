@@ -26,17 +26,19 @@ dojo.declare("scorll.asset.AssetMenu", [
             this.hide();
         });
     },
-    onEdit: function (widget) {},
-    onDelete: function (widget) {},
+    onEdit: function () {},
+    onDelete: function () {},
+    onShowStats: function () {},
     edit: function () {
-        this.onEdit(this.widget);
+        this.hide(true);
+        this.onEdit();
     },
     _delete: function () {
-        this.onDelete(this.widget);
+        this.onDelete();
     },
     stats: function () {
         this.hide(true);
-        this.widget.showStats();
+        this.onShowStats();
     },
     show: function () {
         clearTimeout(this._timeout);

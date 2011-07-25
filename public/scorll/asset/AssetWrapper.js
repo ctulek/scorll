@@ -7,6 +7,7 @@ dojo.require("dijit.TitlePane");
 dojo.require("scorll.asset.AssetMenu");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
+dojo.require("scorll.asset.TrackingStats");
 
 dojo.declare("scorll.asset.AssetWrapper", [
     dijit._Widget, dijit._Templated
@@ -78,10 +79,32 @@ dojo.declare("scorll.asset.AssetWrapper", [
                 widget.domNode.style.display = "block";
             });
         });
-        dojo.connect(menu, "onDelete", function (widget) {
+        dojo.connect(menu, "onDelete", function () {
             var widget = wrapper.widget;
             menu.hide(true);
             stage.content.remove(widget.item);
+        });
+        dojo.connect(menu, "onShowStats", function () {
+            var widget = wrapper.widget;
+            widget.domNode.style.display = "none";
+            var form = new scorll.asset.TrackingStats();
+            var container = new dijit.TitlePane({title: "Stats", toggleable: false});
+            dojo.destroy(container.arrowNode);
+            form.placeAt(container.containerNode);
+            container.placeAt(widget.domNode, "before");
+            dojo.connect(form, "onClose", function() {
+                container.destroyRecursive();
+                wrapper.asset.statsForm = null;
+                widget.domNode.style.display = "block";
+            });
+
+            // Data part
+            var data = new dojo.data.ObjectStore({
+                objectStore: wrapper.widget.userTrackingData
+            });
+            form.resultsGrid.setStore(data);
+            wrapper.widget.statsForm = form;
+            wrapper.widget.getAllTrackingResults();
         });
     },
     showLogin: function() {
