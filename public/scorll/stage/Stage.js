@@ -1,7 +1,6 @@
 dojo.provide("scorll.stage.Stage");
 
 dojo.require("dojo.NodeList-traverse");
-dojo.require("dojo.dnd.Source");
 
 dojo.require("dijit.InlineEditBox");
 dojo.require("dijit.form.TextBox");
@@ -58,20 +57,6 @@ dojo.declare("scorll.stage.Stage", null, {
         });
         // ASSET MANAGER
         var assetManager = stage.assetManager = new scorll.asset.AssetManager();
-        // STAGE
-        stage.stage = new dojo.dnd.Source("stage", {delay: 10});
-        dojo.connect(stage.stage, "onDropInternal", function(nodes, copy) {
-            var children = dojo.query("#stage > div");
-            var tokens = nodes[0].id.split("-");
-            var id = tokens[2];
-            for(var i in children) {
-                if(children[i] == nodes[0]) {
-                    var position = i;
-                    content.move(id, position);
-                    break;
-                }
-            }
-        });
     },
     observe: function () {
         var stage = this;
@@ -88,11 +73,10 @@ dojo.declare("scorll.stage.Stage", null, {
                 assetManager: stage.assetManager
             }
             var assetWrapper = new scorll.asset.AssetWrapper(args);
-            dojo.place(assetWrapper.domNode, "stage");
             if(sibling) {
-                stage.stage.insertNodes(false, [assetWrapper.domNode], true, sibling);
+              dojo.place(assetWrapper.domNode, sibling, "before");
             } else {
-                stage.stage.insertNodes(false, [assetWrapper.domNode]);
+              dojo.place(assetWrapper.domNode, "stage");
             }
             dojo.connect(assetWrapper, "onAdd", function() {
               var index = dojo.query("#stage").children()
