@@ -19,6 +19,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
     assetManager: null,
     asset: null,
     widget: null,
+    onAdd: function() {},
     postCreate: function () {
         var wrapper = this;
         this.menu = new scorll.asset.AssetMenu();
@@ -57,6 +58,9 @@ dojo.declare("scorll.asset.AssetWrapper", [
         var menu = this.menu;
         var stage = this.stage;
         var assetManager = this.assetManager;
+        dojo.connect(menu, "onAdd", function () {
+          wrapper.onAdd();
+        });
         dojo.connect(menu, "onEdit", function () {
             // Use the current widget
             var widget = wrapper.widget;

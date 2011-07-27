@@ -1,5 +1,6 @@
 dojo.provide("scorll.stage.Stage");
 
+dojo.require("dojo.NodeList-traverse");
 dojo.require("dojo.dnd.Source");
 
 dojo.require("dijit.InlineEditBox");
@@ -74,7 +75,7 @@ dojo.declare("scorll.stage.Stage", null, {
         var stage = this;
         dojo.connect(stage.content, "onAdd", function(asset, position) {
             var sibling = null;
-            if(position) {
+            if(position !== null && position !== undefined) {
                 var siblings = dojo.query("#stage > div");
                 sibling = siblings[position];
             }
@@ -91,6 +92,19 @@ dojo.declare("scorll.stage.Stage", null, {
             } else {
                 stage.stage.insertNodes(false, [assetWrapper.domNode]);
             }
+            dojo.connect(assetWrapper, "onAdd", function() {
+              var index = dojo.query("#stage").children()
+                  .indexOf(assetWrapper.domNode);
+              var form = new scorll.asset.NewAssetForm(
+                {stage: stage, position: index});
+              form.placeAt(this.domNode, "before");
+              dojo.connect(form, "onSubmit", function() {
+                form.destroyRecursive();
+              });
+              dojo.connect(form, "onCancel", function() {
+                form.destroyRecursive();
+              });
+            });
             stage.registerAsset(assetWrapper.widget);
         });
         dojo.connect(stage.content, "onUpdate", function(asset) {

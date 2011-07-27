@@ -7,6 +7,7 @@ dojo.require("scorll.asset.AssetManager");
 dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
   widgetsInTemplate: true,
   templatePath: dojo.moduleUrl("scorll.asset", "NewAssetForm.html"),
+  position: null,
   postCreate: function() {
     var newAssetForm = this;
     var stage = this.stage;
@@ -26,9 +27,8 @@ dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
           type: this.widgetType
         });
         dojo.place(form.domNode, container.containerNode, "only");
-        window.scrollTo(0, document.body.scrollHeight);
         dojo.connect(form, "onSubmit", function(item) {
-          stage.content.add(item);
+          stage.content.add(item, newAssetForm.position);
           newAssetForm.onSubmit();
         });
         dojo.connect(form, "onCancel", function() {

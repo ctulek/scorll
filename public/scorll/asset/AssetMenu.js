@@ -26,9 +26,14 @@ dojo.declare("scorll.asset.AssetMenu", [
             this.hide();
         });
     },
+    onAdd: function() {},
     onEdit: function () {},
     onDelete: function () {},
     onShowStats: function () {},
+    add: function() {
+      this.hide(true);
+      this.onAdd();
+    },
     edit: function () {
         this.hide(true);
         this.onEdit();

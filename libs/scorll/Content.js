@@ -35,7 +35,9 @@ Content.prototype.setTitle = function (client, newTitle, callback) {
 Content.prototype.addAsset = function (client, assetData, position, callback) {
     var content = this;
     var asset = new Asset(assetData);
-    position = position || content.assets.length;
+    if(position === undefined || position === null) {
+        position = content.assets.length;
+    }
     asset.save(function (err) {
         if (err) {
             callback && callback(err);
