@@ -20,6 +20,9 @@ dojo.declare("scorll.asset.AssetWrapper", [
     asset: null,
     widget: null,
     onAdd: function() {},
+    onCut: function() {},
+    onCopy: function() {},
+    onPaste: function() {},
     postCreate: function () {
         var wrapper = this;
         this.menu = new scorll.asset.AssetMenu();
@@ -87,6 +90,15 @@ dojo.declare("scorll.asset.AssetWrapper", [
             var widget = wrapper.widget;
             menu.hide(true);
             stage.content.remove(widget.item);
+        });
+        dojo.connect(menu, "onCut", function () {
+          wrapper.onCut();
+        });
+        dojo.connect(menu, "onCopy", function () {
+          wrapper.onCopy();
+        });
+        dojo.connect(menu, "onPaste", function () {
+          wrapper.onPaste();
         });
         dojo.connect(menu, "onShowStats", function () {
             var widget = wrapper.widget;

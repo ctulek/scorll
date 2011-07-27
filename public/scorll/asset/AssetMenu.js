@@ -4,6 +4,7 @@ dojo.require("dojo.fx.Toggler");
 
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
+dojo.require("dijit.form.Button");
 
 dojo.declare("scorll.asset.AssetMenu", [
     dijit._Widget,
@@ -29,6 +30,9 @@ dojo.declare("scorll.asset.AssetMenu", [
     onAdd: function() {},
     onEdit: function () {},
     onDelete: function () {},
+    onCut: function() {},
+    onCopy: function() {},
+    onPaste: function() {},
     onShowStats: function () {},
     add: function() {
       this.hide(true);
@@ -40,6 +44,15 @@ dojo.declare("scorll.asset.AssetMenu", [
     },
     _delete: function () {
         this.onDelete();
+    },
+    cut: function () {
+      this.onCut();
+    },
+    copy: function () {
+      this.onCopy();
+    },
+    paste: function () {
+      this.onPaste();
     },
     stats: function () {
         this.hide(true);

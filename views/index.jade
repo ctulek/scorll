@@ -25,7 +25,7 @@ html
             div#stage
             div
                 div#newAssetButton(dojoType="dijit.form.Button") Add New Asset
-        div#newAssetDialog(dojoType="dijit.Dialog", title="Add New Asset", style="width: 300px;")
+                div#pasteAssetButton(dojoType="dijit.form.Button") Paste
         - if (release)
             script(src="/release/#{revision}/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
             script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
@@ -71,6 +71,10 @@ html
                           dojo.fadeIn({node: newAssetButton.domNode}).play();
                           form.destroyRecursive();
                         });
+                    });
+                    var pasteAssetButon = dijit.byId("pasteAssetButton");
+                    dojo.connect(pasteAssetButon, "onClick", function() {
+                        stage.paste();
                     });
                 }
             );

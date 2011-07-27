@@ -21,6 +21,8 @@ dojo.declare("scorll.stage.Stage", null, {
     observer: null,
     stage: null,
     requireLogin: false,
+    cutObject: null,
+    copyObject: null,
     constructor: function ( /* Object */ args) {
         var stage = this;
         for (var k in args) {
@@ -105,6 +107,19 @@ dojo.declare("scorll.stage.Stage", null, {
                 form.destroyRecursive();
               });
             });
+            dojo.connect(assetWrapper, "onCut", function() {
+              stage.cutObject = this;
+              stage.copyObject = null;
+            });
+            dojo.connect(assetWrapper, "onCopy", function() {
+              stage.copyObject = this;
+              stage.cutObject = null;
+            });
+            dojo.connect(assetWrapper, "onPaste", function() {
+              var index = dojo.query("#stage").children()
+                  .indexOf(assetWrapper.domNode);
+              stage.paste(index);
+            });
             stage.registerAsset(assetWrapper.widget);
         });
         dojo.connect(stage.content, "onUpdate", function(asset) {
@@ -124,15 +139,31 @@ dojo.declare("scorll.stage.Stage", null, {
             if(!assetWrapper) {
                 return;
             }
-            dojo.byId("stage").removeChild(assetWrapper.domNode);
             var sibling = dojo.query("#stage > div");
             sibling = sibling[position];
+            dojo.byId("stage").removeChild(assetWrapper.domNode);
             if(sibling) {
                 dojo.place(assetWrapper.domNode, sibling, "before");
             } else {
                 dojo.place(assetWrapper.domNode, "stage");
             }
         });
+    },
+    paste: function (position) {
+      var stage = this;
+      if(position === undefined) {
+        var sibling = dojo.query("#stage > div");
+        position = sibling.length;
+      }
+      if(stage.copyObject) {
+        var item = dojo.clone(stage.copyObject.asset);
+        item.id = undefined;
+        stage.content.add(item, position);
+      } else if(stage.cutObject) {
+        var id = stage.cutObject.asset.id;
+        stage.content.move(id, position);
+      }
+      stage.cutObject = null;
     },
     registerAsset: function (widget) {
         var stage = this;
