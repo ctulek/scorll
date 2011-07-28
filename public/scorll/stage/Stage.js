@@ -22,6 +22,8 @@ dojo.declare("scorll.stage.Stage", null, {
     requireLogin: false,
     cutObject: null,
     copyObject: null,
+    onClipboard: function() {
+    },
     constructor: function ( /* Object */ args) {
         var stage = this;
         for (var k in args) {
@@ -94,10 +96,12 @@ dojo.declare("scorll.stage.Stage", null, {
             dojo.connect(assetWrapper, "onCut", function() {
               stage.cutObject = this;
               stage.copyObject = null;
+              stage.onClipboard();
             });
             dojo.connect(assetWrapper, "onCopy", function() {
               stage.copyObject = this;
               stage.cutObject = null;
+              stage.onClipboard();
             });
             dojo.connect(assetWrapper, "onPaste", function() {
               var index = dojo.query("#stage").children()
@@ -148,6 +152,7 @@ dojo.declare("scorll.stage.Stage", null, {
         stage.content.move(id, position);
       }
       stage.cutObject = null;
+      stage.onClipboard();
     },
     registerAsset: function (widget) {
         var stage = this;

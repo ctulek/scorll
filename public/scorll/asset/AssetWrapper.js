@@ -31,6 +31,22 @@ dojo.declare("scorll.asset.AssetWrapper", [
         if(this.asset) {
             this.createWidget(this.asset);
         }
+        var stage = this.stage;
+        var widget = this.widget;
+        dojo.connect(stage, "onClipboard", function() {
+            if(stage.cutObject == wrapper) {
+                widget.domNode.style['opacity'] = .3;
+                wrapper.menu.pasteButton.domNode.style['display'] = "none";
+            } else {
+                widget.domNode.style['opacity'] = null;
+                if (stage.cutObject || stage.copyObject) {
+                    wrapper.menu.pasteButton.domNode.style['display'] =
+                    "inline-block";
+                } else {
+                    wrapper.menu.pasteButton.domNode.style['display'] = "none";
+                }
+            }
+        })
         this.registerEvents();
     },
     createWidget: function (asset) {
@@ -42,9 +58,13 @@ dojo.declare("scorll.asset.AssetWrapper", [
         menu.widget = widget;
         dojo.connect(widget, "onMouseOver", function () {
             menu && menu.show(wrapper.domNode);
+            wrapper.domNode.style['border-left'] = "4px solid #def";
+            wrapper.domNode.style['margin-left'] = "8px";
         });
         dojo.connect(widget, "onMouseOut", function () {
             menu && menu.hide();
+            wrapper.domNode.style['border-left'] = "";
+            wrapper.domNode.style['margin-left'] = "12px";
         });
         dojo.connect(widget, "onRequireLogin", function () {
             wrapper.showLogin();
@@ -67,7 +87,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         dojo.connect(menu, "onEdit", function () {
             // Use the current widget
             var widget = wrapper.widget;
-            menu.hide(true);
+            menu.domNode.style.display = "none";
             widget.domNode.style.display = "none";
             var form = assetManager.getAssetForm(widget.item);
             if (!form) {
@@ -80,10 +100,12 @@ dojo.declare("scorll.asset.AssetWrapper", [
             dojo.connect(form, "onSubmit", function (item) {
                 container.destroyRecursive();
                 stage.content.update(item);
+                menu.domNode.style.display = "block";
             });
             dojo.connect(form, "onCancel", function () {
                 container.destroyRecursive();
                 widget.domNode.style.display = "block";
+                menu.domNode.style.display = "block";
             });
         });
         dojo.connect(menu, "onDelete", function () {
@@ -102,6 +124,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         });
         dojo.connect(menu, "onShowStats", function () {
             var widget = wrapper.widget;
+            menu.domNode.style.display = "none";
             widget.domNode.style.display = "none";
             var form = new scorll.asset.TrackingStats();
             var container = new dijit.TitlePane({title: "Stats", toggleable: false});
@@ -112,6 +135,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
                 container.destroyRecursive();
                 wrapper.asset.statsForm = null;
                 widget.domNode.style.display = "block";
+                menu.domNode.style.display = "block";
             });
 
             // Data part

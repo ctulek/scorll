@@ -23,9 +23,10 @@ html
         div#stage-container
             h1#title Loading...
             div#stage
-            div
+            div(style="margin: 5px;")
                 div#newAssetButton(dojoType="dijit.form.Button") Add New Asset
-                div#pasteAssetButton(dojoType="dijit.form.Button") Paste
+                div#pasteAssetButton(dojoType="dijit.form.Button",
+                    style="display:none") Paste
         - if (release)
             script(src="/release/#{revision}/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
             script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
@@ -54,25 +55,36 @@ html
                         requireLogin: false,
                     };
                     var stage = new scorll.stage.Stage(args);
-                    var newAssetButon = dijit.byId("newAssetButton");
-                    dojo.connect(newAssetButon, "onClick", function() {
+                    var newAssetButton = dijit.byId("newAssetButton");
+                    var pasteAssetButton = dijit.byId("pasteAssetButton");
+                    dojo.connect(newAssetButton, "onClick", function() {
                         var newAssetButton = this;
                         dojo.fadeOut({node: newAssetButton.domNode}).play();
+                        dojo.fadeOut({node: pasteAssetButton.domNode}).play();
                         var form = new scorll.asset.NewAssetForm(
                           {stage: stage});
                         form.placeAt(dojo.byId("stage"));
                         dojo.connect(form, "onSubmit", function() {
                           dojo.fadeIn({node: newAssetButton.domNode}).play();
+                          dojo.fadeIn({node: pasteAssetButton.domNode}).play();
                           form.destroyRecursive();
                         });
                         dojo.connect(form, "onCancel", function() {
                           dojo.fadeIn({node: newAssetButton.domNode}).play();
+                          dojo.fadeIn({node: pasteAssetButton.domNode}).play();
                           form.destroyRecursive();
                         });
                     });
-                    var pasteAssetButon = dijit.byId("pasteAssetButton");
-                    dojo.connect(pasteAssetButon, "onClick", function() {
+                    dojo.connect(pasteAssetButton, "onClick", function() {
                         stage.paste();
+                    });
+                    dojo.connect(stage, "onClipboard", function() {
+                        if(stage.cutObject || stage.copyObject) {
+                            pasteAssetButton.domNode.style['display'] =
+                            "inline-block";
+                        } else {
+                            pasteAssetButton.domNode.style['display'] = "none";
+                        }
                     });
                 }
             );

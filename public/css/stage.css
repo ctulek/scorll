@@ -26,7 +26,10 @@ div#stage {
 }
 
 div.asset-wrapper {
-    margin: 0px 0px;
+    margin: 0px;
+    margin-left: 12px;
+    padding: 0;
+    padding-left: 4px;
     z-index: 2;
 }
 

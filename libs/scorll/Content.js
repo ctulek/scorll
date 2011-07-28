@@ -101,7 +101,11 @@ Content.prototype.moveAsset = function (client, assetId, position, callback) {
     for(var i in this.assets) {
         if(this.assets[i] == assetId) {
             var asset = this.assets.splice(i, 1);
-            this.assets.splice(position, 0, assetId);
+            var index = position;
+            if(i < index) {
+                index--;
+            }
+            this.assets.splice(index, 0, assetId);
             break;
         }
     }
