@@ -50,7 +50,23 @@ dojo.declare("scorll.asset.Tracking", null, {
             assetId: asset.item.id,
             userId: null
         };
-        asset.client.call(asset, "getTrackingResults", params, callback);
+        asset.client.call(asset, "getTrackingResults", params
+            , function(err, results) {
+                console.log(results);
+                for (var userId in results) {
+                    var username = results[userId].username;
+                    var response = results[userId].response;
+                    var result = results[userId].result;
+                    asset.userTrackingData.put({
+                        id: userId,
+                        username: username,
+                        response: response,
+                        result: result
+                    });
+                }
+                asset.statsForm && asset.statsForm.resultsGrid._refresh();
+                callback && callback(err, results);
+            });
     },
     collect : function(userId, username, response, result) {
         var asset = this;
@@ -76,41 +92,8 @@ dojo.declare("scorll.asset.Tracking", null, {
     },
     onCollect : function(collectedData) {
     },
-    showStats: function() {
-        var asset = this;
-        var params = {
-            assetId: asset.item.id
-        };
-        asset.client.call(asset, "getTrackingResults", params, function(err, results) {
-            for (var userId in results) {
-                var username = results[userId].username;
-                var response = results[userId].response;
-                var result = results[userId].result;
-                asset.userTrackingData.put({
-                    id: userId,
-                    username: username,
-                    response: response,
-                    result: result
-                });
-            }
-            var form = new scorll.asset.TrackingStats();
-            var dialog = new scorll.asset.Dialog();
-            form.placeAt(dialog.containerNode);
-            dialog.show();
-            var data = new dojo.data.ObjectStore({
-                objectStore: asset.userTrackingData
-            });
-            form.resultsGrid.setStore(data);
-            asset.statsForm = form;
-            dojo.connect(form, "onCancel", function() {
-                tracking.statsForm = null;
-                dialog.hide();
-            });
-        });
-    }
     // Override this function to show a user friendly label
     // in TrackingStats
-    ,
     getLearnerResponseAsString: function(learnerResponse) {
         return "test";
     },

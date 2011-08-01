@@ -13,13 +13,14 @@ dojo.require("dojo.fx.Toggler");
 
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
+dojo.require("dijit.form.Button");
 
 dojo.declare("scorll.asset.AssetMenu", [
     dijit._Widget,
     dijit._Templated
     ], {
     widgetsInTemplate: true,
-    templateString:"<div style=\"\">\n\t<!--<div type=\"button\" dojoType=\"dijit.form.Button\"\n        dojoAttachPoint=\"addBeforeButton\" dojoAttachEvent=\"onClick:edit\">\n        Add Before</div>-->\n\t<div type=\"button\" dojoType=\"dijit.form.Button\" dojoAttachPoint=\"editButton\" dojoAttachEvent=\"onClick:edit\">Edit</div>\n\t<div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"deleteButton\" dojoAttachEvent=\"onClick:_delete\">Delete</div>\n\t<div type=\"button\" dojoType=\"dijit.form.Button\" dojoAttachPoint=\"statsButton\" dojoAttachEvent=\"onClick:stats\">Stats</div>\n",
+    templateString:"<div style=\"\">\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"addBeforeButton\"\n    dojoAttachEvent=\"onClick:add\">\n    Add\n  </div>\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"editButton\"\n    dojoAttachEvent=\"onClick:edit\">\n    Edit\n  </div>\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"deleteButton\"\n    dojoAttachEvent=\"onClick:_delete\">\n    Delete\n  </div>\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"cutButton\"\n    dojoAttachEvent=\"onClick:cut\">\n    Cut\n  </div>\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"copyButton\"\n    dojoAttachEvent=\"onClick:copy\">\n    Copy\n  </div>\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"pasteButton\"\n    dojoAttachEvent=\"onClick:paste\" style=\"display: none;\">\n    Paste\n  </div>\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"statsButton\"\n    dojoAttachEvent=\"onClick:stats\">\n    Stats\n  </div>\n",
     widget: null,
     _toggler: null,
     _timeout: null,
@@ -35,17 +36,36 @@ dojo.declare("scorll.asset.AssetMenu", [
             this.hide();
         });
     },
-    onEdit: function (widget) {},
-    onDelete: function (widget) {},
+    onAdd: function() {},
+    onEdit: function () {},
+    onDelete: function () {},
+    onCut: function() {},
+    onCopy: function() {},
+    onPaste: function() {},
+    onShowStats: function () {},
+    add: function() {
+      this.hide(true);
+      this.onAdd();
+    },
     edit: function () {
-        this.onEdit(this.widget);
+        this.hide(true);
+        this.onEdit();
     },
     _delete: function () {
-        this.onDelete(this.widget);
+        this.onDelete();
+    },
+    cut: function () {
+      this.onCut();
+    },
+    copy: function () {
+      this.onCopy();
+    },
+    paste: function () {
+      this.onPaste();
     },
     stats: function () {
         this.hide(true);
-        this.widget.showStats();
+        this.onShowStats();
     },
     show: function () {
         clearTimeout(this._timeout);

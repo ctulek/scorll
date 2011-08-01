@@ -53,8 +53,8 @@ dojo.declare("scorll.content.Content", [
             callback && callback();
         });
     },
-    add: function(asset) {
-        this.client.call(this, "addAsset", asset, null);
+    add: function(asset, position) {
+        this.client.call(this, "addAsset", asset, position);
     },
     _add: function(asset, position) {
         this.onAdd(asset, position);
