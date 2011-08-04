@@ -40,7 +40,6 @@ class BeautifierOptions:
         self.jslint_happy = False
         self.brace_style = 'collapse'
         self.keep_array_indentation = False
-        self.indent_level = 0
 
 
 
@@ -53,15 +52,14 @@ max_preserve_newlines = %d
 jslint_happy = %s
 brace_style = %s
 keep_array_indentation = %s
-indent_level = %d
 """ % ( self.indent_size,
         self.indent_char,
         self.preserve_newlines,
         self.max_preserve_newlines,
         self.jslint_happy,
         self.brace_style,
-        self.keep_array_indentation,
-        self.indent_level)
+        self.keep_array_indentation
+        )
 
 
 class BeautifierFlags:
@@ -107,6 +105,7 @@ def usage():
 Usage: jsbeautifier.py [options] <infile>
 
     <infile> can be "-", which means stdin.
+    <outfile> defaults to stdout
 
 Input options:
 
@@ -120,6 +119,7 @@ Output options:
  -j,  --jslint-happy               more jslint-compatible output
  -b,  --brace-style=collapse       brace style (collapse, expand, end-expand)
  -k,  --keep-array-indentation     keep array indentation.
+ -o,  --outfile=FILE               specify a file to output to (default stdout)
 
 Rarely needed options:
 
@@ -152,6 +152,7 @@ class Beautifier:
 
 
         self.indent_string = self.opts.indent_char * self.opts.indent_size
+        self.preindent_string = ''
         self.last_word = ''              # last TK_WORD seen
         self.last_type = 'TK_START_EXPR' # last token type
         self.last_text = ''              # last token text
@@ -185,6 +186,10 @@ class Beautifier:
 
         self.blank_state()
 
+        while s and s[0] in [' ', '\t']:
+            self.preindent_string += s[0]
+            s = s[1:]
+
         self.input = s
 
         parser_pos = 0
@@ -216,7 +221,9 @@ class Beautifier:
             self.last_type = token_type
             self.last_text = token_text
 
-        return re.sub('[\n ]+$', '', ''.join(self.output))
+        sweet_code = self.preindent_string + re.sub('[\n ]+$', '', ''.join(self.output))
+        return sweet_code
+
 
 
     def trim_output(self, eat_newlines = False):
@@ -224,6 +231,7 @@ class Beautifier:
               and (
                   self.output[-1] == ' '\
                   or self.output[-1] == self.indent_string \
+                  or self.output[-1] == self.preindent_string \
                   or (eat_newlines and self.output[-1] in ['\n', '\r'])):
             self.output.pop()
 
@@ -235,6 +243,12 @@ class Beautifier:
     def is_expression(self, mode):
         return mode in ['[EXPRESSION]', '[INDENDED-EXPRESSION]', '(EXPRESSION)']
 
+
+    def append_newline_forced(self):
+        old_array_indentation = self.opts.keep_array_indentation
+        self.opts.keep_array_indentation = False
+        self.append_newline()
+        self.opts.keep_array_indentation = old_array_indentation
 
     def append_newline(self, ignore_repeated = True):
 
@@ -254,15 +268,14 @@ class Beautifier:
             self.just_added_newline = True
             self.output.append('\n')
 
+        if self.preindent_string:
+            self.output.append(self.preindent_string)
+
         for i in range(self.flags.indentation_level):
             self.output.append(self.indent_string)
 
         if self.flags.var_line and self.flags.var_line_reindented:
-            if self.opts.indent_char == ' ':
-                # var_line always pushes 4 spaces, so that the variables would be one under another
-                self.output.append('    ')
-            else:
-                self.output.append(self.indent_string)
+            self.output.append(self.indent_string)
 
 
     def append(self, s):
@@ -283,7 +296,7 @@ class Beautifier:
 
 
     def remove_indent(self):
-        if len(self.output) and self.output[-1] == self.indent_string:
+        if len(self.output) and self.output[-1] in [self.indent_string, self.preindent_string]:
             self.output.pop()
 
 
@@ -298,7 +311,7 @@ class Beautifier:
         self.flags = BeautifierFlags(mode)
 
         if len(self.flag_store) == 1:
-            self.flags.indentation_level = self.opts.indent_level
+            self.flags.indentation_level = 0
         else:
             self.flags.indentation_level = prev.indentation_level
             if prev.var_line and prev.var_line_reindented:
@@ -688,9 +701,6 @@ class Beautifier:
             self.append(token_text)
 
 
-
-
-
     def handle_end_block(self, token_text):
         self.restore_mode()
         if self.opts.brace_style == 'expand':
@@ -973,12 +983,11 @@ class Beautifier:
 
 
 
-
     def handle_block_comment(self, token_text):
 
         lines = token_text.replace('\x0d', '').split('\x0a')
-        if token_text[:3] == '/**':
-            # javadoc: reformat and reindent
+        # all lines start with an asterisk? that's a proper box comment
+        if not any(l for l in lines[1:] if (l.lstrip())[0] != '*'):
             self.append_newline()
             self.append(lines[0])
             for line in lines[1:]:
@@ -1005,7 +1014,7 @@ class Beautifier:
         if self.is_expression(self.flags.mode):
             self.append(' ')
         else:
-            self.append_newline()
+            self.append_newline_forced()
 
 
     def handle_comment(self, token_text):
@@ -1015,7 +1024,7 @@ class Beautifier:
             self.append(' ')
 
         self.append(token_text)
-        self.append_newline()
+        self.append_newline_forced()
 
 
     def handle_unknown(self, token_text):
@@ -1033,7 +1042,7 @@ def main():
     argv = sys.argv[1:]
 
     try:
-        opts, args = getopt.getopt(argv, "s:c:djbkil:h", ['indent-size=','indent-char=', 'disable-preserve-newlines',
+        opts, args = getopt.getopt(argv, "s:c:o:djbkil:h", ['indent-size=','indent-char=','outfile=', 'disable-preserve-newlines',
                                                           'jslint-happy', 'brace-style=',
                                                           'keep-array-indentation', 'indent-level=', 'help',
                                                           'usage', 'stdin'])
@@ -1044,13 +1053,16 @@ def main():
     js_options = default_options()
 
     file = None
+    outfile = 'stdout'
     if len(args) == 1:
         file = args[0]
 
     for opt, arg in opts:
         if opt in ('--keep-array-indentation', '-k'):
             js_options.keep_array_indentation = True
-        if opt in ('--indent-size', '-s'):
+        elif opt in ('--outfile', '-o'):
+            outfile = arg
+        elif opt in ('--indent-size', '-s'):
             js_options.indent_size = int(arg)
         elif opt in ('--indent-char', '-c'):
             js_options.indent_char = arg
@@ -1060,8 +1072,6 @@ def main():
             js_options.jslint_happy = True
         elif opt in ('--brace-style', '-b'):
             js_options.brace_style = arg
-        elif opt in ('--indent-level', '-l'):
-            js_options.indent_level = int(arg)
         elif opt in ('--stdin', '-i'):
             file = '-'
         elif opt in ('--help', '--usage', '--h'):
@@ -1070,8 +1080,12 @@ def main():
     if file == None:
         return usage()
     else:
-        print(beautify_file(file, js_options))
-
+        if outfile == 'stdout':
+            print(beautify_file(file, js_options))
+        else:
+            f = open(outfile, 'w')
+            f.write(beautify_file(file, js_options) + '\n')
+            f.close()
 
 
 if __name__ == "__main__":
