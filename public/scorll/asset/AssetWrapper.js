@@ -170,7 +170,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
                 rememberme: true
             }
             // TODO: Move this call to Login Form
-            stage.user.auth(params, function (err) {
+            stage.user.authN(params, function (err) {
                 if (!err) {
                     container.destroyRecursive();
                     wrapper.domNode.style['min-height'] = null;

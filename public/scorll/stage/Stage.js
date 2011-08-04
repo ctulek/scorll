@@ -33,7 +33,7 @@ dojo.declare("scorll.stage.Stage", null, {
         var client = stage.client;
         client.connect();
         dojo.connect(client, "onConnect", function () {
-            user.authCookie(function (err) {
+            user.authNWithCookie(function (err) {
                 if (stage.requireLogin && err) {
                     console.log(err);
                     stage.userLogin();
@@ -206,7 +206,7 @@ dojo.declare("scorll.stage.Stage", null, {
                 password: password,
                 rememberme: true
             }
-            stage.user.auth(params, function (err) {
+            stage.user.authN(params, function (err) {
                 if (!err) {
                     dialog.hide();
                     if (stage.content.loaded == false) {

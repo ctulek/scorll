@@ -8,7 +8,7 @@ dojo.declare("scorll.net.User", null, {
     authenticated: false,
     profile: {},
     roles: [],
-    auth: function (params, callback) {
+    authN: function (params, callback) {
         var userComponent = this;
         userComponent.client.call(null, "authN", params, function (err, user) {
             if (!err) {
@@ -44,14 +44,14 @@ dojo.declare("scorll.net.User", null, {
             callback(err);
         });
     },
-    authCookie: function (callback) {
+    authNWithCookie: function (callback) {
         var cookie = dojo.cookie("scorll.user.cookie");
         if (cookie) {
             var params = {
                 strategy: "cookie",
                 cookie: cookie
             };
-            this.auth(params, callback);
+            this.authN(params, callback);
         } else {
             callback("No cookie defined");
         }
