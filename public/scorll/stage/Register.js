@@ -10,15 +10,15 @@ dojo.require("dojox.validate");
 dojo.require("dojox.validate.web");
 
 dojo.declare("scorll.stage.Register", [
-dijit._Widget, dijit._Templated], {
+  dijit._Widget, dijit._Templated], {
   widgetsInTemplate: true,
   templatePath: dojo.moduleUrl("scorll.stage", "Register.html"),
-  postCreate: function() {
+  postCreate: function () {
     this.tableContainer.startup();
   },
-  onSubmit: function(username, email, password) {},
-  onCancel: function() {},
-  submit: function() {
+  onSubmit: function (username, email, password) {},
+  onCancel: function () {},
+  submit: function () {
     this.hideError();
     if (this.isValid()) {
       var username = this.username.attr('value').trim();
@@ -27,19 +27,17 @@ dijit._Widget, dijit._Templated], {
       this.onSubmit(username, email, password);
     }
   },
-  cancel: function() {
+  cancel: function () {
     this.onCancel();
   },
-  hideError: function() {
+  hideError: function () {
     this.errorMessage.innerHTML = "";
     this.errorMessage.style.display = "none";
   },
-  isValid: function() {
-    return this.username.isValid()
-      && this.email.isValid()
-      && this.password.isValid();
+  isValid: function () {
+    return this.username.isValid() && this.email.isValid() && this.password.isValid();
   },
-  showError: function(err) {
+  showError: function (err) {
     this.errorMessage.innerHTML = err;
     this.errorMessage.style.display = "block";
     console.error(err);

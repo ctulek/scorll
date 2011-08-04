@@ -9,23 +9,22 @@ dojo.require("scorll.asset.Persistent");
 dojo.require("scorll.net.ClientComponent");
 
 dojo.declare("scorll.asset.Asset", [
-    dijit._Widget, dijit._Templated,
-    scorll.net.ClientComponent
-    ], {
-    user: null,
-    client: null,
-    content: null,
-    stage: null,
-    item: null,
+  dijit._Widget, dijit._Templated,
+  scorll.net.ClientComponent
+  ], {
+  user: null,
+  client: null,
+  content: null,
+  stage: null,
+  item: null,
 
-    // Events
-    onLoginRequired: function() {
-    },
-    // scorll.net.ClientComponent functions
-    getComponentType: function () {
-        return "asset";
-    },
-    getComponentId: function () {
-        return this.item.id;
-    }
+  // Events
+  onLoginRequired: function () {},
+  // scorll.net.ClientComponent functions
+  getComponentType: function () {
+    return "asset";
+  },
+  getComponentId: function () {
+    return this.item.id;
+  }
 });

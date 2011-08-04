@@ -8,7 +8,7 @@ dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
   widgetsInTemplate: true,
   templatePath: dojo.moduleUrl("scorll.asset", "NewAssetForm.html"),
   position: null,
-  postCreate: function() {
+  postCreate: function () {
     var newAssetForm = this;
     var stage = this.stage;
     var container = this.container;
@@ -21,17 +21,17 @@ dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
       var label = assetManager.assets[type].label;
       button.attr('label', label);
       button.widgetType = type;
-      dojo.connect(button, "onClick", function() {
+      dojo.connect(button, "onClick", function () {
         container.attr('title', this.attr('label'));
         var form = assetManager.getAssetForm({
           type: this.widgetType
         });
         dojo.place(form.domNode, container.containerNode, "only");
-        dojo.connect(form, "onSubmit", function(item) {
+        dojo.connect(form, "onSubmit", function (item) {
           stage.content.add(item, newAssetForm.position);
           newAssetForm.onSubmit();
         });
-        dojo.connect(form, "onCancel", function() {
+        dojo.connect(form, "onCancel", function () {
           newAssetForm.cancel();
         });
       });
@@ -39,9 +39,9 @@ dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
       container.containerNode.scrollIntoView()
     }
   },
-  onSubmit: function() {},
-  onCancel: function() {},
-  cancel: function() {
+  onSubmit: function () {},
+  onCancel: function () {},
+  cancel: function () {
     this.onCancel();
   }
 });
