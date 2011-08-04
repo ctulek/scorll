@@ -50,7 +50,8 @@ Asset.prototype.track = function (client, params, callback) {
   if (!result && correctResponses && typeof this.responsePattern[type] == 'function') {
     try {
       result = this.responsePattern[type](correctResponses, learnerResponse);
-    } catch (e) {
+    }
+    catch (e) {
       console.log(e);
       callback(e);
       return;
@@ -69,7 +70,8 @@ Asset.prototype.getTrackingResults = function (client, params, callback) {
   var userId = params.userId || null;
   if (userId) {
     callback && callback(null, this.tracking[userId] || {});
-  } else {
+  }
+  else {
     callback && callback(null, this.tracking);
   }
 }
@@ -92,7 +94,8 @@ Asset.prototype.responsePattern = {
     return patterns.some(function (pattern) {
       if (typeof pattern == 'string') {
         return pattern == values;
-      } else if (typeof pattern == 'number') {
+      }
+      else if (typeof pattern == 'number') {
         return pattern == values;
       }
       if (pattern.length != values.length) {

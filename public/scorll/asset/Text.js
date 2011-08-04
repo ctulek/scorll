@@ -15,7 +15,8 @@ dojo.declare("scorll.asset.Text", [
     }
     if (data.title) {
       this.titleText.innerHTML = data.title;
-    } else {
+    }
+    else {
       dojo.destroy(this.titleText);
     }
     var userid = this.user ? this.user.id : "unknown";

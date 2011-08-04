@@ -7,7 +7,8 @@ exports.auth = function (user, params, callback) {
   var strategy = strategies[params.strategy] || null;
   if (!strategy) {
     callback("Undefined strategy: " + params.strategy);
-  } else {
+  }
+  else {
     strategy.auth(user, params, callback);
   }
 }
@@ -16,7 +17,8 @@ exports.link = function (user, params, callback) {
   var strategy = strategies[params.strategy] || null;
   if (!strategy) {
     callback("Undefined strategy: " + params.strategy);
-  } else {
+  }
+  else {
     strategy.link(user, params, callback);
   }
 }

@@ -52,7 +52,8 @@ dojo.declare("scorll.asset.AssetManager", null, {
     var className = this.assets[item.type].renderer;
     try {
       dojo['require'](className);
-    } catch (e) {
+    }
+    catch (e) {
       console.error(e);
       return null;
     }
@@ -74,7 +75,8 @@ dojo.declare("scorll.asset.AssetManager", null, {
     var className = this.assets[item.type].form;
     try {
       dojo['require'](className);
-    } catch (e) {
+    }
+    catch (e) {
       console.error(e);
       return null;
     }

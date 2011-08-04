@@ -19,11 +19,13 @@ dojo.declare("scorll.asset.Tracking", null, {
       asset.stage.userLogin(function (err) {
         if (err) {
           callback("The user is not authenticated");
-        } else {
+        }
+        else {
           asset.client.call(asset, "track", params, callback);
         }
       });
-    } else {
+    }
+    else {
       asset.client.call(asset, "track", params, callback);
     }
   },

@@ -78,7 +78,8 @@ dojo.declare("scorll.asset.Poll", [
       });
       html += "</ul>";
       dojo.place(html, asset.domNode);
-    } else {
+    }
+    else {
       dojo.forEach(data.options, function (option) {
         var id = ("interaction-" + asset.item.id + "-" + option).replace(' ', '_');
         var name = ("interaction-" + asset.item.id).replace(' ', '_');

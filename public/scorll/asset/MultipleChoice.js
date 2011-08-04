@@ -31,10 +31,12 @@ dojo.declare("scorll.asset.MultipleChoice", [
           if (learnerResponse) {
             if (Array.isArray(learnerResponse)) {
               var checked = (learnerResponse.indexOf(i) > -1 && " checked") || "";
-            } else {
+            }
+            else {
               var checked = (learnerResponse == i && " checked") || "";
             }
-          } else {
+          }
+          else {
             var checked = "";
           }
           html = dojo.string.substitute('<input type="${0}" id="${1}" name="${2}" value="${3}"${4}/>', [type, id, name, value, checked]);
@@ -42,10 +44,12 @@ dojo.declare("scorll.asset.MultipleChoice", [
           dojo.connect(input, "change", function () {
             if (type == 'radio') {
               var response = this.value;
-            } else {
+            }
+            else {
               if (this.checked) {
                 asset.responses.push(this.value);
-              } else {
+              }
+              else {
                 asset.responses.splice(asset.responses.indexOf(this.value), 1);
               }
               var response = asset.responses;

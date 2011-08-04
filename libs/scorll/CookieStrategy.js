@@ -5,10 +5,12 @@ exports.auth = function (user, params, callback) {
   var record = store[cookie] || null;
   if (!record) {
     callback && callback("Invalid cookie");
-  } else if (record.expiresAt < Date.now()) {
+  }
+  else if (record.expiresAt < Date.now()) {
     callback && callback("Cookie expired");
     delete store[cookie];
-  } else {
+  }
+  else {
     user.id = record.userId;
     callback && callback(null);
   }
@@ -21,7 +23,8 @@ exports.link = function (user, params, callback) {
   timeout += Date.now();
   if (store[cookie]) {
     callback && callback("Duplicate cookie");
-  } else {
+  }
+  else {
     store[cookie] = {
       expiresAt: timeout,
       userId: user.id

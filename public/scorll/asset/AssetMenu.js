@@ -62,7 +62,8 @@ dojo.declare("scorll.asset.AssetMenu", [
     clearTimeout(this._timeout);
     if (this.widget.isInstanceOf(scorll.asset.Tracking)) {
       this.statsButton.domNode.style.display = "";
-    } else {
+    }
+    else {
       this.statsButton.domNode.style.display = "none";
     }
     this._toggler.show();
@@ -71,7 +72,8 @@ dojo.declare("scorll.asset.AssetMenu", [
     var toggler = this._toggler;
     if (immediately) {
       toggler.hide();
-    } else {
+    }
+    else {
       this._timeout = setTimeout(function () {
         toggler.hide();
       }, 300);

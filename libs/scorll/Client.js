@@ -39,7 +39,8 @@ Client.prototype.join = function (groupId, callback) {
       group.join(client, function (err) {
         if (!err) {
           client.group = group;
-        } else {
+        }
+        else {
           console.error(err);
         }
       });
@@ -59,11 +60,14 @@ Client.prototype.authN = function (params, callback) {
 Client.prototype.message = function (message) {
   if (message.componentId) {
     this.handleComponentMessage(message);
-  } else if (message.method) {
+  }
+  else if (message.method) {
     this.handleMethodCallMessage(message);
-  } else if (message.callbackId) {
+  }
+  else if (message.callbackId) {
     this.handleCallbackMessage(message);
-  } else {
+  }
+  else {
     console.error("Invalid message:", message);
   }
 }
@@ -92,13 +96,15 @@ Client.prototype.handleComponentMessage = function (message) {
       params.push(callback);
       if (params.length == method.length) {
         method.apply(component, params);
-      } else {
+      }
+      else {
         console.log(params);
         var err = "Argument count is not equal to argument count expected by the" + " function " + message.componentId + "/" + message.method;
         callback(err);
         console.error(err);
       }
-    } else {
+    }
+    else {
       var err = "Undefined component/action type:" + message.componentId + "/" + message.action;
       callback(err);
       console.error(err);
@@ -122,7 +128,8 @@ Client.prototype.handleMethodCallMessage = function (message) {
   params.push(callback);
   if (typeof (this[message.method]) == "function") {
     this[message.method].apply(this, params);
-  } else {
+  }
+  else {
     callback("Undefined method: " + message.method);
   }
 }
@@ -132,7 +139,8 @@ Client.prototype.handleCallbackMessage = function (message) {
   if (callback) {
     callback.apply(null, message.params);
     delete this._callbacks[message.callbackId];
-  } else {
+  }
+  else {
     console.error("Undefined callback id");
   }
 }
@@ -146,7 +154,8 @@ Client.prototype.call = function (componentId, method) {
   var callback = params.pop();
   if (typeof callback != "function") {
     params.push(callback);
-  } else {
+  }
+  else {
     var callbackId = this._callbackIdCounter++;
     this._callbacks[callbackId] = callback;
     message.callbackId = callbackId;

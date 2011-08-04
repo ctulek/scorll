@@ -62,18 +62,22 @@ dojo.declare("scorll.net.Client", null, {
         params.push(callback);
         var method = component[message.method] || null;
         method && method.apply(component, message.params);
-      } else {
+      }
+      else {
         console.error("Undefined component id");
       }
-    } else if (message.callbackId) {
+    }
+    else if (message.callbackId) {
       var callback = client._callbacks[message.callbackId];
       if (callback) {
         callback.apply(null, message.params);
         delete client._callbacks[message.callbackId];
-      } else {
+      }
+      else {
         console.error("Undefined callback id");
       }
-    } else {
+    }
+    else {
       console.error("Invalid message:", message);
     }
   },
@@ -97,7 +101,8 @@ dojo.declare("scorll.net.Client", null, {
         message.callbackId = callbackId;
       }
       client.socket.json.send(message);
-    } else {
+    }
+    else {
       console.error("Client is not connected");
     }
   }

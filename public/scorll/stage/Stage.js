@@ -36,7 +36,8 @@ dojo.declare("scorll.stage.Stage", null, {
         if (stage.requireLogin && err) {
           console.log(err);
           stage.userLogin();
-        } else {
+        }
+        else {
           stage.content.load();
         }
       });
@@ -78,7 +79,8 @@ dojo.declare("scorll.stage.Stage", null, {
       var assetWrapper = new scorll.asset.AssetWrapper(args);
       if (sibling) {
         dojo.place(assetWrapper.domNode, sibling, "before");
-      } else {
+      }
+      else {
         dojo.place(assetWrapper.domNode, "stage");
       }
       dojo.connect(assetWrapper, "onAdd", function () {
@@ -133,7 +135,8 @@ dojo.declare("scorll.stage.Stage", null, {
       dojo.byId("stage").removeChild(assetWrapper.domNode);
       if (sibling) {
         dojo.place(assetWrapper.domNode, sibling, "before");
-      } else {
+      }
+      else {
         dojo.place(assetWrapper.domNode, "stage");
       }
     });
@@ -148,7 +151,8 @@ dojo.declare("scorll.stage.Stage", null, {
       var item = dojo.clone(stage.copyObject.asset);
       item.id = undefined;
       stage.content.add(item, position);
-    } else if (stage.cutObject) {
+    }
+    else if (stage.cutObject) {
       var id = stage.cutObject.asset.id;
       stage.content.move(id, position);
     }
@@ -179,10 +183,12 @@ dojo.declare("scorll.stage.Stage", null, {
           dialog.hide();
           if (stage.content.loaded == false) {
             stage.content.load(callback);
-          } else {
+          }
+          else {
             callback && callback();
           }
-        } else {
+        }
+        else {
           widget.showError(err);
         }
       });
@@ -212,10 +218,12 @@ dojo.declare("scorll.stage.Stage", null, {
           dialog.hide();
           if (stage.content.loaded == false) {
             stage.content.load(callback);
-          } else {
+          }
+          else {
             callback && callback();
           }
-        } else {
+        }
+        else {
           widget.showError(err);
         }
       });

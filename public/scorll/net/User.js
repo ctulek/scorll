@@ -20,7 +20,8 @@ dojo.declare("scorll.net.User", null, {
             expires: expiresAt
           });
         }
-      } else {
+      }
+      else {
         dojo.cookie("scorll.user.cookie", null, {
           expires: -1
         });
@@ -52,7 +53,8 @@ dojo.declare("scorll.net.User", null, {
         cookie: cookie
       };
       this.authN(params, callback);
-    } else {
+    }
+    else {
       callback("No cookie defined");
     }
   },

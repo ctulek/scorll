@@ -37,11 +37,13 @@ dojo.declare("scorll.asset.AssetWrapper", [
       if (stage.cutObject == wrapper) {
         widget.domNode.style['opacity'] = .3;
         wrapper.menu.pasteButton.domNode.style['display'] = "none";
-      } else {
+      }
+      else {
         widget.domNode.style['opacity'] = null;
         if (stage.cutObject || stage.copyObject) {
           wrapper.menu.pasteButton.domNode.style['display'] = "inline-block";
-        } else {
+        }
+        else {
           wrapper.menu.pasteButton.domNode.style['display'] = "none";
         }
       }
@@ -182,7 +184,8 @@ dojo.declare("scorll.asset.AssetWrapper", [
           container.destroyRecursive();
           wrapper.domNode.style['min-height'] = null;
           widget.domNode.style.display = "block";
-        } else {
+        }
+        else {
           login.showError(err);
         }
       });
@@ -230,7 +233,8 @@ dojo.declare("scorll.asset.AssetWrapper", [
           container.destroyRecursive();
           wrapper.domNode.style['min-height'] = null;
           widget.domNode.style.display = "block";
-        } else {
+        }
+        else {
           register.showError(err);
         }
       });

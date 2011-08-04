@@ -14,7 +14,8 @@ User.prototype.register = function (params, callback) {
     authentication.link(user, params, function (err) {
       if (err) {
         callback(err);
-      } else {
+      }
+      else {
         user.authenticated = true;
         rememberme(user, callback);
       }
@@ -27,7 +28,8 @@ User.prototype.authN = function (params, callback) {
   authentication.auth(user, params, function (err) {
     if (err) {
       callback(err);
-    } else {
+    }
+    else {
       user.authenticated = true;
       rememberme(user, callback);
     }
@@ -58,7 +60,8 @@ var rememberme = function (user, callback) {
     authentication.link(user, params, function (err) {
       if (!err) {
         callback(null, user.toData());
-      } else {
+      }
+      else {
         callback(err);
       }
     });
