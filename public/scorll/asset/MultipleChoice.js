@@ -60,7 +60,6 @@ dojo.declare("scorll.asset.MultipleChoice", [
             };
             asset.track(params, function (err) {
               // TODO: You can add feedback here
-              console.log(arguments);
             });
           });
 

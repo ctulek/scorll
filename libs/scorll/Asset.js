@@ -69,7 +69,8 @@ Asset.prototype.track = function (client, params, callback) {
 Asset.prototype.getTrackingResults = function (client, params, callback) {
   var userId = params.userId || null;
   if (userId) {
-    callback && callback(null, this.tracking[userId] || {});
+    var err = this.tracking[userId] ? null : "No record found";
+    callback && callback(err, this.tracking[userId] || null);
   }
   else {
     callback && callback(null, this.tracking);

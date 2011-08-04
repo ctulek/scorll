@@ -6,13 +6,21 @@ dojo.require("scorll.net.ClientComponent");
 
 dojo.declare("scorll.net.User", null, {
   authenticated: false,
+  id: null,
   profile: {},
   roles: [],
   authN: function (params, callback) {
     var userComponent = this;
     userComponent.client.call(null, "authN", params, function (err, user) {
-      if (!err) {
+      if (err) {
+        console.log(err);
+        dojo.cookie("scorll.user.cookie", null, {
+          expires: -1
+        });
+      }
+      else {
         userComponent.id = user.id;
+        userComponent.profile = user.profile;
         userComponent.authenticated = true;
         if (user.cookie) {
           var expiresAt = params.rememberme ? user.cookieExpiresAt : null;
@@ -20,11 +28,6 @@ dojo.declare("scorll.net.User", null, {
             expires: expiresAt
           });
         }
-      }
-      else {
-        dojo.cookie("scorll.user.cookie", null, {
-          expires: -1
-        });
       }
       callback(err);
     });

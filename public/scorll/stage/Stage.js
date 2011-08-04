@@ -33,6 +33,7 @@ dojo.declare("scorll.stage.Stage", null, {
     client.connect();
     dojo.connect(client, "onConnect", function () {
       user.authNWithCookie(function (err) {
+        err && console.log(err);
         if (stage.requireLogin && err) {
           console.log(err);
           stage.userLogin();

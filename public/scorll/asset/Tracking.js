@@ -14,11 +14,9 @@ dojo.declare("scorll.asset.Tracking", null, {
     var asset = this;
     params.assetId = asset.item.id;
     if (!asset.user.authenticated) {
-      asset.onRequireLogin();
-      return;
-      asset.stage.userLogin(function (err) {
+      asset.onLoginRequired(function (err) {
         if (err) {
-          callback("The user is not authenticated");
+          callback(err);
         }
         else {
           asset.client.call(asset, "track", params, callback);

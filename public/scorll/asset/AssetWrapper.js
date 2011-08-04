@@ -66,8 +66,8 @@ dojo.declare("scorll.asset.AssetWrapper", [
       wrapper.domNode.style['border-left'] = "";
       wrapper.domNode.style['margin-left'] = "12px";
     });
-    dojo.connect(widget, "onRequireLogin", function () {
-      wrapper.showLogin();
+    dojo.connect(widget, "onLoginRequired", function (callback) {
+      wrapper.showLogin(callback);
     });
     widget && dojo.place(widget.domNode, this.domNode);
   },
@@ -153,7 +153,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
       wrapper.widget.getAllTrackingResults();
     });
   },
-  showLogin: function () {
+  showLogin: function (callback) {
     var wrapper = this;
     var stage = this.stage;
     var login = new scorll.stage.Login();
@@ -180,13 +180,14 @@ dojo.declare("scorll.asset.AssetWrapper", [
       }
       // TODO: Move this call to Login Form
       stage.user.authN(params, function (err) {
-        if (!err) {
+        if (err) {
+          login.showError(err);
+        }
+        else {
           container.destroyRecursive();
           wrapper.domNode.style['min-height'] = null;
           widget.domNode.style.display = "block";
-        }
-        else {
-          login.showError(err);
+          callback && callback();
         }
       });
     });
@@ -194,15 +195,16 @@ dojo.declare("scorll.asset.AssetWrapper", [
       container.destroyRecursive();
       wrapper.domNode.style['min-height'] = null;
       widget.domNode.style.display = "block";
+      callback && callback("User cancelled");
     });
     dojo.connect(login, "onRegister", function () {
       container.destroyRecursive();
       wrapper.domNode.style['min-height'] = null;
       widget.domNode.style.display = "block";
-      wrapper.showRegistration(true);
+      wrapper.showRegistration(true, callback);
     });
   },
-  showRegistration: function (fromLoginForm) {
+  showRegistration: function (fromLoginForm, callback) {
     var wrapper = this;
     var widget = this.widget;
     var stage = this.stage;
@@ -229,13 +231,14 @@ dojo.declare("scorll.asset.AssetWrapper", [
       }
       // TODO: Move this call to Registration Form
       stage.user.register(params, function (err) {
-        if (!err) {
+        if (err) {
+          register.showError(err);
+        }
+        else {
           container.destroyRecursive();
           wrapper.domNode.style['min-height'] = null;
           widget.domNode.style.display = "block";
-        }
-        else {
-          register.showError(err);
+          callback && callback();
         }
       });
     });
@@ -244,7 +247,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
       wrapper.domNode.style['min-height'] = null;
       widget.domNode.style.display = "block";
       if (fromLoginForm) {
-        wrapper.showLogin();
+        wrapper.showLogin(callback);
       }
     });
   },

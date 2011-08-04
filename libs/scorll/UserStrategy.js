@@ -1,6 +1,5 @@
 exports.auth = function (user, params, callback) {
   var username = params.username;
-  var email = params.email;
   var password = params.password;
   var record = store[username] || null;
   if (!record) {
@@ -11,8 +10,6 @@ exports.auth = function (user, params, callback) {
   }
   else {
     user.id = record.userId;
-    user.username = record.username;
-    user.email = record.email;
     callback && callback(null);
   }
 };
@@ -31,11 +28,8 @@ exports.link = function (user, params, callback) {
     store[username] = {
       userId: user.id,
       username: username,
-      email: email,
       password: password
     };
-    user.email = email;
-    user.username = username;
     emails[email] = username;
     callback(null);
   }
