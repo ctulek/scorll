@@ -13,7 +13,6 @@ dojo.require("scorll.asset.Dialog");
 
 
 dojo.declare("scorll.stage.Stage", null, {
-  mode: "guest",
   user: null,
   client: null,
   content: null,

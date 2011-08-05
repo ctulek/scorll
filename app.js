@@ -40,6 +40,7 @@ var io = require("socket.io").listen(app);
 io.sockets.on('connection', function (ioClient) {
     var args = {
         ioClient: ioClient,
+        contentSet: contentSet,
         clientComponentSet: clientComponentSet,
         groupSet: groupSet
     };
@@ -55,6 +56,7 @@ io.sockets.on('connection', function (ioClient) {
     var args = {
         id: 1,
         title: "Scorll (Early Alpha)",
+        user: {},
         assetSet: assetSet,
         clientComponentSet: clientComponentSet
     }

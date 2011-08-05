@@ -36,13 +36,15 @@ dojo.declare("scorll.asset.Tracking", null, {
     asset.client.call(asset, "getTrackingResults", params, callback);
   },
   getAllTrackingResults: function (callback) {
+    if (!asset.user.hasRole("teacher")) {
+      return;
+    }
     var asset = this;
     var params = {
       assetId: asset.item.id,
       userId: null
     };
     asset.client.call(asset, "getTrackingResults", params, function (err, results) {
-      console.log(results);
       for (var userId in results) {
         var username = results[userId].username;
         var response = results[userId].response;

@@ -11,7 +11,9 @@
     <div dojoAttachPoint="errorMessage"
       style="display: none; color: red"></div>
 		<div style="text-align: left; float: left;">
-			<div dojoType="dijit.form.Button" dojoAttachEvent="onClick:register">Register</div>
+			<div dojoType="dijit.form.Button"
+        dojoAttachPoint="registerButton"
+        dojoAttachEvent="onClick:register">Register</div>
 		</div>
 		<div style="text-align: right;">
 			<div dojoType="dijit.form.Button" dojoAttachEvent="onClick:submit">Submit</div>

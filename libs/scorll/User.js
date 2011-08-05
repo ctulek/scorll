@@ -2,7 +2,10 @@ var authentication = require('./Authentication.js');
 
 var profiles = {};
 
-var User = function () {
+var User = function (args) {
+    for (var key in args) {
+      this[key] = args[key];
+    }
     this.id = null;
     this.profile = {};
     this.authenticated = false;
@@ -42,7 +45,29 @@ User.prototype.authN = function (params, callback) {
     else {
       user.authenticated = true;
       user.profile = profiles[user.id] || {};
-      rememberme(user, callback);
+      if (params.strategy != "cookie") {
+        rememberme(user, callback);
+      }
+      else {
+        callback(null, user.toData());
+      }
+    }
+  });
+}
+
+User.prototype.authZ = function (params, callback) {
+  var user = this;
+  var contentId = params.contentId || null;
+  user.contentSet.findById(contentId, function (err, content) {
+    if (err) {
+      callback && callback(err);
+      return;
+    }
+    if (content.user.id == user.id) {
+      callback && callback(null, ["teacher"]);
+    }
+    else {
+      callback && callback(null, ["student"]);
     }
   });
 }

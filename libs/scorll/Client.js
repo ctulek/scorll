@@ -7,7 +7,7 @@ var Client = function (args) {
     for (var key in args) {
       this[key] = args[key];
     }
-    this.user = this.user || new User();
+    this.user = this.user || new User(args);
     var client = this;
     if (this.ioClient) {
       this.ioClient.on('message', function (message) {
@@ -55,6 +55,10 @@ Client.prototype.register = function (params, callback) {
 
 Client.prototype.authN = function (params, callback) {
   this.user.authN(params, callback);
+}
+
+Client.prototype.authZ = function (params, callback) {
+  this.user.authZ(params, callback);
 }
 
 Client.prototype.message = function (message) {

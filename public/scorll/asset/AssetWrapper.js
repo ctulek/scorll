@@ -31,24 +31,8 @@ dojo.declare("scorll.asset.AssetWrapper", [
     if (this.asset) {
       this.createWidget(this.asset);
     }
-    var stage = this.stage;
-    var widget = this.widget;
-    dojo.connect(stage, "onClipboard", function () {
-      if (stage.cutObject == wrapper) {
-        widget.domNode.style['opacity'] = .3;
-        wrapper.menu.pasteButton.domNode.style['display'] = "none";
-      }
-      else {
-        widget.domNode.style['opacity'] = null;
-        if (stage.cutObject || stage.copyObject) {
-          wrapper.menu.pasteButton.domNode.style['display'] = "inline-block";
-        }
-        else {
-          wrapper.menu.pasteButton.domNode.style['display'] = "none";
-        }
-      }
-    })
-    this.registerEvents();
+    this.registerClipboardEvents();
+    this.registerMenuEvents();
   },
   createWidget: function (asset) {
     var wrapper = this;
@@ -57,6 +41,9 @@ dojo.declare("scorll.asset.AssetWrapper", [
     this.stage.registerAsset(widget);
     menu.widget = widget;
     dojo.connect(widget, "onMouseOver", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       menu && menu.show(wrapper.domNode);
       wrapper.domNode.style['border-left'] = "4px solid #def";
       wrapper.domNode.style['margin-left'] = "8px";
@@ -76,15 +63,46 @@ dojo.declare("scorll.asset.AssetWrapper", [
     this.widget && this.widget.destroyRecursive();
     this.createWidget(this.asset);
   },
-  registerEvents: function () {
+  registerClipboardEvents: function () {
+    var wrapper = this;
+    var stage = this.stage;
+    dojo.connect(stage, "onClipboard", function () {
+      if (stage.cutObject == wrapper) {
+        wrapper.widget.domNode.style['opacity'] = .3;
+        wrapper.menu.pasteButton.domNode.style['display'] = "none";
+      }
+      else {
+        wrapper.widget.domNode.style['opacity'] = null;
+        if (stage.cutObject || stage.copyObject) {
+          wrapper.menu.pasteButton.domNode.style['display'] = "inline-block";
+        }
+        else {
+          wrapper.menu.pasteButton.domNode.style['display'] = "none";
+        }
+      }
+    });
+    if (stage.cutObject || stage.copyObject) {
+      wrapper.menu.pasteButton.domNode.style['display'] = "inline-block";
+    }
+    else {
+      wrapper.menu.pasteButton.domNode.style['display'] = "none";
+    }
+  },
+  registerMenuEvents: function () {
     var wrapper = this;
     var menu = this.menu;
     var stage = this.stage;
     var assetManager = this.assetManager;
     dojo.connect(menu, "onAdd", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       wrapper.onAdd();
     });
     dojo.connect(menu, "onEdit", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       // Use the current widget
       var widget = wrapper.widget;
       menu.domNode.style.display = "none";
@@ -112,20 +130,35 @@ dojo.declare("scorll.asset.AssetWrapper", [
       });
     });
     dojo.connect(menu, "onDelete", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       var widget = wrapper.widget;
       menu.hide(true);
       stage.content.remove(widget.item);
     });
     dojo.connect(menu, "onCut", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       wrapper.onCut();
     });
     dojo.connect(menu, "onCopy", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       wrapper.onCopy();
     });
     dojo.connect(menu, "onPaste", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       wrapper.onPaste();
     });
     dojo.connect(menu, "onShowStats", function () {
+      if (!wrapper.stage.user.hasRole("teacher")) {
+        return;
+      }
       var widget = wrapper.widget;
       menu.domNode.style.display = "none";
       widget.domNode.style.display = "none";

@@ -1,6 +1,17 @@
+@import "/dojox/grid/resources/Grid.css";
+@import "/dojox/grid/resources/claroGrid.css";
+.dojoxGrid table {
+  margin: 0;
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  width: 100%;
+}
+
 body {
-    font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
-    font-size: 16px;
+  font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
+  font-size: 16px;
 }
 
 .dijitTextBox {

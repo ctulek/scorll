@@ -10,9 +10,13 @@ dojo.declare("scorll.stage.Login", [
   dijit._Templated
   ], {
   widgetsInTemplate: true,
+  showRegisterButton: true,
   templatePath: dojo.moduleUrl("scorll.stage", "Login.html"),
   postCreate: function () {
     this.tableContainer.startup();
+    if (this.showRegisterButton == false) {
+      this.registerButton.domNode.style.display = "none";
+    }
   },
   onSubmit: function (item) {},
   onCancel: function () {},
