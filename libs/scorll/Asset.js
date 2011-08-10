@@ -11,7 +11,7 @@ Asset.prototype.getId = function () {
 }
 
 Asset.prototype.populate = function (assetData) {
-  if(this.po) {
+  if (this.po) {
     for (var k in assetData) {
       this.po[k] = assetData[k];
     }
@@ -24,7 +24,7 @@ Asset.prototype.toAssetData = function (isTeacher) {
     type: this.po.type,
     data: this.po.data
   }
-  if(isTeacher) {
+  if (isTeacher) {
     data.interaction = this.po.interaction;
   }
   return data;

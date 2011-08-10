@@ -46,8 +46,8 @@ Client.prototype.join = function (groupId, callback) {
           return;
         }
         client.group = group;
-        client.contentSet.findById(groupId, function(err, content) {
-          if(err) {
+        client.contentSet.findById(groupId, function (err, content) {
+          if (err) {
             consoel.log(err);
             callback && callback(err);
             return;

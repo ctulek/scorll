@@ -22,7 +22,9 @@ CookieStrategy.prototype.check = function (callback) {
 }
 
 CookieStrategy.prototype.auth = function (callback) {
-  CookieStrategyPO.findOne({cookie: this.cookie}, function (err, record) {
+  CookieStrategyPO.findOne({
+    cookie: this.cookie
+  }, function (err, record) {
     if (err) {
       callback && callback(err);
     }

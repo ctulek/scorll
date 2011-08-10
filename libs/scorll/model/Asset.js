@@ -18,8 +18,7 @@ var schema = new Schema({
     indexed: true
   },
   data: {},
-  interaction: {
-  }
+  interaction: {}
 });
 
 module.exports = mongoose.model('asset', schema);

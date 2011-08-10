@@ -61,11 +61,9 @@ Content.prototype.addAsset = function (client, assetData, position, callback) {
     }
     content.po.assets.splice(position, 0, asset.getId());
     content.clientComponentSet && content.clientComponentSet.add(asset);
-    client && client.group.each(function(otherClient) {
-      var isTeacher = (content.getOwnerId() && content.getOwnerId() ==
-        otherClient.user.getId());
-      otherClient.call(content.getId(), '_add',
-        asset.toAssetData(isTeacher), position);
+    client && client.group.each(function (otherClient) {
+      var isTeacher = (content.getOwnerId() && content.getOwnerId() == otherClient.user.getId());
+      otherClient.call(content.getId(), '_add', asset.toAssetData(isTeacher), position);
     });
     content.save(function (err) {
       callback && callback();
@@ -81,11 +79,9 @@ Content.prototype.updateAsset = function (client, assetData, callback) {
       return;
     }
     asset.populate(assetData);
-    client && client.group.each(function(otherClient) {
-      var isTeacher = (content.getOwnerId() && content.getOwnerId() ==
-        otherClient.user.getId());
-      otherClient.call(content.getId(), '_update',
-        asset.toAssetData(isTeacher));
+    client && client.group.each(function (otherClient) {
+      var isTeacher = (content.getOwnerId() && content.getOwnerId() == otherClient.user.getId());
+      otherClient.call(content.getId(), '_update', asset.toAssetData(isTeacher));
     });
     asset.save(function (err) {
       callback && callback();
