@@ -37,7 +37,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
   createWidget: function (asset) {
     var wrapper = this;
     var menu = this.menu;
-    var widget = this.widget = this.assetManager.getAssetRenderer(this.stage, this.asset);
+    var widget = this.widget = this.assetManager.getAssetRenderer(this.stage, asset);
     this.stage.registerAsset(widget);
     menu.widget = widget;
     dojo.connect(widget, "onMouseOver", function () {
@@ -172,7 +172,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
       container.placeAt(widget.domNode, "before");
       dojo.connect(form, "onClose", function () {
         container.destroyRecursive();
-        wrapper.asset.statsForm = null;
+        wrapper.widget.statsForm = null;
         widget.domNode.style.display = "block";
         menu.domNode.style.display = "block";
       });

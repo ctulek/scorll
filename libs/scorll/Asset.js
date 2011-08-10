@@ -1,35 +1,51 @@
 var Asset = function (args) {
+    this.po = null;
+    this.tracking = {};
     for (var k in args) {
       this[k] = args[k];
     }
-    this.tracking = {};
   }
 
 Asset.prototype.getId = function () {
-  return this.id;
+  return this.po ? this.po.id : null;
 }
 
 Asset.prototype.populate = function (assetData) {
-  for (var k in assetData) {
-    this[k] = assetData[k];
+  if(this.po) {
+    for (var k in assetData) {
+      this.po[k] = assetData[k];
+    }
   }
 }
 
-Asset.prototype.toAssetData = function () {
-  return {
-    id: this.id,
-    type: this.type,
-    data: this.data
+Asset.prototype.toAssetData = function (isTeacher) {
+  var data = {
+    id: this.po.id,
+    type: this.po.type,
+    data: this.po.data
   }
+  if(isTeacher) {
+    data.interaction = this.po.interaction;
+  }
+  return data;
 }
 
 Asset.prototype.save = function (callback) {
-  this.id = this.id || Date.now() + Math.round(Math.random() * 1000);
-  callback && callback();
+  if (!this.po) {
+    callback && callback();
+  }
+  this.po.save(function (err) {
+    callback && callback(err);
+  });
 }
 
 Asset.prototype.delete = function (callback) {
-  callback && callback();
+  if (!this.po) {
+    callback && callback();
+  }
+  this.po.remove(function (err) {
+    callback && callback(err);
+  });
 }
 
 // Shared
@@ -44,7 +60,7 @@ Asset.prototype.track = function (client, params, callback) {
   var user = client.user;
   var type = params.type;
   var timestamp = params.timestamp || new Date();
-  var correctResponses = this.data.correctResponses || [];
+  var correctResponses = this.po.interaction.correctResponses || [];
   var learnerResponse = params.response;
   var result = params.result || null;
   if (!result && correctResponses && typeof this.responsePattern[type] == 'function') {
@@ -59,11 +75,12 @@ Asset.prototype.track = function (client, params, callback) {
   }
   var latency = params.latency || 0;
   callback(null, result);
-  var userTracking = this.tracking[user.id] = this.tracking[user.id] || {};
-  userTracking['username'] = user.username;
+  var userTracking = this.tracking[user.getId()] = this.tracking[user.getId()] || {};
+  userTracking['username'] = user.po.profile.username;
   userTracking['response'] = learnerResponse;
   userTracking['result'] = result;
-  client.broadcast(this.getId(), 'collect', user.id, user.username, learnerResponse, result);
+  console.log(this.tracking);
+  client.broadcast(this.getId(), 'collect', user.getId(), user.po.profile.username, learnerResponse, result);
 }
 
 Asset.prototype.getTrackingResults = function (client, params, callback) {
@@ -73,6 +90,7 @@ Asset.prototype.getTrackingResults = function (client, params, callback) {
     callback && callback(err, this.tracking[userId] || null);
   }
   else {
+    console.log(this.tracking);
     callback && callback(null, this.tracking);
   }
 }

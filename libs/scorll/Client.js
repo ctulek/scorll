@@ -2,6 +2,8 @@ var util = require('util');
 var events = require('events');
 
 var User = require('libs/scorll/User');
+var UserPO = require('libs/scorll/model/User');
+var Authentication = require('./Authentication');
 
 var Client = function (args) {
     for (var key in args) {
@@ -28,6 +30,7 @@ Client.prototype.getId = function () {
 }
 
 Client.prototype.join = function (groupId, callback) {
+  console.log("Client::join " + groupId);
   var client = this;
   this.groupSet.findById(groupId, function (err, group) {
     if (err) {
@@ -37,28 +40,116 @@ Client.prototype.join = function (groupId, callback) {
     }
     if (group) {
       group.join(client, function (err) {
-        if (!err) {
-          client.group = group;
-        }
-        else {
+        if (err) {
           console.error(err);
+          callback && callback(err);
+          return;
         }
+        client.group = group;
+        client.contentSet.findById(groupId, function(err, content) {
+          if(err) {
+            consoel.log(err);
+            callback && callback(err);
+            return;
+          }
+          console.log("Content found");
+          client.clientComponentSet && client.clientComponentSet.add(content);
+          callback && callback();
+        });
       });
     }
-    callback && callback(err);
   });
 }
 
 Client.prototype.register = function (params, callback) {
-  this.user.register(params, callback);
+  var client = this;
+  var args = {
+    po: new UserPO(),
+    contentSet: client.contentSet
+  }
+  var user = client.user = new User(args);
+  if (params.username) {
+    user.po.profile.username = params.username;
+  }
+  if (params.email) {
+    user.po.profile.email = params.email;
+  }
+  client.userSet.add(user, function (err) {
+    if (err) {
+      callback && callback(err);
+      return;
+    }
+    var auth = new Authentication(params);
+    auth.link(user.getId(), function (err) {
+      if (err) {
+        console.log(err);
+        client.userSet.delete(user);
+        user = null;
+        callback && callback(err);
+        return;
+      }
+      user.authenticated = true;
+      console.log("User authenticated");
+      client.rememberme(callback);
+    });
+  });
 }
 
 Client.prototype.authN = function (params, callback) {
-  this.user.authN(params, callback);
+  var client = this;
+  var auth = new Authentication(params);
+  auth.auth(function (err, userId) {
+    if (err) {
+      callback(err);
+    }
+    else {
+      client.userSet.findById(userId, function (err, user) {
+        if (err) {
+          console.log(err);
+          callback && callback(err);
+          return;
+        }
+        client.user = user;
+        user.authenticated = true;
+        if (params.strategy != "cookie") {
+          client.rememberme(callback);
+        }
+        else {
+          callback(null, user.toData());
+        }
+      });
+    }
+  });
 }
 
 Client.prototype.authZ = function (params, callback) {
   this.user.authZ(params, callback);
+}
+
+Client.prototype.rememberme = function (callback) {
+  var client = this;
+  var user = client.user;
+  var params = {
+    strategy: "cookie",
+    cookie: client.createCookie(),
+    expiresAt: new Date(24 * 60 * 60 * 1000 + Date.now())
+  };
+  var auth = new Authentication(params)
+  auth.link(user.getId(), function (err) {
+    if (err) {
+      console.log(err);
+      callback && callback(err);
+    }
+    else {
+      user.cookie = params.cookie;
+      user.cookieExpiresAt = params.expiresAt;
+      callback && callback(null, user.toData());
+    }
+  });
+}
+
+Client.prototype.createCookie = function () {
+  return "SCORLLCOOKIE" + Date.now();
 }
 
 Client.prototype.message = function (message) {

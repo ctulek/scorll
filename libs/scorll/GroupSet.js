@@ -28,8 +28,21 @@ GroupSet.prototype.delete = function (group, callback) {
 
 GroupSet.prototype.findById = function (id, callback) {
   var group = this.groups[id];
-  var err = group ? null : "Cannot find group with the id #" + id;
-  callback && callback(err, group);
+  if(!group) {
+    console.log("Adding new group");
+    var args = {id: id};
+    var group = new Group(args);
+    this.add(group, function(err) {
+      if(err) {
+        console.log(err);
+        callback && callback(err);
+        return;
+      }
+      callback && callback(null, group);
+    });
+  } else {
+    callback && callback(null, group);
+  }
 }
 
 module.exports = GroupSet;

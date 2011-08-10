@@ -1,6 +1,9 @@
+var Authentication = require('libs/scorll/Authentication');
 var Content = require('libs/scorll/Content');
 var Group = require('libs/scorll/Group');
 var User = require('libs/scorll/User');
+
+var ContentPO = require('libs/scorll/model/Content');
 
 var app;
 
@@ -13,38 +16,44 @@ module.exports = function(appObj) {
 }
 
 var defaultIndex = function(req, res, next) {
-    res.local('contentId', 1);
+    res.local('contentId', app.defaultContentId);
     next();
 }
 
 var newContent = function(req, res, next) {
-    var user = new User();
-    var params = {
-      strategy: "cookie",
-      cookie: req.cookies["scorll.user.cookie"]
-    };
-    user.authN(params, function(err, userData) {
+  var params = {
+    strategy: "cookie",
+    cookie: req.cookies["scorll.user.cookie"]
+  };
+  var auth = new Authentication(params);
+  auth.auth(function (err, userId) {
+    if (err) {
+      res.end(err);
+      return;
+    }
+    app.userSet.findById(userId, function (err, user) {
       if (err) {
-        res.end("You need to be registered");
+        res.end(err);
         return;
       }
-      user.id = userData.id;
+      user.authenticated = true;
+
+      var po = new ContentPO();
+      po.ownerId = user.getId();
       var args = {
-          user: user,
-          title: "New Content Title (Click to Change)",
+          po: po,
           assetSet: app.assetSet,
           clientComponentSet: app.clientComponentSet
       }
       var content = new Content(args);
-      content.save(function(err) {
+      app.contentSet.add(content, function(err) {
           if(err) {
               res.send(err, 500);
               return;
           }
-          res.redirect("/" + content.id + ".html", 303);
-          app.contentSet.add(content);
+          res.redirect("/" + content.getId() + ".html", 303);
           app.clientComponentSet.add(content);
-          var args = {id: content.id};
+          var args = {id: content.getId()};
           var group = new Group(args);
           app.groupSet.add(group);
           var assetData = {
@@ -56,6 +65,7 @@ var newContent = function(req, res, next) {
           content.addAsset(null, assetData);
       });
     });
+  });
 }
 
 var listContents = function(req, res, next) {

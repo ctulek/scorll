@@ -13,7 +13,7 @@ dojo.declare("scorll.asset.MultipleChoiceForm", [
       return;
     }
     var data = this.item.data;
-    var correctResponse = data['correctResponses'] ? data.correctResponses[0] : [];
+    var correctResponse = this.item.interaction ? this.item.interaction.correctResponses[0] : [];
     this.questionBox.attr('value', data.question);
     if (data.answers) {
       var answersString = "";
@@ -41,8 +41,10 @@ dojo.declare("scorll.asset.MultipleChoiceForm", [
     data.type = correctResponse.length > 1 ? "checkbox" : "radio";
     data.question = question;
     data.answers = answers;
-    data.correctResponses = [correctResponse];
     this.item.data = data;
+    this.item.interaction = {};
+    this.item.interaction.type = "choice";
+    this.item.interaction.correctResponses = [correctResponse];
     this.onSubmit(this.item);
   },
   cancel: function () {

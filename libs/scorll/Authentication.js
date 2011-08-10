@@ -3,22 +3,41 @@ var strategies = {
   cookie: require('./CookieStrategy.js')
 };
 
-exports.auth = function (user, params, callback) {
-  var strategy = strategies[params.strategy] || null;
-  if (!strategy) {
-    callback("Undefined strategy: " + params.strategy);
+var Authentication = function (params) {
+    this.params = params;
+    if (strategies[params.strategy]) {
+      this.strategy = new strategies[params.strategy](params);
+    }
+    else {
+      this.strategy = null;
+    }
+  }
+
+Authentication.prototype.check = function (callback) {
+  if (!this.strategy) {
+    callback("Undefined strategy: " + this.params.strategy);
   }
   else {
-    strategy.auth(user, params, callback);
+    this.strategy.check(callback);
   }
 }
 
-exports.link = function (user, params, callback) {
-  var strategy = strategies[params.strategy] || null;
-  if (!strategy) {
-    callback("Undefined strategy: " + params.strategy);
+Authentication.prototype.auth = function (callback) {
+  if (!this.strategy) {
+    callback("Undefined strategy: " + this.params.strategy);
   }
   else {
-    strategy.link(user, params, callback);
+    this.strategy.auth(callback);
   }
 }
+
+Authentication.prototype.link = function (userId, callback) {
+  if (!this.strategy) {
+    callback("Undefined strategy: " + this.params.strategy);
+  }
+  else {
+    this.strategy.link(userId, callback);
+  }
+}
+
+module.exports = Authentication;

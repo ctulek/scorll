@@ -13,13 +13,13 @@ var schema = new Schema({
     type: ObjectId,
     indexed: true
   },
-  title: {
+  type: {
     type: String,
-  default:
-    "New Content Title (Click to Change)"
+    indexed: true
   },
-  description: String,
-  assets: [ObjectId]
+  data: {},
+  interaction: {
+  }
 });
 
-module.exports = mongoose.model('content', schema);
+module.exports = mongoose.model('asset', schema);

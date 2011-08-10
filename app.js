@@ -1,11 +1,15 @@
 // Scorll.org Web Application
 require.paths.unshift(__dirname);
+require('mongoose').connect('mongodb://localhost/scorll');
+var async = require('async');
+var ObjectId = require('mongoose').Schema.ObjectId;
 var express = require('express');
 
 var express = require('express');
 
 var Client = require('libs/scorll/Client');
 var ClientSet = require('libs/scorll/ClientSet');
+var UserSet = require('libs/scorll/UserSet');
 var ClientComponentSet = require('libs/scorll/ClientComponentSet');
 var GroupSet = require('libs/scorll/GroupSet');
 var ContentSet = require('libs/scorll/ContentSet');
@@ -14,8 +18,12 @@ var AssetSet = require('libs/scorll/AssetSet');
 var clientSet = new ClientSet();
 var clientComponentSet = new ClientComponentSet();
 var groupSet = new GroupSet();
-var contentSet = new ContentSet();
 var assetSet = new AssetSet();
+var contentSet = new ContentSet({assetSet: assetSet, clientComponentSet:
+clientComponentSet});
+var userSet = new UserSet({contentSet: contentSet});
+
+var ContentPO = require('libs/scorll/model/Content');
 
 var app = express.createServer(
     express.static(__dirname + '/public'),
@@ -30,6 +38,7 @@ new require('./config.js')(app);
 app.contentSet = contentSet;
 app.assetSet = assetSet;
 app.groupSet = groupSet;
+app.userSet = userSet;
 app.clientComponentSet = clientComponentSet;
 require('controller/index.js')(app);
 
@@ -42,32 +51,51 @@ io.sockets.on('connection', function (ioClient) {
         ioClient: ioClient,
         contentSet: contentSet,
         clientComponentSet: clientComponentSet,
-        groupSet: groupSet
+        groupSet: groupSet,
+        userSet: userSet
     };
     var client = new Client(args);
     clientSet.add(client);
 });
 
-// Populate Test Data
-(function() {
+ContentPO.find({}).sort('created', 1).limit(1).find({}, function(err, content) {
+  if(err) {
+    console.log(err);
+    return;
+  }
+  if(content.length > 0) {
+    console.log("Database has the default contents");
+    app.defaultContentId = content[0].id;
+  } else {
+    console.log("Creating content");
+    defaultContent();
+  }
+});
+
+function defaultContent() {
     var Content = require('libs/scorll/Content');
     var Group = require('libs/scorll/Group');
 
     var args = {
-        id: 1,
         title: "Scorll (Early Alpha)",
-        user: {},
-        assetSet: assetSet,
-        clientComponentSet: clientComponentSet
+        owner: 0
+    }
+    var po = new ContentPO(args);
+    var args = {
+      po: po,
+      assetSet: assetSet,
+      clientComponentSet: clientComponentSet
     }
     var content = new Content(args);
-    contentSet.add(content);
-    clientComponentSet.add(content);
-    args = {
-        id: 1
-    }
-    var group = new Group(args);
-    groupSet.add(group);
+    contentSet.add(content, function() {
+      app.defaultContentId = content.getId();
+      clientComponentSet.add(content);
+      args = {
+          id: content.getId()
+      }
+      var group = new Group(args);
+      groupSet.add(group);
+    });
 
     var assets = [{
         type: "text",
@@ -90,10 +118,13 @@ io.sockets.on('connection', function (ioClient) {
         type: "multiplechoice",
         data: {
             question: "Where is the United States Capitol?",
-            correctResponses: [
-                ['0']
-            ],
             answers: ["Washington", "New York", "San Francisco", "Boston"]
+        },
+        interaction: {
+          type: "choice",
+          correctResponses: [
+            ['0']
+          ],
         }
     }, {
         type: "youtube",
@@ -107,8 +138,10 @@ io.sockets.on('connection', function (ioClient) {
         }
     }];
 
-    assets.forEach(function(assetData) {
-        content.addAsset(null, assetData);
-    });
-})();
+    async.forEachSeries(assets, function(assetData, callback) {
+        content.addAsset(null, assetData, null, function() {
+          callback();
+        });
+    }, function() {});
+};
 

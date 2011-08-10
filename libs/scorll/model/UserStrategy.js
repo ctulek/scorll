@@ -9,17 +9,16 @@ var schema = new Schema({
     Date.now,
     index: true
   },
-  ownerId: {
-    type: ObjectId,
-    indexed: true
-  },
-  title: {
+  userId: ObjectId,
+  username: {
     type: String,
-  default:
-    "New Content Title (Click to Change)"
+    index: true
   },
-  description: String,
-  assets: [ObjectId]
+  email: {
+    type: String,
+    index: true
+  },
+  password: String
 });
 
-module.exports = mongoose.model('content', schema);
+module.exports = mongoose.model('userStrategy', schema);

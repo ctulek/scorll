@@ -1,56 +1,73 @@
 var async = require('async');
 
 var Asset = require('libs/scorll/Asset');
+var AssetPO = require('libs/scorll/model/Asset');
+var ContentPO = require('libs/scorll/model/Content');
 
 var Content = function (args) {
-    this.user = null;
-    this.title = "";
-    this.description = "";
     for (var i in args) {
       this[i] = args[i];
     }
-    this.assets = [];
-    this.id = this.id || Date.now();
   }
 
 Content.prototype.getId = function () {
-  return this.id;
+  return this.po ? this.po.id : null;
+}
+
+Content.prototype.getOwnerId = function () {
+  return this.po ? this.po.ownerId : null;
 }
 
 Content.prototype.save = function (callback) {
-  this.id = this.id || Date.now();
-  callback && callback();
+  if (!this.po) {
+    callback && callback();
+  }
+  this.po.save(function (err) {
+    callback && callback(err);
+  });
 }
 
 Content.prototype.delete = function (callback) {
-  callback && callback();
+  if (!this.po) {
+    callback && callback();
+  }
+  this.po.remove(function (err) {
+    callback && callback(err);
+  });
 }
 
 Content.prototype.setTitle = function (client, newTitle, callback) {
-  this.title = newTitle;
-  client && client.broadcast(this.getId(), '_setTitle', newTitle);
-  callback && callback();
+  var content = this;
+  this.po.title = newTitle;
+  client && client.broadcast(content.getId(), '_setTitle', newTitle);
+  this.save(function () {
+    callback && callback();
+  });
 }
 
 Content.prototype.addAsset = function (client, assetData, position, callback) {
   var content = this;
-  var asset = new Asset(assetData);
-  if (position === undefined || position === null) {
-    position = content.assets.length;
+  var args = {
+    po: new AssetPO(assetData)
   }
-  asset.save(function (err) {
+  var asset = new Asset(args);
+  if (position === undefined || position === null) {
+    position = content.po.assets.length;
+  }
+  content.assetSet.add(asset, function (err) {
     if (err) {
       callback && callback(err);
       return;
     }
-    content.assetSet.add(asset, function (err) {
-      if (err) {
-        callback && callback(err);
-        return;
-      }
-      content.assets.splice(position, 0, asset.getId());
-      content.clientComponentSet && content.clientComponentSet.add(asset);
-      client && client.broadcast(content.getId(), '_add', asset.toAssetData(), position);
+    content.po.assets.splice(position, 0, asset.getId());
+    content.clientComponentSet && content.clientComponentSet.add(asset);
+    client && client.group.each(function(otherClient) {
+      var isTeacher = (content.getOwnerId() && content.getOwnerId() ==
+        otherClient.user.getId());
+      otherClient.call(content.getId(), '_add',
+        asset.toAssetData(isTeacher), position);
+    });
+    content.save(function (err) {
       callback && callback();
     });
   });
@@ -64,12 +81,13 @@ Content.prototype.updateAsset = function (client, assetData, callback) {
       return;
     }
     asset.populate(assetData);
+    client && client.group.each(function(otherClient) {
+      var isTeacher = (content.getOwnerId() && content.getOwnerId() ==
+        otherClient.user.getId());
+      otherClient.call(content.getId(), '_update',
+        asset.toAssetData(isTeacher));
+    });
     asset.save(function (err) {
-      if (err) {
-        callback && callback(err);
-        return;
-      }
-      client && client.broadcast(content.getId(), '_update', asset.toAssetData());
       callback && callback();
     });
   });
@@ -83,15 +101,13 @@ Content.prototype.deleteAsset = function (client, assetId, callback) {
       return;
     }
     asset.delete(function (err) {
-      if (err) {
-        callback && callback(err);
-        return;
-      }
-      var position = content.assets.indexOf(assetId);
+      var position = content.po.assets.indexOf(assetId);
       if (position > -1) {
-        content.assets.splice(position, 1);
+        content.po.assets.splice(position, 1);
         client && client.broadcast(content.getId(), '_remove', assetId);
-        callback && callback();
+        content.save(function (err) {
+          callback && callback();
+        });
       }
     });
   });
@@ -100,30 +116,37 @@ Content.prototype.deleteAsset = function (client, assetId, callback) {
 Content.prototype.moveAsset = function (client, assetId, position, callback) {
   for (var i in this.assets) {
     if (this.assets[i] == assetId) {
-      var asset = this.assets.splice(i, 1);
+      var asset = this.po.assets.splice(i, 1);
       var index = position;
       if (i < index) {
         index--;
       }
-      this.assets.splice(index, 0, assetId);
+      this.po.assets.splice(index, 0, assetId);
       break;
     }
   }
+
   client && client.broadcast(this.getId(), '_move', assetId, position);
-  callback && callback();
+  this.save(function (err) {
+    callback && callback();
+  });
 }
 
 Content.prototype.load = function (client, callback) {
   var content = this;
-  async.map(this.assets, function (assetId, callback) {
+  console.log(content.po.assets);
+  var isTeacher = (content.getOwnerId() && content.getOwnerId() == client.user.getId());
+  console.log(isTeacher);
+  async.map(content.po.assets, function (assetId, callback) {
     content.assetSet.findById(assetId, function (err, asset) {
-      callback(null, asset.toAssetData());
+      content.clientComponentSet && content.clientComponentSet.add(asset);
+      callback(null, asset.toAssetData(isTeacher));
     });
   }, function (err, assets) {
     var data = {
-      id: content.id,
-      title: content.title,
-      description: content.description,
+      id: content.getId(),
+      title: content.po ? content.po.title : null,
+      description: content.po ? content.po.description : null,
       assets: assets
     }
     callback(err, data);

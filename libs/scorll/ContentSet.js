@@ -1,35 +1,68 @@
 var Content = require('libs/scorll/Content');
+var ContentPO = require('libs/scorll/model/Content');
 
-var ContentSet = function () {
+var ContentSet = function (args) {
     this.contentCount = 0;
     this.contents = {};
+    for (var i in args) {
+      this[i] = args[i];
+    }
   }
 
-ContentSet.prototype.add = function (content, callback) {
-  if (this.contents[content.getId()]) {
-    callback && callback("Already in the set");
-    return;
-  }
-  this.contentCount++;
-  console.log('Content added. ' + this.contentCount + " content(s) in total.");
-  this.contents[content.getId()] = content;
-  callback && callback(null);
+ContentSet.prototype.add = function add(content, callback) {
+  var contentSet = this;
+  content.save(function (err) {
+    if (err) {
+      callback && callback(err);
+      return;
+    }
+    contentSet.contents[content.getId()] = content;
+    contentSet.contentCount++;
+    console.log('Content added. ' + contentSet.contentCount + " content(s) in total.");
+    callback && callback(null);
+  });
 }
 
-ContentSet.prototype.delete = function (content, callback) {
-  if (!this.contents[content.getId()]) {
-    callback && callback("Not in the set");
-    return;
-  }
-  this.contentCount--;
-  delete this.contents[content.getId()];
-  callback && callback();
+ContentSet.prototype.delete = function _delete(content, callback) {
+  var contentSet = this;
+  content.delete(function (err) {
+    if (err) {
+      callback && callback(err);
+      return;
+    }
+    if (contentSet.contents[content.getId()]) {
+      delete contentSet.contents[content.getId()];
+      contentSet.contentCount--;
+      console.log('Content removed. ' + contentSet.contentCount + " content(s) in total.");
+    }
+    callback && callback();
+  });
 }
 
-ContentSet.prototype.findById = function (id, callback) {
-  var content = this.contents[id];
-  var err = content ? null : "Cannot find content with the id #" + id;
-  callback && callback(err, content);
+ContentSet.prototype.findById = function findById(id, callback) {
+  var contentSet = this;
+  var content = contentSet.contents[id];
+  if (content) {
+    callback && callback(null, content);
+    return;
+  }
+  ContentPO.findById(id, function (err, contentPO) {
+    if (err) {
+      callback && callback(err);
+      return;
+    }
+    console.log(contentPO);
+    var args = {
+      po: contentPO,
+      assetSet: contentSet.assetSet,
+      clientComponentSet: contentSet.clientComponentSet
+    }
+    var content = new Content(args);
+    contentSet.contents[content.getId()] = content;
+    contentSet.contentCount++;
+    console.log('Content added from database. ' + contentSet.contentCount + " content(s) in total.");
+    callback && callback(err, content);
+  });
 }
 
 module.exports = ContentSet;
