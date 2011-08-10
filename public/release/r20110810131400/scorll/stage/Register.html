@@ -1,0 +1,32 @@
+<div>
+  <div>
+		<div dojoType="dojox.layout.TableContainer"
+            dojoAttachPoint="tableContainer"
+            cols="1" labelWidth="120" height="300px">
+			<div dojoType="dijit.form.ValidationTextBox" dojoAttachPoint="username"
+        required="true"
+        promptMessage="Enter your user name"
+        invalidMessage="Username should be at least 6 characters"
+        regExp=" *[^ ]{6} *"
+        title="Username"></div>
+			<div dojoType="dijit.form.ValidationTextBox" dojoAttachPoint="email"
+        required="true"
+        promptMessage="Please enter a valid e-mail address"
+        invalidMessage="Invalid e-mail address"
+        validator="dojox.validate.isEmailAddress"
+        title="Email"></div>
+      <div dojoType="dojox.form.PasswordValidator" dojoAttachPoint="password"
+        title="Password">
+        <input dojoType="dijit.form.TextBox"
+          pwType="new"/>
+        <input dojoType="dijit.form.TextBox"
+          pwType="verify"/>
+      </div>
+    </div>
+    <div dojoAttachPoint="errorMessage"
+      style="display: none; color: red"></div>
+    <div style="text-align: right;">
+        <div dojoType="dijit.form.Button" dojoAttachEvent="onClick:submit">Submit</div>
+        <div dojoType="dijit.form.Button" dojoAttachEvent="onClick:cancel">Cancel</div>
+    </div>
+	</div>
