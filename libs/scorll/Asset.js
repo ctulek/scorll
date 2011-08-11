@@ -1,6 +1,7 @@
+var TrackingPO = require('libs/scorll/model/Tracking');
+
 var Asset = function (args) {
     this.po = null;
-    this.tracking = {};
     for (var k in args) {
       this[k] = args[k];
     }
@@ -40,11 +41,28 @@ Asset.prototype.save = function (callback) {
 }
 
 Asset.prototype.delete = function (callback) {
-  if (!this.po) {
-    callback && callback();
-  }
-  this.po.remove(function (err) {
+  var asset = this;
+  if (!asset.po) {
+    var err = "Undefined po object";
+    console.error(err);
     callback && callback(err);
+    return;
+  }
+  var assetId = asset.getId();
+  asset.po.remove(function (err) {
+    if(err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    TrackingPO.remove({assetId: assetId}, function(err) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      callback && callback();
+    });
   });
 }
 
@@ -53,45 +71,85 @@ Asset.prototype.call = function (client, method, args, callback) {
   client.broadcast(this.getId(), method, args);
 }
 
-
 module.exports = Asset;
 
 Asset.prototype.track = function (client, params, callback) {
+  var asset = this;
   var user = client.user;
   var type = params.type;
   var timestamp = params.timestamp || new Date();
-  var correctResponses = this.po.interaction.correctResponses || [];
+  var correctResponses = asset.po.interaction.correctResponses || [];
   var learnerResponse = params.response;
   var result = params.result || null;
-  if (!result && correctResponses && typeof this.responsePattern[type] == 'function') {
+  if (!result && correctResponses && typeof asset.responsePattern[type] == 'function') {
     try {
-      result = this.responsePattern[type](correctResponses, learnerResponse);
+      result = asset.responsePattern[type](correctResponses, learnerResponse);
     }
     catch (e) {
-      console.log(e);
-      callback(e);
+      console.error(e);
+      callback && callback(e);
       return;
     }
   }
   var latency = params.latency || 0;
-  callback(null, result);
-  var userTracking = this.tracking[user.getId()] = this.tracking[user.getId()] || {};
-  userTracking['username'] = user.po.profile.username;
-  userTracking['response'] = learnerResponse;
-  userTracking['result'] = result;
-  console.log(this.tracking);
-  client.broadcast(this.getId(), 'collect', user.getId(), user.po.profile.username, learnerResponse, result);
+  var conditions = {ownerId: user.getId(), assetId: asset.getId()};
+  TrackingPO.findOne(conditions, function(err, tracking) {
+    if(err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    if(!tracking) {
+      tracking = new TrackingPO();
+      tracking.ownerId = user.getId();
+      tracking.username = user.po.profile.username;
+      tracking.assetId = asset.getId();
+      tracking.responses = [];
+    }
+    tracking.updated = new Date();
+    var response = {
+      date: new Date(),
+      response: learnerResponse,
+      result: result
+    }
+    tracking.responses.push(response);
+    tracking.save(function(err) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      callback(null, result);
+      client.broadcast(asset.getId(), 'collect', tracking);
+    });
+  });
 }
 
 Asset.prototype.getTrackingResults = function (client, params, callback) {
+  var asset = this;
   var userId = params.userId || null;
   if (userId) {
-    var err = this.tracking[userId] ? null : "No record found";
-    callback && callback(err, this.tracking[userId] || null);
+    var conditions = {ownerId: userId, assetId: asset.getId()};
+    TrackingPO.findOne(conditions, function(err, tracking) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      var err = tracking ? null : "No record found";
+      callback && callback(err, tracking);
+    });
   }
   else {
-    console.log(this.tracking);
-    callback && callback(null, this.tracking);
+    var conditions = {assetId: asset.getId()};
+    TrackingPO.find(conditions, function(err, tracking) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      callback && callback(null, tracking);
+    });
   }
 }
 

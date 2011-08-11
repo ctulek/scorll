@@ -57,11 +57,13 @@ dojo.declare("scorll.asset.MultipleChoice", [
   },
   updateLearnerResponse: function () {
     var asset = this;
-    asset.getTrackingResult(function (err, result) {
-      if (err || !result || !result.response) {
+    asset.getTrackingResult(function (err, tracking) {
+      if (err || !tracking) {
+        console.error(err);
         return;
       }
-      var learnerResponse = result.response;
+      var response = tracking.responses[tracking.responses.length - 1];
+      var learnerResponse = response.response;
       if (Array.isArray(learnerResponse)) asset.responses = learnerResponse;
       if (Array.isArray(learnerResponse)) {
         learnerResponse.forEach(function (index) {

@@ -45,41 +45,37 @@ dojo.declare("scorll.asset.Tracking", null, {
       userId: null
     };
     asset.client.call(asset, "getTrackingResults", params, function (err, results) {
-      for (var userId in results) {
-        var username = results[userId].username;
-        var response = results[userId].response;
-        var result = results[userId].result;
+      for (var i in results) {
+        var r = results[i];
+        var response = r.responses[r.responses.length - 1];
         asset.userTrackingData.put({
-          id: userId,
-          username: username,
-          response: response,
-          result: result
+          id: r.ownerId,
+          username: r.username,
+          response: response.response,
+          result: response.result
         });
       }
       asset.statsForm && asset.statsForm.resultsGrid._refresh();
       callback && callback(err, results);
     });
   },
-  collect: function (userId, username, response, result) {
+  collect: function (tracking) {
+    console.log(tracking);
     var asset = this;
+    var response = tracking.responses[tracking.responses.length - 1];
     asset.userTrackingData.put({
-      id: userId,
-      username: username,
-      response: response,
-      result: result
+      id: tracking.ownerId,
+      username: tracking.username,
+      response: response.response,
+      result: response.result
     });
     asset.statsForm && asset.statsForm.resultsGrid._refresh();
-    var history = asset.userTrackingDataHistory[userId] || [];
-    history.push({
-      response: response,
-      result: result
-    });
-    asset.userTrackingDataHistory[userId] = history;
+    asset.userTrackingDataHistory[tracking.userId] = tracking;
     this.onCollect({
-      userId: userId,
-      username: username,
-      response: response,
-      result: result
+      userId: tracking.ownerId,
+      username: tracking.username,
+      response: response.response,
+      result: response.result
     });
   },
   onCollect: function (collectedData) {},
