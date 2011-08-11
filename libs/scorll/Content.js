@@ -20,27 +20,46 @@ Content.prototype.getOwnerId = function () {
 
 Content.prototype.save = function (callback) {
   if (!this.po) {
-    callback && callback();
+    var err = "PO is not defined";
+    console.error(err);
+    callback && callback(err);
   }
   this.po.save(function (err) {
-    callback && callback(err);
+    if (err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    callback && callback();
   });
 }
 
 Content.prototype.delete = function (callback) {
   if (!this.po) {
-    callback && callback();
+    var err = "PO is not defined";
+    console.error(err);
+    callback && callback(err);
   }
   this.po.remove(function (err) {
-    callback && callback(err);
+    if (err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    callback && callback();
   });
 }
 
 Content.prototype.setTitle = function (client, newTitle, callback) {
   var content = this;
-  this.po.title = newTitle;
-  client && client.broadcast(content.getId(), '_setTitle', newTitle);
-  this.save(function () {
+  content.po.title = newTitle;
+  content.save(function (err) {
+    if (err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    client && client.broadcast(content.getId(), '_setTitle', newTitle);
     callback && callback();
   });
 }
@@ -56,16 +75,22 @@ Content.prototype.addAsset = function (client, assetData, position, callback) {
   }
   content.assetSet.add(asset, function (err) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
     content.po.assets.splice(position, 0, asset.getId());
     content.clientComponentSet && content.clientComponentSet.add(asset);
-    client && client.group.each(function (otherClient) {
-      var isTeacher = (content.getOwnerId() && content.getOwnerId() == otherClient.user.getId());
-      otherClient.call(content.getId(), '_add', asset.toAssetData(isTeacher), position);
-    });
     content.save(function (err) {
+      if (err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      client && client.group.each(function (otherClient) {
+        var isTeacher = (content.getOwnerId() && content.getOwnerId() == otherClient.user.getId());
+        otherClient.call(content.getId(), '_add', asset.toAssetData(isTeacher), position);
+      });
       callback && callback();
     });
   });
@@ -75,15 +100,27 @@ Content.prototype.updateAsset = function (client, assetData, callback) {
   var content = this;
   this.assetSet.findById(assetData.id, function (err, asset) {
     if (err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    if(!asset) {
+      err = "Cannot find asset " + assetData.id;
+      console.error(err);
       callback && callback(err);
       return;
     }
     asset.populate(assetData);
-    client && client.group.each(function (otherClient) {
-      var isTeacher = (content.getOwnerId() && content.getOwnerId() == otherClient.user.getId());
-      otherClient.call(content.getId(), '_update', asset.toAssetData(isTeacher));
-    });
     asset.save(function (err) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      client && client.group.each(function (otherClient) {
+        var isTeacher = (content.getOwnerId() && content.getOwnerId() == otherClient.user.getId());
+        otherClient.call(content.getId(), '_update', asset.toAssetData(isTeacher));
+      });
       callback && callback();
     });
   });
@@ -97,11 +134,21 @@ Content.prototype.deleteAsset = function (client, assetId, callback) {
       return;
     }
     asset.delete(function (err) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
       var position = content.po.assets.indexOf(assetId);
       if (position > -1) {
         content.po.assets.splice(position, 1);
         client && client.broadcast(content.getId(), '_remove', assetId);
         content.save(function (err) {
+          if(err) {
+            console.error(err);
+            callback && callback(err);
+            return;
+          }
           callback && callback();
         });
       }
@@ -110,42 +157,70 @@ Content.prototype.deleteAsset = function (client, assetId, callback) {
 }
 
 Content.prototype.moveAsset = function (client, assetId, position, callback) {
-  for (var i in this.assets) {
-    if (this.assets[i] == assetId) {
-      var asset = this.po.assets.splice(i, 1);
+  var content = this;
+  var found = false;
+  for (var i in content.po.assets) {
+    if (content.po.assets[i] == assetId) {
+      found = true;
+      content.po.assets.splice(i, 1);
       var index = position;
       if (i < index) {
         index--;
       }
-      this.po.assets.splice(index, 0, assetId);
+      content.po.assets.splice(index, 0, assetId);
       break;
     }
   }
 
-  client && client.broadcast(this.getId(), '_move', assetId, position);
-  this.save(function (err) {
+  if(!found) {
+    var err = "Cannot find asset " + assetId;
+    console.error(err);
+    callback && callback(err);
+    return;
+  }
+
+  content.save(function (err) {
+    if(err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    client && client.broadcast(content.getId(), '_move', assetId, position);
     callback && callback();
   });
 }
 
 Content.prototype.load = function (client, callback) {
   var content = this;
-  console.log(content.po.assets);
   var isTeacher = (content.getOwnerId() && content.getOwnerId() == client.user.getId());
-  console.log(isTeacher);
   async.map(content.po.assets, function (assetId, callback) {
     content.assetSet.findById(assetId, function (err, asset) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      if(!asset) {
+        err = "Cannot find asset " + assetId;
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
       content.clientComponentSet && content.clientComponentSet.add(asset);
       callback(null, asset.toAssetData(isTeacher));
     });
   }, function (err, assets) {
+    if(err) {
+      console.error(err);
+      callback && callback(err);
+    }
     var data = {
       id: content.getId(),
       title: content.po ? content.po.title : null,
       description: content.po ? content.po.description : null,
       assets: assets
     }
-    callback(err, data);
+    callback && callback(null, data);
   });
 }
 
