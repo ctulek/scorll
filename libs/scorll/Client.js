@@ -3,9 +3,11 @@ var events = require('events');
 
 var User = require('libs/scorll/User');
 var UserPO = require('libs/scorll/model/User');
+var EnrollmentPO = require('libs/scorll/model/Enrollment');
 var Authentication = require('./Authentication');
 
 var Client = function (args) {
+    this.content = null;
     for (var key in args) {
       this[key] = args[key];
     }
@@ -30,7 +32,6 @@ Client.prototype.getId = function () {
 }
 
 Client.prototype.join = function (groupId, callback) {
-  console.log("Client::join " + groupId);
   var client = this;
   this.groupSet.findById(groupId, function (err, group) {
     if (err) {
@@ -48,12 +49,12 @@ Client.prototype.join = function (groupId, callback) {
         client.group = group;
         client.contentSet.findById(groupId, function (err, content) {
           if (err) {
-            consoel.log(err);
+            console.error(err);
             callback && callback(err);
             return;
           }
-          console.log("Content found");
           client.clientComponentSet && client.clientComponentSet.add(content);
+          client.content = content;
           callback && callback();
         });
       });
@@ -84,13 +85,25 @@ Client.prototype.register = function (params, callback) {
       if (err) {
         console.log(err);
         client.userSet.delete(user);
-        user = null;
+        client.user = null;
         callback && callback(err);
         return;
       }
-      user.authenticated = true;
-      console.log("User authenticated");
-      client.rememberme(callback);
+      client.rememberme(function(err) {
+        if(err) {
+          console.error(err);
+          callback && callback(err);
+          return;
+        }
+        client.enroll(function(err) {
+          if(err) {
+            console.error(err);
+            callback && callback(err);
+            return;
+          }
+          callback(null, client.user.toData());
+        });
+      });
     });
   });
 }
@@ -105,17 +118,37 @@ Client.prototype.authN = function (params, callback) {
     else {
       client.userSet.findById(userId, function (err, user) {
         if (err) {
-          console.log(err);
+          console.error(err);
           callback && callback(err);
           return;
         }
         client.user = user;
-        user.authenticated = true;
         if (params.strategy != "cookie") {
-          client.rememberme(callback);
+          client.rememberme(function(err) {
+            if(err) {
+              console.error(err);
+              callback && callback(err);
+              return;
+            }
+            client.enroll(function(err) {
+              if(err) {
+                console.error(err);
+                callback && callback(err);
+                return;
+              }
+              callback(null, client.user.toData());
+            });
+          });
         }
         else {
-          callback(null, user.toData());
+          client.enroll(function(err) {
+            if(err) {
+              console.error(err);
+              callback && callback(err);
+              return;
+            }
+            callback(null, client.user.toData());
+          });
         }
       });
     }
@@ -145,6 +178,46 @@ Client.prototype.rememberme = function (callback) {
       user.cookieExpiresAt = params.expiresAt;
       callback && callback(null, user.toData());
     }
+  });
+}
+
+Client.prototype.enroll = function(callback) {
+  var client = this;
+  if(!client.user || !client.user.getId()) {
+    var err = "User is not defined";
+    console.error(err);
+    callback && callback(err);
+    return;
+  }
+  else if(!client.content || !client.content.getId()) {
+    var err = "Content is not defined";
+    console.error(err);
+    callback && callback(err);
+    return;
+  }
+  var conditions = {userId: client.user.getId(), contentId:
+  client.content.getId()};
+  EnrollmentPO.count(conditions, function(err, count) {
+    if(err) {
+      console.error(err);
+      callback && callback(err);
+      return;
+    }
+    if(count > 0) {
+      callback && callback();
+      return;
+    }
+    var enrollment = new EnrollmentPO();
+    enrollment.userId = client.user.getId();
+    enrollment.contentId = client.content.getId();
+    enrollment.save(function(err) {
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      callback && callback();
+    });
   });
 }
 

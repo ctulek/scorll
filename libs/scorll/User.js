@@ -4,7 +4,6 @@ var profiles = {};
 
 var User = function (args) {
     this.po = null;
-    this.authenticated = false;
     for (var key in args) {
       this[key] = args[key];
     }
