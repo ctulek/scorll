@@ -9,9 +9,6 @@ module.exports = function(app) {
     });
     app.configure("development", function() {
         app.set("port", 8080);
-        app.enable("release");
-        var revision = fs.readFileSync("config.release-revision") + "";
-        app.set("revision", revision.trim());
     });
     app.configure("production", function() {
         app.set("port", 80);
