@@ -4,6 +4,7 @@ var Group = require('libs/scorll/Group');
 var User = require('libs/scorll/User');
 
 var ContentPO = require('libs/scorll/model/Content');
+var ContentAliasPO = require('libs/scorll/model/ContentAlias');
 
 var app;
 
@@ -11,6 +12,7 @@ module.exports = function(appObj) {
     app = appObj;
     app.get('/new(.html)?', newContent);
     app.get('/list(.html)?', listContents);
+    app.get(/^\/([a-z0-9]{5})$/, showContentAlias);
     app.get('/:contentId.html', showContent);
     app.get('/(index.html)?', defaultIndex, showContent);
 }
@@ -51,7 +53,6 @@ var newContent = function(req, res, next) {
               res.send(err, 500);
               return;
           }
-          res.redirect("/" + content.getId() + ".html", 303);
           app.clientComponentSet.add(content);
           var args = {id: content.getId()};
           var group = new Group(args);
@@ -63,6 +64,17 @@ var newContent = function(req, res, next) {
               }
           }
           content.addAsset(null, assetData);
+          var contentAlias = new ContentAliasPO();
+          contentAlias.alias = createAlias();
+          contentAlias.contentId = content.getId();
+          contentAlias.save(function(err) {
+            if(err) {
+              console.error(err);
+              res.end(err, 500);
+              return;
+            }
+            res.redirect("/" + contentAlias.alias, 303);
+          });
       });
     });
   });
@@ -88,4 +100,40 @@ var showContent = function(req, res, next) {
             res.render('index');
         }
     })
+}
+
+var showContentAlias = function(req, res, next) {
+  var alias = req.params[0];
+  ContentAliasPO.findOne({alias: alias}, function(err, contentAlias) {
+    if(err || !contentAlias) {
+      err = err ? err : "Content not found";
+      console.error(err);
+      next(err, 404);
+      return;
+    }
+    res.local('contentId', contentAlias.contentId);
+    res.local('release', app.enabled('release'));
+    res.local('revision', app.set('revision'));
+    app.contentSet.findById(res.local('contentId'), function(err, content) {
+        if(err || !content) {
+            err = err ? err : "Content not found";
+            console.error(err);
+            next(err, 404);
+        } else {
+            res.render('index');
+        }
+    });
+  });
+}
+
+var createAlias = function() {
+  var list = "abcdefghijklmnopqrstuvwxyz0123456789";
+  var alias = "";
+  var min = 0;
+  var max = list.length;
+  for(var i = 0; i < 5; i++) {
+    var index = Math.floor(Math.random() * (max - min + 1)) + min;
+    alias += list.charAt(index);
+  }
+  return alias;
 }
