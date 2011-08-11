@@ -58,8 +58,11 @@ dojo.declare("scorll.asset.MultipleChoice", [
   updateLearnerResponse: function () {
     var asset = this;
     asset.getTrackingResult(function (err, tracking) {
-      if (err || !tracking) {
+      if (err) {
         console.error(err);
+        return;
+      }
+      else if(!tracking) {
         return;
       }
       var response = tracking.responses[tracking.responses.length - 1];

@@ -60,7 +60,6 @@ dojo.declare("scorll.asset.Tracking", null, {
     });
   },
   collect: function (tracking) {
-    console.log(tracking);
     var asset = this;
     var response = tracking.responses[tracking.responses.length - 1];
     asset.userTrackingData.put({

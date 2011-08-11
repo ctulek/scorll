@@ -136,8 +136,7 @@ Asset.prototype.getTrackingResults = function (client, params, callback) {
         callback && callback(err);
         return;
       }
-      var err = tracking ? null : "No record found";
-      callback && callback(err, tracking);
+      callback && callback(null, tracking);
     });
   }
   else {
