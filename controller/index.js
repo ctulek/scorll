@@ -1,3 +1,5 @@
+var async = require('async');
+
 var Authentication = require('libs/scorll/Authentication');
 var Content = require('libs/scorll/Content');
 var Group = require('libs/scorll/Group');
@@ -30,11 +32,13 @@ var newContent = function(req, res, next) {
   var auth = new Authentication(params);
   auth.auth(function (err, userId) {
     if (err) {
+      console.error(err);
       res.end(err);
       return;
     }
     app.userSet.findById(userId, function (err, user) {
       if (err) {
+        console.error(err);
         res.end(err);
         return;
       }
@@ -81,12 +85,38 @@ var newContent = function(req, res, next) {
 }
 
 var listContents = function(req, res, next) {
-    var ids = [];
-    for(var i in app.contentSet.contents) {
-        ids.push(i);
-    }
-    res.local("contentIds", ids);
-    res.render("list");
+    var cond = {};
+
+    ContentPO.find(cond, function(err, contents) {
+      if(err) {
+        console.error(err);
+        res.end(err, 500);
+        return;
+      }
+      async.map(contents, function(content, callback) {
+          var cond = {contentId: content.id};
+          ContentAliasPO.findOne(cond, function(err, contentAlias) {
+            if(err) {
+              console.error(err);
+              callback && callback(err);
+            }
+            var datum = {
+              title: content.title
+            }
+            if(contentAlias) {
+              datum.url = contentAlias.alias;
+            } else {
+              datum.url = content.id + ".html";
+            }
+            callback && callback(null, datum);
+          })
+        },
+        function(err, contents) {
+          res.local("contents", contents);
+          res.render("list");
+        }
+      );
+    });
 }
 
 var showContent = function(req, res, next) {
