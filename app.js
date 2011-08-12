@@ -6,6 +6,7 @@ var ObjectId = require('mongoose').Schema.ObjectId;
 var express = require('express');
 
 var express = require('express');
+var gzip = require('connect-gzip');
 
 var Client = require('libs/scorll/Client');
 var ClientSet = require('libs/scorll/ClientSet');
@@ -26,11 +27,10 @@ var userSet = new UserSet({contentSet: contentSet});
 var ContentPO = require('libs/scorll/model/Content');
 
 var app = express.createServer(
-    express.static(__dirname + '/public'),
+    gzip.staticGzip(__dirname + '/public', {maxAge: 30 * 24 * 60 * 60 * 1000}),
     express.bodyParser(),
     express.methodOverride(),
-    express.cookieParser(),
-    express.session({secret: 'Test' })
+    express.cookieParser()
     );
 
 new require('./config.js')(app);
@@ -46,6 +46,21 @@ app.listen(app.set("port"));
 console.log("Ready to serve requests on port " + app.set('port') + ". Enjoy...");
 
 var io = require("socket.io").listen(app);
+
+io.configure(function(){
+  io.enable('browser client minification');
+  io.enable('browser client etag');
+  io.set('log level', 1);
+
+  io.set('transports', [
+    'websocket'
+  , 'flashsocket'
+  , 'htmlfile'
+  , 'xhr-polling'
+  , 'jsonp-polling'
+  ]);
+});
+
 io.sockets.on('connection', function (ioClient) {
     var args = {
         ioClient: ioClient,

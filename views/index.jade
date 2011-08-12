@@ -59,7 +59,7 @@ html
       script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
     - else
       script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-    script(src="/socket.io/socket.io.js")
+    script(src="/socket.io/socket.io.js?#{revision}")
     script(type="text/javascript", language="javascript")
       // <![CDATA[
       dojo.require("dijit.form.DropDownButton");
