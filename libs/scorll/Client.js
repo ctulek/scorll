@@ -89,14 +89,14 @@ Client.prototype.register = function (params, callback) {
         callback && callback(err);
         return;
       }
-      client.rememberme(function(err) {
-        if(err) {
+      client.rememberme(function (err) {
+        if (err) {
           console.error(err);
           callback && callback(err);
           return;
         }
-        client.enroll(function(err) {
-          if(err) {
+        client.enroll(function (err) {
+          if (err) {
             console.error(err);
             callback && callback(err);
             return;
@@ -124,14 +124,14 @@ Client.prototype.authN = function (params, callback) {
         }
         client.user = user;
         if (params.strategy != "cookie") {
-          client.rememberme(function(err) {
-            if(err) {
+          client.rememberme(function (err) {
+            if (err) {
               console.error(err);
               callback && callback(err);
               return;
             }
-            client.enroll(function(err) {
-              if(err) {
+            client.enroll(function (err) {
+              if (err) {
                 console.error(err);
                 callback && callback(err);
                 return;
@@ -141,8 +141,8 @@ Client.prototype.authN = function (params, callback) {
           });
         }
         else {
-          client.enroll(function(err) {
-            if(err) {
+          client.enroll(function (err) {
+            if (err) {
               console.error(err);
               callback && callback(err);
               return;
@@ -181,37 +181,39 @@ Client.prototype.rememberme = function (callback) {
   });
 }
 
-Client.prototype.enroll = function(callback) {
+Client.prototype.enroll = function (callback) {
   var client = this;
-  if(!client.user || !client.user.getId()) {
+  if (!client.user || !client.user.getId()) {
     var err = "User is not defined";
     console.error(err);
     callback && callback(err);
     return;
   }
-  else if(!client.content || !client.content.getId()) {
+  else if (!client.content || !client.content.getId()) {
     var err = "Content is not defined";
     console.error(err);
     callback && callback(err);
     return;
   }
-  var conditions = {userId: client.user.getId(), contentId:
-  client.content.getId()};
-  EnrollmentPO.count(conditions, function(err, count) {
-    if(err) {
+  var conditions = {
+    userId: client.user.getId(),
+    contentId: client.content.getId()
+  };
+  EnrollmentPO.count(conditions, function (err, count) {
+    if (err) {
       console.error(err);
       callback && callback(err);
       return;
     }
-    if(count > 0) {
+    if (count > 0) {
       callback && callback();
       return;
     }
     var enrollment = new EnrollmentPO();
     enrollment.userId = client.user.getId();
     enrollment.contentId = client.content.getId();
-    enrollment.save(function(err) {
-      if(err) {
+    enrollment.save(function (err) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;

@@ -50,13 +50,15 @@ Asset.prototype.delete = function (callback) {
   }
   var assetId = asset.getId();
   asset.po.remove(function (err) {
-    if(err) {
+    if (err) {
       console.error(err);
       callback && callback(err);
       return;
     }
-    TrackingPO.remove({assetId: assetId}, function(err) {
-      if(err) {
+    TrackingPO.remove({
+      assetId: assetId
+    }, function (err) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;
@@ -92,14 +94,17 @@ Asset.prototype.track = function (client, params, callback) {
     }
   }
   var latency = params.latency || 0;
-  var conditions = {ownerId: user.getId(), assetId: asset.getId()};
-  TrackingPO.findOne(conditions, function(err, tracking) {
-    if(err) {
+  var conditions = {
+    ownerId: user.getId(),
+    assetId: asset.getId()
+  };
+  TrackingPO.findOne(conditions, function (err, tracking) {
+    if (err) {
       console.error(err);
       callback && callback(err);
       return;
     }
-    if(!tracking) {
+    if (!tracking) {
       tracking = new TrackingPO();
       tracking.ownerId = user.getId();
       tracking.username = user.po.profile.username;
@@ -113,8 +118,8 @@ Asset.prototype.track = function (client, params, callback) {
       result: result
     }
     tracking.responses.push(response);
-    tracking.save(function(err) {
-      if(err) {
+    tracking.save(function (err) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;
@@ -129,9 +134,12 @@ Asset.prototype.getTrackingResults = function (client, params, callback) {
   var asset = this;
   var userId = params.userId || null;
   if (userId) {
-    var conditions = {ownerId: userId, assetId: asset.getId()};
-    TrackingPO.findOne(conditions, function(err, tracking) {
-      if(err) {
+    var conditions = {
+      ownerId: userId,
+      assetId: asset.getId()
+    };
+    TrackingPO.findOne(conditions, function (err, tracking) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;
@@ -140,9 +148,11 @@ Asset.prototype.getTrackingResults = function (client, params, callback) {
     });
   }
   else {
-    var conditions = {assetId: asset.getId()};
-    TrackingPO.find(conditions, function(err, tracking) {
-      if(err) {
+    var conditions = {
+      assetId: asset.getId()
+    };
+    TrackingPO.find(conditions, function (err, tracking) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;

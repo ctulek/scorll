@@ -104,7 +104,7 @@ Content.prototype.updateAsset = function (client, assetData, callback) {
       callback && callback(err);
       return;
     }
-    if(!asset) {
+    if (!asset) {
       err = "Cannot find asset " + assetData.id;
       console.error(err);
       callback && callback(err);
@@ -112,7 +112,7 @@ Content.prototype.updateAsset = function (client, assetData, callback) {
     }
     asset.populate(assetData);
     asset.save(function (err) {
-      if(err) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;
@@ -134,7 +134,7 @@ Content.prototype.deleteAsset = function (client, assetId, callback) {
       return;
     }
     asset.delete(function (err) {
-      if(err) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;
@@ -144,7 +144,7 @@ Content.prototype.deleteAsset = function (client, assetId, callback) {
         content.po.assets.splice(position, 1);
         client && client.broadcast(content.getId(), '_remove', assetId);
         content.save(function (err) {
-          if(err) {
+          if (err) {
             console.error(err);
             callback && callback(err);
             return;
@@ -172,7 +172,7 @@ Content.prototype.moveAsset = function (client, assetId, position, callback) {
     }
   }
 
-  if(!found) {
+  if (!found) {
     var err = "Cannot find asset " + assetId;
     console.error(err);
     callback && callback(err);
@@ -180,7 +180,7 @@ Content.prototype.moveAsset = function (client, assetId, position, callback) {
   }
 
   content.save(function (err) {
-    if(err) {
+    if (err) {
       console.error(err);
       callback && callback(err);
       return;
@@ -195,12 +195,12 @@ Content.prototype.load = function (client, callback) {
   var isTeacher = (content.getOwnerId() && content.getOwnerId() == client.user.getId());
   async.map(content.po.assets, function (assetId, callback) {
     content.assetSet.findById(assetId, function (err, asset) {
-      if(err) {
+      if (err) {
         console.error(err);
         callback && callback(err);
         return;
       }
-      if(!asset) {
+      if (!asset) {
         err = "Cannot find asset " + assetId;
         console.error(err);
         callback && callback(err);
@@ -210,7 +210,7 @@ Content.prototype.load = function (client, callback) {
       callback(null, asset.toAssetData(isTeacher));
     });
   }, function (err, assets) {
-    if(err) {
+    if (err) {
       console.error(err);
       callback && callback(err);
     }

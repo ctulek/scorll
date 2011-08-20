@@ -62,7 +62,7 @@ dojo.declare("scorll.asset.MultipleChoice", [
         console.error(err);
         return;
       }
-      else if(!tracking) {
+      else if (!tracking) {
         return;
       }
       var response = tracking.responses[tracking.responses.length - 1];
