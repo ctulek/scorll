@@ -1,6 +1,7 @@
 dojo.provide("scorll.asset.PieChartForm");
 
 dojo.require("scorll.asset.AssetForm");
+dojo.require("dijit.form.TextBox");
 dojo.require("dijit.form.Textarea");
 
 dojo.declare("scorll.asset.PieChartForm", [
@@ -13,11 +14,14 @@ dojo.declare("scorll.asset.PieChartForm", [
       return;
     }
     var data = this.item.data;
+    this.titleBox.attr('value', data.title);
     this.valuesBox.attr('value', data.values);
   },
   submit: function () {
+    var title = this.titleBox.attr('value').trim();
     var values = this.valuesBox.attr('value').trim();
     var data = {};
+    data.title = title;
     data.values = values;
     this.item.data = data;
     this.onSubmit(this.item);

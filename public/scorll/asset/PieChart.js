@@ -10,7 +10,7 @@ dojo.declare("scorll.asset.PieChart", [
     var asset = this;
     var data = asset.item.data;
     var values = data.values.split("\n");
-    var title = "Title Title Title";
+    var title = data.title;
 
     google.load("visualization", "1", {
       callback: g,
@@ -30,10 +30,15 @@ dojo.declare("scorll.asset.PieChart", [
 
       var chart = new
       google.visualization.PieChart(document.getElementById('chart-' + asset.item.id));
+      var titleTextStyle = {
+        fontSize: 16,
+        fontName: "Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default"
+      }
       chart.draw(dataT, {
         width: 700,
         height: 400,
-        title: title
+        title: title,
+        titleTextStyle: titleTextStyle
       });
     }
   }
