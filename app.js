@@ -27,11 +27,18 @@ var userSet = new UserSet({contentSet: contentSet});
 var ContentPO = require('libs/scorll/model/Content');
 
 var app = express.createServer(
-    gzip.staticGzip(__dirname + '/public', {maxAge: 30 * 24 * 60 * 60 * 1000}),
     express.bodyParser(),
     express.methodOverride(),
     express.cookieParser()
     );
+
+app.configure("production", function() {
+  staticOptions = {maxAge: 30 * 24 * 60 * 60 * 1000};
+  app.use(gzip.staticGzip(__dirname + '/public', staticOptions));
+});
+app.configure("development", function() {
+  app.use(express.static(__dirname + '/public', {}));
+});
 
 new require('./config.js')(app);
 
