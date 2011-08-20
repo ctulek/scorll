@@ -44,7 +44,7 @@ html
         style="display: none;") Logout
       div#createNewContentButton(
         dojoType="dijit.form.Button",
-        style="display: none;") Create New Content
+        style="display: none;") Create Scorll
     div#stage-container
       h1#title Loading...
       div#stage
@@ -59,7 +59,11 @@ html
       script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
     - else
       script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-    script(src="/socket.io/socket.io.js?#{revision}")
+    - if (release)
+      script(src="/socket.io/socket.io.js?#{revision}")
+    - else 
+      script(src="/socket.io/socket.io.js")
+    script(type="text/javascript", src="https://www.google.com/jsapi")
     script(type="text/javascript", language="javascript")
       // <![CDATA[
       dojo.require("dijit.form.DropDownButton");
