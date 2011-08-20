@@ -1,48 +1,148 @@
-<html><head><title>Scorll</title><link rel="stylesheet" href="dijit/themes/claro/claro.css"/><link type="text/css" rel="stylesheet" href="/css/main.css"/><link type="text/css" rel="stylesheet" href="/css/stage.css"/></head><body class="claro"><div id="stage-container"><div id="title"><h1>Lorem Lorem Lorem</h1></div><div id="stage"></div><div><div dojoType="dijit.form.Button">Add New Asset<script type="dojo/connect" event="onClick" args="evt">dijit.byId("newAssetDialog").show();
-</script></div></div></div><div id="newAssetDialog" dojoType="dijit.Dialog" title="Add New Asset" style="width: 300px;"></div><script src="/dojo/dojo.js" type="text/javascript" djConfig="parseOnLoad: true"></script><script src="/socket.io/socket.io.js"></script><script type="text/javascript" language="javascript">// <![CDATA[
-dojo.require("dojo.store.Memory");
-dojo.require("dojo.dnd.Source");
-dojo.require("dijit.form.Button");
-dojo.require("dijit.Dialog");
+<html><head><title>Scorll</title><link rel="stylesheet" href="/dijit/themes/claro/claro.css"/><link type="text/css" rel="stylesheet" href="/css/stage.css"/><script type="text/javascript" language="javascript">// <![CDATA[
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-24385457-1']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+// ]]>
+</script></head><body class="claro"><div id="top-menu"><div id="loginButton" dojoType="dijit.form.DropDownButton" style="display: none;"><span>Login</span><div id="loginTooltipDialog" dojoType="dijit.TooltipDialog" style="width: 400px;"><div id="stageLoginForm" dojoType="scorll.stage.Login" showRegisterButton="false"></div></div></div><div id="registerButton" dojoType="dijit.form.DropDownButton" style="display: none;"><span>Register</span><div id="registerTooltipDialog" dojoType="dijit.TooltipDialog" style="width: 400px;"><div id="stageRegistrationForm" dojoType="scorll.stage.Register"></div></div></div><div id="logoutButton" dojoType="dijit.form.Button" style="display: none;">Logout</div><div id="createNewContentButton" dojoType="dijit.form.Button" style="display: none;">Create Scorll</div></div><div id="stage-container"><h1 id="title">Loading...</h1><div id="stage"></div><div style="margin: 5px;"><div id="newAssetButton" dojoType="dijit.form.Button" style="display: none;">Add New Asset</div><div id="pasteAssetButton" dojoType="dijit.form.Button" style="display: none;">Paste</div></div></div><script src="/dojo/dojo.js" type="text/javascript" djConfig="parseOnLoad: true"></script><script src="/socket.io/socket.io.js"></script><script type="text/javascript" src="https://www.google.com/jsapi"></script><script type="text/javascript" language="javascript">// <![CDATA[
+dojo.require("dijit.form.DropDownButton");
+dojo.require("dijit.TooltipDialog");
 
 dojo.require("scorll.content.Content");
 dojo.require("scorll.net.Client");
 dojo.require("scorll.net.User");
 dojo.require("scorll.stage.Stage");
-dojo.require("scorll.asset.AssetManager");
+dojo.require("scorll.stage.Login");
+dojo.require("scorll.stage.Register");
+dojo.require("scorll.asset.NewAssetForm");
 dojo.addOnLoad(
-  function() {  
-    var args = {  
-    client: new scorll.net.Client(),  
-  user: new scorll.net.User(),  
-  content: new scorll.content.Content(),  
-  requireLogin: false,  
-  contentId: '1'  
-  };  
-  var stage = new scorll.stage.Stage(args);  
-  var assetManager = new scorll.asset.AssetManager();  
-  for(var type in assetManager.assets) {  
-    var button = new dijit.form.Button();  
-  var label = assetManager.assets[type].label;  
-  button.attr('label',label);  
-  button.widgetType = type;  
-  dojo.connect(button,"onClick",function() {  
-    var form = assetManager.getAssetForm({type: this.widgetType});  
-  var dialog = new dijit.Dialog();  
-  form.placeAt(dialog.containerNode);  
-  dialog.show();  
-  dojo.connect(form,"onSubmit",function(item) {  
-    dialog.destroy();  
-  stage.content.add(item);  
-  });  
-  dojo.connect(form,"onCancel",function() {  
-    dialog.destroy();  
-  });  
-  dijit.byId("newAssetDialog").hide();  
-  });  
-  button.placeAt(dijit.byId("newAssetDialog").containerNode);  
-  }  
-  }
-);
+  function() {
+    var user = new scorll.net.User();
+    var clientArgs = {
+      groupId: '4e42e38af09e96db18000001'
+    };
+    var contentArgs = {
+      id: '4e42e38af09e96db18000001'
+    };
+    var args = {
+      client: new scorll.net.Client(clientArgs),
+      user: user,
+      content: new scorll.content.Content(contentArgs),
+      requireLogin: false,
+    };
+    var stage = new scorll.stage.Stage(args);
+    var newAssetButton = dijit.byId("newAssetButton");
+    var pasteAssetButton = dijit.byId("pasteAssetButton");
+    dojo.connect(user, "onLogin", function() {
+      dijit.byId("loginButton").domNode.style.display = "none";
+      dijit.byId("registerButton").domNode.style.display = "none";
+      dijit.byId("logoutButton").domNode.style.display = "inline-block";
+      dijit.byId("createNewContentButton").domNode.style.display = "inline-block";
+    });
+    dojo.connect(user, "onLogout", function() {
+      dijit.byId("loginButton").domNode.style.display = "inline-block";
+      dijit.byId("registerButton").domNode.style.display = "inline-block";
+      dijit.byId("logoutButton").domNode.style.display = "none";
+      dijit.byId("createNewContentButton").domNode.style.display = "none";
+    });
+    dojo.connect(user, "onRolesChange", function() {
+      if (!user.hasRole("teacher")) {
+        newAssetButton.domNode.style.display = "none";
+        pasteAssetButton.domNode.style.display = "none";
+        return;
+      }
+      newAssetButton.domNode.style.display = "inline-block";
+      dojo.connect(newAssetButton, "onClick", function() {
+        var newAssetButton = this;
+        dojo.fadeOut({node: newAssetButton.domNode}).play();
+        dojo.fadeOut({node: pasteAssetButton.domNode}).play();
+        var form = new scorll.asset.NewAssetForm(
+          {stage: stage});
+        form.placeAt(dojo.byId("stage"));
+        dojo.connect(form, "onSubmit", function() {
+          dojo.fadeIn({node: newAssetButton.domNode}).play();
+          dojo.fadeIn({node: pasteAssetButton.domNode}).play();
+          form.destroyRecursive();
+        });
+        dojo.connect(form, "onCancel", function() {
+          dojo.fadeIn({node: newAssetButton.domNode}).play();
+          dojo.fadeIn({node: pasteAssetButton.domNode}).play();
+          form.destroyRecursive();
+        });
+      });
+      dojo.connect(pasteAssetButton, "onClick", function() {
+        stage.paste();
+      });
+      dojo.connect(stage, "onClipboard", function() {
+        if (!user.hasRole("teacher")) {
+          return;
+        }
+        if (stage.cutObject || stage.copyObject) {
+          pasteAssetButton.domNode.style['display'] =
+          "inline-block";
+        }
+        else {
+          pasteAssetButton.domNode.style['display'] = "none";
+        }
+      });
+    });
+
+    var loginForm = dijit.byId("stageLoginForm");
+    dojo.connect(loginForm, "onSubmit", function (username, password) {
+      var params = {
+        strategy: "user",
+        username: username,
+        password: password,
+        rememberme: true
+      }
+      // TODO: Move this call to Login Form
+      stage.user.authN(params, function (err) {
+        if (err) {
+          loginForm.showError(err);
+        }
+        else {
+          dijit.byId("loginTooltipDialog").onExecute();
+        }
+      });
+    });
+    dojo.connect(loginForm, "onCancel", function () {
+      dijit.byId("loginTooltipDialog").onCancel();
+    });
+    var registerForm = dijit.byId("stageRegistrationForm");
+    dojo.connect(registerForm, "onSubmit", function (username, email, password) {
+      var params = {
+        strategy: "user",
+        username: username,
+        email: email,
+        password: password
+      }
+      // TODO: Move this call to Registration Form
+      stage.user.register(params, function (err) {
+        if (err) {
+          registerForm.showError(err);
+        }
+        else {
+          dijit.byId("registerTooltipDialog").onExecute();
+        }
+      });
+    });
+    dojo.connect(registerForm, "onCancel", function () {
+      dijit.byId("registerTooltipDialog").onCancel();
+    });
+
+    var createNewContentButton = dijit.byId("createNewContentButton");
+    dojo.connect(createNewContentButton, "onClick", function() {
+      window.location = "/new";
+    });
+    var logoutButton = dijit.byId("logoutButton");
+    dojo.connect(logoutButton, "onClick", function() {
+      user.logout();
+    });
+  });
 // ]]>
 </script></body></html>
