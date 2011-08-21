@@ -9,10 +9,12 @@ dojo.declare("scorll.asset.MultipleChoice", [
   scorll.asset.Tracking
   ], {
   templatePath: dojo.moduleUrl('scorll.asset', 'MultipleChoice.html'),
-  responses: [],
-  inputs: {},
+  responses: null,
+  inputs: null,
   postCreate: function () {
     var asset = this;
+    asset.responses = [];
+    asset.inputs = {};
     var data = this.item.data;
     if (data.answers) {
       for (var i in data.answers) {
