@@ -1,0 +1,115 @@
+html
+  head
+    title Scorll
+    - if (release)
+      link(rel="stylesheet", rel="stylesheet", href="/release/#{revision}/dijit/themes/claro/claro.css")
+    - else
+      link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
+    link(type="text/css", rel="stylesheet", href="/css/stage.css") 
+    script(type="text/javascript", language="javascript")
+      // <![CDATA[
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-24385457-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+      // ]]>
+  body.claro
+    div#login
+      div#studentLoginForm(
+        dojoType="scorll.stage.StudentLogin")
+      div#teacherLoginForm(
+        dojoType="scorll.stage.Login",
+        style="display: none;",
+        showRegisterButton="false")
+    - if (release)
+      script(src="/release/#{revision}/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+      script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
+    - else
+      script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+    script(type="text/javascript", language="javascript")
+      // <![CDATA[
+      dojo.require("dojo.cookie");
+      dojo.require("dijit.form.DropDownButton");
+
+      dojo.require("scorll.stage.StudentLogin");
+      dojo.require("scorll.stage.Login");
+      dojo.addOnLoad(
+        function() {
+          var contentId = '#{contentId}';
+          var studentLoginForm = dijit.byId('studentLoginForm');
+          dojo.connect(studentLoginForm, "onSubmit",
+            function (username, password) {
+            var params = {
+              strategy: "content-user",
+              contentId: contentId,
+              username: username,
+              password: password,
+              rememberme: true
+            }
+            dojo.xhrPost({
+              url: "/auth",
+              content: params,
+              handleAs: "json",
+              load: function(response) {
+                  if(response.ok) {
+                    var alias = dojo.cookie("scorll.login.content-alias");
+                    window.location.replace("/" + alias)
+                    dojo.cookie("scorll.user.cookie", response.cookie);
+                    dojo.cookie("scorll.login.content-id", null, {expires: -1});
+                    dojo.cookie("scorll.login.content-alias", null, {expires: -1});
+                  } else {
+                    studentLoginForm.showError(response.error);
+                  }
+              },
+              error: function() {
+                  studentLoginForm.showError("Cannot connect to server, please try again");
+              },
+              handle: function() {
+              }
+            });
+          });
+          dojo.connect(studentLoginForm, "onTeacher", function (username) {
+            studentLoginForm.domNode.style.display = "none";
+            teacherLoginForm.domNode.style.display = "block";
+          });
+
+          var teacherLoginForm = dijit.byId('teacherLoginForm');
+          dojo.connect(teacherLoginForm, "onSubmit", function (username, password) {
+            var params = {
+              strategy: "user",
+              username: username,
+              password: password,
+              rememberme: true
+            }
+            dojo.xhrPost({
+              url: "/auth",
+              content: params,
+              handleAs: "json",
+              load: function(response) {
+                  if(response.ok) {
+                    var alias = dojo.cookie("scorll.login.content-alias");
+                    window.location.replace("/" + alias)
+                    debugger;
+                    dojo.cookie("scorll.user.cookie", response.cookie);
+                    dojo.cookie("scorll.login.content-id", null, {expires: -1});
+                    dojo.cookie("scorll.login.content-alias", null, {expires: -1});
+                  } else {
+                    teacherLoginForm.showError(response.error);
+                  }
+              },
+              error: function() {
+                teacherLoginForm.showError("Cannot connect to server, please try again");
+              }
+            });
+          });
+
+          dojo.connect(teacherLoginForm, "onCancel", function (username) {
+            teacherLoginForm.domNode.style.display = "none";
+            studentLoginForm.domNode.style.display = "block";
+          });
+        });
