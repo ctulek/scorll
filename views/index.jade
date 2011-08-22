@@ -20,6 +20,7 @@ html
       // ]]>
   body.claro
     div#top-menu
+      div#mini-title
       div#loginButton(
         dojoType="dijit.form.DropDownButton",
         style="display: none;")
@@ -39,12 +40,12 @@ html
           style="width: 400px;")
           div#stageRegistrationForm(
             dojoType="scorll.stage.Register")
-      div#logoutButton(
-        dojoType="dijit.form.Button",
-        style="display: none;") Logout
       div#createNewContentButton(
         dojoType="dijit.form.Button",
         style="display: none;") New Scorll
+      div#logoutButton(
+        dojoType="dijit.form.Button",
+        style="display: none;") Logout
     div#stage-container
       h1#title Loading...
       div#stage
@@ -198,6 +199,16 @@ html
           var logoutButton = dijit.byId("logoutButton");
           dojo.connect(logoutButton, "onClick", function() {
             user.logout();
+          });
+          dojo.connect(window, "onscroll", function() {
+            var y = dojo.position(dojo.byId('title')).y;
+            if(y < 7) {
+              dojo.fadeOut({node: dojo.byId('title')}).play();
+              dojo.fadeIn({node: dojo.byId('mini-title')}).play();
+            } else {
+              dojo.fadeOut({node: dojo.byId('mini-title')}).play();
+              dojo.fadeIn({node: dojo.byId('title')}).play();
+            }
           });
         });
       // ]]>

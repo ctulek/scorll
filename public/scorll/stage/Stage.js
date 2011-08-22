@@ -54,6 +54,7 @@ dojo.declare("scorll.stage.Stage", null, {
     stage.observe();
     dojo.connect(content, "onTitleChange", function (title) {
       contentTitleBox.set("value", title);
+      dojo.byId("mini-title").innerHTML = title;
     });
     // CONTENT TITLE
     var contentTitleBox = new dijit.InlineEditBox({
@@ -62,6 +63,7 @@ dojo.declare("scorll.stage.Stage", null, {
     }, "title");
     dojo.connect(contentTitleBox, "onChange", function (value) {
       content.setTitle(value);
+      dojo.byId("mini-title").innerHTML = value;
     });
     // ASSET MANAGER
     var assetManager = stage.assetManager = new scorll.asset.AssetManager();

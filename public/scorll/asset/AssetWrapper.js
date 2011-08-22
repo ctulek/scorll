@@ -2,7 +2,10 @@ dojo.provide("scorll.asset.AssetWrapper");
 
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
-dojo.require("dijit.TitlePane");
+dojo.require("dijit._Templated");
+dojo.require("dojox.fx.scroll");
+dojo.require("dojo.fx.easing");
+dojo.require("dojo.window");
 
 dojo.require("scorll.asset.AssetMenu");
 dojo.require("scorll.stage.Login");
@@ -33,6 +36,12 @@ dojo.declare("scorll.asset.AssetWrapper", [
     }
     this.registerClipboardEvents();
     this.registerMenuEvents();
+    dojo.connect(this.stage.user, "onRolesChange", function() {
+      var disabled = !wrapper.stage.user.hasRole("teacher");
+      wrapper.menu.disable(disabled);
+    });
+    var disabled = !wrapper.stage.user.hasRole("teacher");
+    wrapper.menu.disable(disabled);
   },
   createWidget: function (asset) {
     var wrapper = this;
@@ -118,6 +127,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         title: "Edit Asset",
         toggleable: false
       });
+      container.domNode.style["margin-top"] = 20;
       dojo.destroy(container.arrowNode);
       form.placeAt(container.containerNode);
       container.placeAt(widget.domNode, "before");
@@ -131,6 +141,22 @@ dojo.declare("scorll.asset.AssetWrapper", [
         widget.domNode.style.display = "block";
         menu.domNode.style.display = "block";
       });
+      setTimeout(function() {
+        var windowH = dojo.window.getBox().h;
+        var wrapperY = dojo.position(container.domNode).y;
+        var wrapperH = dojo.position(container.domNode).h + 10;
+        var notInView = wrapperY < 0 || (wrapperY + wrapperH) > windowH;
+        if(wrapperH < windowH && notInView) {
+          var offsetY = 0;
+          if(wrapperY > 0) {
+            offsetY = windowH - wrapperH;
+          } else {
+            offsetY += 30;
+          }
+          dojox.fx.smoothScroll({win: window, node: wrapper.domNode, easing:
+           dojo.fx.easing.quintIn, duration: 300, offset:{y: -offsetY}}).play();
+        }
+      }, 1);
     });
     dojo.connect(menu, "onDelete", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
