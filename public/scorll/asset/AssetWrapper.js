@@ -11,6 +11,7 @@ dojo.require("scorll.asset.AssetMenu");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
 dojo.require("scorll.asset.TrackingStats");
+dojo.require("scorll.asset.AssetDeleteConfirm");
 
 dojo.declare("scorll.asset.AssetWrapper", [
   dijit._Widget, dijit._Templated
@@ -164,7 +165,20 @@ dojo.declare("scorll.asset.AssetWrapper", [
       }
       var widget = wrapper.widget;
       menu.hide(true);
-      stage.content.remove(widget.item);
+      var confirmW = new scorll.asset.AssetDeleteConfirm();
+      confirmW.domNode.style.width = dojo.position(wrapper.domNode).w - 60;
+      confirmW.domNode.style.height = dojo.position(wrapper.domNode).h - 80;
+      menu.domNode.style.display = "none";
+      widget.domNode.style.display = "none";
+      confirmW.placeAt(wrapper.domNode);
+      dojo.connect(confirmW, "onConfirm", function() {
+        stage.content.remove(widget.item);
+      });
+      dojo.connect(confirmW, "onCancel", function() {
+        confirmW.destroyRecursive();
+        menu.domNode.style.display = "block";
+        widget.domNode.style.display = "block";
+      });
     });
     dojo.connect(menu, "onCut", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
