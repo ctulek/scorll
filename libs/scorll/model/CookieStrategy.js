@@ -9,7 +9,10 @@ var schema = new Schema({
     Date.now,
     index: true
   },
-  userId: ObjectId,
+  userId: {
+    type: ObjectId,
+    index: true
+  },
   cookie: {
     type: String,
     index: true
