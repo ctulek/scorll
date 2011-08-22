@@ -36,9 +36,10 @@ dojo.declare("scorll.asset.AssetWrapper", [
   },
   createWidget: function (asset) {
     var wrapper = this;
-    var menu = this.menu;
-    var widget = this.widget = this.assetManager.getAssetRenderer(this.stage, asset);
-    this.stage.registerAsset(widget);
+    var menu = wrapper.menu;
+    var widget = wrapper.widget
+      = wrapper.assetManager.getAssetRenderer(wrapper.stage, asset);
+    wrapper.stage.registerAsset(widget);
     menu.widget = widget;
     dojo.connect(widget, "onMouseOver", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -56,7 +57,9 @@ dojo.declare("scorll.asset.AssetWrapper", [
     dojo.connect(widget, "onLoginRequired", function (callback) {
       wrapper.showLogin(callback);
     });
-    widget && dojo.place(widget.domNode, this.domNode);
+    var anchor = widget.item.id.substr(0,4) + widget.item.id.substr(-4);
+    dojo.place('<a name="' + anchor + '"></a>', wrapper.domNode);
+    widget && dojo.place(widget.domNode, wrapper.domNode);
   },
   updateAsset: function (asset) {
     this.asset = asset;
