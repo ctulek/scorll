@@ -19,6 +19,12 @@ body {
     font-size: 16px;
 }
 
+div#top-menu {
+  margin-left: 20px;
+  text-align: right;
+  width: 720px;
+}
+
 div#stage-container {
     font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
 	margin-left: 20px;
@@ -47,6 +53,15 @@ div.asset-wrapper {
 div.asset-types-container {
     margin: 20px 0px;
     border: 3px solid silver;
+}
+
+div#login {
+  margin: 100px auto;
+  width: 300px;
+}
+
+div#bottom-menu {
+  margin-top: 20px;
 }
 
 div#notes {
