@@ -23,7 +23,7 @@ dependencies = {
             "scorll.asset.Vimeo",
             "scorll.asset.VimeoForm",
             "scorll.asset.Poll",
-            "scorll.asset.PollForm"
+            "scorll.asset.PollForm",
             "scorll.asset.PieChart",
             "scorll.asset.PieChartForm"
             ]

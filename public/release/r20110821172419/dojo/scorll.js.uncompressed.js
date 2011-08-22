@@ -12210,6 +12210,11 @@ dojo.declare("scorll.asset.AssetManager", null, {
       label: "Poll",
       renderer: "scorll.asset.Poll",
       form: "scorll.asset.PollForm"
+    },
+    "piechart": {
+      label: "Pie Chart",
+      renderer: "scorll.asset.PieChart",
+      form: "scorll.asset.PieChartForm"
     }
 
   },
@@ -26899,6 +26904,9 @@ dojo.declare("scorll.stage.Stage", null, {
     // USER
     var user = stage.user;
     user.client = client;
+    dojo.connect(user, "onRolesChange", function() {
+      contentTitleBox.disabled = !user.hasRole("teacher");
+    });
     // CONTENT
     var content = stage.content;
     client.register(content);
@@ -26908,7 +26916,8 @@ dojo.declare("scorll.stage.Stage", null, {
     });
     // CONTENT TITLE
     var contentTitleBox = new dijit.InlineEditBox({
-      editor: "dijit.form.TextBox"
+      editor: "dijit.form.TextBox",
+      disabled: true
     }, "title");
     dojo.connect(contentTitleBox, "onChange", function (value) {
       content.setTitle(value);
@@ -28529,10 +28538,12 @@ dojo.declare("scorll.asset.MultipleChoice", [
   scorll.asset.Tracking
   ], {
   templateString:"<div>\n\t<div>${item.data.question}</div>\n</div>\n",
-  responses: [],
-  inputs: {},
+  responses: null,
+  inputs: null,
   postCreate: function () {
     var asset = this;
+    asset.responses = [];
+    asset.inputs = {};
     var data = this.item.data;
     if (data.answers) {
       for (var i in data.answers) {
@@ -28582,7 +28593,7 @@ dojo.declare("scorll.asset.MultipleChoice", [
         console.error(err);
         return;
       }
-      else if(!tracking) {
+      else if (!tracking || !tracking.responses) {
         return;
       }
       var response = tracking.responses[tracking.responses.length - 1];
@@ -29555,13 +29566,16 @@ dojo.declare("scorll.asset.Poll", [
   scorll.asset.Tracking
   ], {
   templateString:"<div>\n</div>\n",
-  responses: [],
-  _optionValueHash: {},
-  // optionKey -> value
-  _userIdVoteHash: {},
   // userId -> value
   _voteCnt: 0,
+  responses: null,
+  _optionValueHash: null,
+  // optionKey -> value
+  _userIdVoteHash: null,
   postCreate: function () {
+    this.responses = [];
+    this._optionValueHash = {};
+    this._userIdVoteHash = {};
     dojo.connect(this, "onCollect", dojo.hitch(this, function (data) {
       //data : {userId, username, response, result}
       if (this._userIdVoteHash[data.userId]) {
@@ -29685,6 +29699,93 @@ dojo.declare("scorll.asset.PollForm", [
       question: question,
       options: options
     };
+    this.onSubmit(this.item);
+  },
+  cancel: function () {
+    this.onCancel();
+  }
+});
+
+}
+
+if(!dojo._hasResource["scorll.asset.PieChart"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["scorll.asset.PieChart"] = true;
+dojo.provide("scorll.asset.PieChart");
+
+
+
+dojo.declare("scorll.asset.PieChart", [
+  scorll.asset.Asset
+  ], {
+  templateString:"<div>\n    <div id=\"chart-${item.id}\">Loading Chart...</div>\n",
+  postCreate: function () {
+    var asset = this;
+    var data = asset.item.data;
+    var values = data.values.split("\n");
+    var title = data.title;
+
+    google.load("visualization", "1", {
+      callback: g,
+      packages: ["corechart"]
+    });
+
+    function g() {
+      var dataT = new google.visualization.DataTable();
+      dataT.addColumn('string');
+      dataT.addColumn('number');
+      dataT.addRows(values.length);
+      for (var i = 0; i < values.length; i++) {
+        var tokens = values[i].split(" ");
+        dataT.setValue(i, 0, tokens.slice(1).join(" "));
+        dataT.setValue(i, 1, tokens[0] * 1);
+      }
+
+      var chart = new
+      google.visualization.PieChart(document.getElementById('chart-' + asset.item.id));
+      var titleTextStyle = {
+        fontSize: 16,
+        fontName: "Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default"
+      }
+      chart.draw(dataT, {
+        width: 700,
+        height: 400,
+        title: title,
+        titleTextStyle: titleTextStyle
+      });
+    }
+  }
+});
+
+}
+
+if(!dojo._hasResource["scorll.asset.PieChartForm"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["scorll.asset.PieChartForm"] = true;
+dojo.provide("scorll.asset.PieChartForm");
+
+
+
+
+
+dojo.declare("scorll.asset.PieChartForm", [
+  scorll.asset.AssetForm
+  ], {
+  templateString:"<div>\n\t<div style=\"width: 100%;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" orientation=\"vert\" labelWidth=\"120\">\n      <div dojoType=\"dijit.form.TextBox\"\n        dojoAttachPoint=\"titleBox\"\n              title=\"Title\"\n        style=\"width: 100%;\" ></div>\n      <div dojoType=\"dijit.form.Textarea\"\n        dojoAttachPoint=\"valuesBox\"\n              title=\"Data\"\n        style=\"width: 100%; min-height: 200px;\" ></div>\n    </div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+  postCreate: function () {
+    this.formContainer.startup();
+    if (!this.item.data) {
+      return;
+    }
+    var data = this.item.data;
+    this.titleBox.attr('value', data.title);
+    this.valuesBox.attr('value', data.values);
+  },
+  submit: function () {
+    var title = this.titleBox.attr('value').trim();
+    var values = this.valuesBox.attr('value').trim();
+    var data = {};
+    data.title = title;
+    data.values = values;
+    this.item.data = data;
     this.onSubmit(this.item);
   },
   cancel: function () {

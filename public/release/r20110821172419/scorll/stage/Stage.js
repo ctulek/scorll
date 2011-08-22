@@ -54,6 +54,9 @@ dojo.declare("scorll.stage.Stage", null, {
     // USER
     var user = stage.user;
     user.client = client;
+    dojo.connect(user, "onRolesChange", function() {
+      contentTitleBox.disabled = !user.hasRole("teacher");
+    });
     // CONTENT
     var content = stage.content;
     client.register(content);
@@ -63,7 +66,8 @@ dojo.declare("scorll.stage.Stage", null, {
     });
     // CONTENT TITLE
     var contentTitleBox = new dijit.InlineEditBox({
-      editor: "dijit.form.TextBox"
+      editor: "dijit.form.TextBox",
+      disabled: true
     }, "title");
     dojo.connect(contentTitleBox, "onChange", function (value) {
       content.setTitle(value);

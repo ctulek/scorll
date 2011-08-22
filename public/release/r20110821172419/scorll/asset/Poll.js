@@ -19,13 +19,16 @@ dojo.declare("scorll.asset.Poll", [
   scorll.asset.Tracking
   ], {
   templateString:"<div>\n</div>\n",
-  responses: [],
-  _optionValueHash: {},
-  // optionKey -> value
-  _userIdVoteHash: {},
   // userId -> value
   _voteCnt: 0,
+  responses: null,
+  _optionValueHash: null,
+  // optionKey -> value
+  _userIdVoteHash: null,
   postCreate: function () {
+    this.responses = [];
+    this._optionValueHash = {};
+    this._userIdVoteHash = {};
     dojo.connect(this, "onCollect", dojo.hitch(this, function (data) {
       //data : {userId, username, response, result}
       if (this._userIdVoteHash[data.userId]) {

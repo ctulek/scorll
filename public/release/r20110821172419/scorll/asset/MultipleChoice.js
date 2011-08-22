@@ -18,10 +18,12 @@ dojo.declare("scorll.asset.MultipleChoice", [
   scorll.asset.Tracking
   ], {
   templateString:"<div>\n\t<div>${item.data.question}</div>\n</div>\n",
-  responses: [],
-  inputs: {},
+  responses: null,
+  inputs: null,
   postCreate: function () {
     var asset = this;
+    asset.responses = [];
+    asset.inputs = {};
     var data = this.item.data;
     if (data.answers) {
       for (var i in data.answers) {
@@ -71,7 +73,7 @@ dojo.declare("scorll.asset.MultipleChoice", [
         console.error(err);
         return;
       }
-      else if(!tracking) {
+      else if (!tracking || !tracking.responses) {
         return;
       }
       var response = tracking.responses[tracking.responses.length - 1];

@@ -50,6 +50,11 @@ dojo.declare("scorll.asset.AssetManager", null, {
       label: "Poll",
       renderer: "scorll.asset.Poll",
       form: "scorll.asset.PollForm"
+    },
+    "piechart": {
+      label: "Pie Chart",
+      renderer: "scorll.asset.PieChart",
+      form: "scorll.asset.PieChartForm"
     }
 
   },
