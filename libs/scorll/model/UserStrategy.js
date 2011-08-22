@@ -9,7 +9,10 @@ var schema = new Schema({
     Date.now,
     index: true
   },
-  userId: ObjectId,
+  userId: {
+    type: ObjectId,
+    index: true
+  },
   username: {
     type: String,
     index: true
