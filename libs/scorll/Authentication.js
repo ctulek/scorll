@@ -1,6 +1,7 @@
 var strategies = {
   user: require('./UserStrategy.js'),
-  cookie: require('./CookieStrategy.js')
+  cookie: require('./CookieStrategy.js'),
+  "content-user": require('./ContentUserStrategy.js')
 };
 
 var Authentication = function (params) {

@@ -1,0 +1,21 @@
+<div>
+	<div>
+		<div dojoType="dojox.layout.TableContainer"
+            dojoAttachPoint="tableContainer"
+            cols="1" labelWidth="120" height="300px">
+			<div dojoType="dijit.form.ValidationTextBox" dojoAttachPoint="username"
+        required="true" title="Name"></div>
+			<div dojoType="dijit.form.ValidationTextBox" dojoAttachPoint="password"
+        required="true" type="password" title="Password"></div>
+		</div>
+    <div dojoAttachPoint="errorMessage"
+      style="display: none; color: red"></div>
+		<div style="text-align: left; float: left;">
+			<div dojoType="dijit.form.Button"
+        dojoAttachPoint="teacherButton"
+        dojoAttachEvent="onClick:teacher">Login as Teacher</div>
+		</div>
+		<div style="text-align: right;">
+			<div dojoType="dijit.form.Button" dojoAttachEvent="onClick:submit">Enter</div>
+		</div>
+	</div>
