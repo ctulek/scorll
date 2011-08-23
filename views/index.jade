@@ -5,7 +5,7 @@ html
       link(rel="stylesheet", rel="stylesheet", href="/release/#{revision}/dijit/themes/claro/claro.css")
     - else
       link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
-    link(type="text/css", rel="stylesheet", href="/css/stage.css") 
+    link(type="text/css", rel="stylesheet", href="/css/stage.css?#{revision}") 
     script(type="text/javascript", language="javascript")
       // <![CDATA[
       var _gaq = _gaq || [];
@@ -59,10 +59,7 @@ html
       script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
     - else
       script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-    - if (release)
       script(src="/socket.io/socket.io.js?#{revision}")
-    - else 
-      script(src="/socket.io/socket.io.js")
     script(type="text/javascript", src="https://www.google.com/jsapi")
     script(type="text/javascript", language="javascript")
       // <![CDATA[
