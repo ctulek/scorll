@@ -30,6 +30,10 @@ dojox.fx.smoothScroll = function(/* Object */args){
 		delta.x -= winPos.x;
 		delta.y -= winPos.y;
 	}
+  if(args.offset) {
+    delta.x += args.offset.x;
+    delta.y += args.offset.y;
+  }
 	var _anim = (isWindow) ?
 		(function(val){
 			args.win.scrollTo(val[0],val[1]);

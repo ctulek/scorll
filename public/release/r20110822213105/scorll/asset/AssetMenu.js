@@ -87,6 +87,15 @@ dojo.declare("scorll.asset.AssetMenu", [
         toggler.hide();
       }, 300);
     }
+  },
+  disable: function (disabled) {
+    this.addBeforeButton.setAttribute('disabled', disabled);
+    this.editButton.setAttribute('disabled', disabled);
+    this.deleteButton.setAttribute('disabled', disabled);
+    this.cutButton.setAttribute('disabled', disabled);
+    this.copyButton.setAttribute('disabled', disabled);
+    this.pasteButton.setAttribute('disabled', disabled);
+    this.statsButton.setAttribute('disabled', disabled);
   }
 });
 

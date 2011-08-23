@@ -9075,6 +9075,264 @@ dojo.declare(
 
 }
 
+if(!dojo._hasResource["dijit.form.SimpleTextarea"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dijit.form.SimpleTextarea"] = true;
+dojo.provide("dijit.form.SimpleTextarea");
+
+
+
+dojo.declare("dijit.form.SimpleTextarea",
+	dijit.form.TextBox,
+	{
+	// summary:
+	//		A simple textarea that degrades, and responds to
+	// 		minimal LayoutContainer usage, and works with dijit.form.Form.
+	//		Doesn't automatically size according to input, like Textarea.
+	//
+	// example:
+	//	|	<textarea dojoType="dijit.form.SimpleTextarea" name="foo" value="bar" rows=30 cols=40></textarea>
+	//
+	// example:
+	//	|	new dijit.form.SimpleTextarea({ rows:20, cols:30 }, "foo");
+
+	baseClass: "dijitTextBox dijitTextArea",
+
+	attributeMap: dojo.delegate(dijit.form._FormValueWidget.prototype.attributeMap, {
+		rows:"textbox", cols: "textbox"
+	}),
+
+	// rows: Number
+	//		The number of rows of text.
+	rows: "3",
+
+	// rows: Number
+	//		The number of characters per line.
+	cols: "20",
+
+	templateString: "<textarea ${!nameAttrSetting} dojoAttachPoint='focusNode,containerNode,textbox' autocomplete='off'></textarea>",
+
+	postMixInProperties: function(){
+		// Copy value from srcNodeRef, unless user specified a value explicitly (or there is no srcNodeRef)
+		// TODO: parser will handle this in 2.0
+		if(!this.value && this.srcNodeRef){
+			this.value = this.srcNodeRef.value;
+		}
+		this.inherited(arguments);
+	},
+
+	buildRendering: function(){
+		this.inherited(arguments);
+		if(dojo.isIE && this.cols){ // attribute selectors is not supported in IE6
+			dojo.addClass(this.textbox, "dijitTextAreaCols");
+		}
+	},
+
+	filter: function(/*String*/ value){
+		// Override TextBox.filter to deal with newlines... specifically (IIRC) this is for IE which writes newlines
+		// as \r\n instead of just \n
+		if(value){
+			value = value.replace(/\r/g,"");
+		}
+		return this.inherited(arguments);
+	},
+
+	_previousValue: "",
+	_onInput: function(/*Event?*/ e){
+		// Override TextBox._onInput() to enforce maxLength restriction
+		if(this.maxLength){
+			var maxLength = parseInt(this.maxLength);
+			var value = this.textbox.value.replace(/\r/g,'');
+			var overflow = value.length - maxLength;
+			if(overflow > 0){
+				if(e){ dojo.stopEvent(e); }
+				var textarea = this.textbox;
+				if(textarea.selectionStart){
+					var pos = textarea.selectionStart;
+					var cr = 0;
+					if(dojo.isOpera){
+						cr = (this.textbox.value.substring(0,pos).match(/\r/g) || []).length;
+					}
+					this.textbox.value = value.substring(0,pos-overflow-cr)+value.substring(pos-cr);
+					textarea.setSelectionRange(pos-overflow, pos-overflow);
+				}else if(dojo.doc.selection){ //IE
+					textarea.focus();
+					var range = dojo.doc.selection.createRange();
+					// delete overflow characters
+					range.moveStart("character", -overflow);
+					range.text = '';
+					// show cursor
+					range.select();
+				}
+			}
+			this._previousValue = this.textbox.value;
+		}
+		this.inherited(arguments);
+	}
+});
+
+}
+
+if(!dojo._hasResource["dijit.form.Textarea"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dijit.form.Textarea"] = true;
+dojo.provide("dijit.form.Textarea");
+
+
+
+dojo.declare(
+	"dijit.form.Textarea",
+	dijit.form.SimpleTextarea,
+	{
+	// summary:
+	//		A textarea widget that adjusts it's height according to the amount of data.
+	//
+	// description:
+	//		A textarea that dynamically expands/contracts (changing it's height) as
+	//		the user types, to display all the text without requiring a scroll bar.
+	//
+	//		Takes nearly all the parameters (name, value, etc.) that a vanilla textarea takes.
+	//		Rows is not supported since this widget adjusts the height.
+	//
+	// example:
+	// |	<textarea dojoType="dijit.form.TextArea">...</textarea>
+
+
+	// TODO: for 2.0, rename this to ExpandingTextArea, and rename SimpleTextarea to Textarea
+
+	baseClass: "dijitTextBox dijitTextArea dijitExpandingTextArea",
+
+	// Override SimpleTextArea.cols to default to width:100%, for backward compatibility
+	cols: "",
+
+	_previousNewlines: 0,
+	_strictMode: (dojo.doc.compatMode != 'BackCompat'), // not the same as !dojo.isQuirks
+
+	_getHeight: function(textarea){
+		var newH = textarea.scrollHeight;
+		if(dojo.isIE){
+			newH += textarea.offsetHeight - textarea.clientHeight - ((dojo.isIE < 8 && this._strictMode) ? dojo._getPadBorderExtents(textarea).h : 0);
+		}else if(dojo.isMoz){
+			newH += textarea.offsetHeight - textarea.clientHeight; // creates room for horizontal scrollbar
+		}else if(dojo.isWebKit){
+			newH += dojo._getBorderExtents(textarea).h;
+		}else{ // Opera 9.6 (TODO: test if this is still needed)
+			newH += dojo._getPadBorderExtents(textarea).h;
+		}
+		return newH;
+	},
+
+	_estimateHeight: function(textarea){
+		// summary:
+		// 		Approximate the height when the textarea is invisible with the number of lines in the text.
+		// 		Fails when someone calls setValue with a long wrapping line, but the layout fixes itself when the user clicks inside so . . .
+		// 		In IE, the resize event is supposed to fire when the textarea becomes visible again and that will correct the size automatically.
+		//
+		textarea.style.maxHeight = "";
+		textarea.style.height = "auto";
+		// #rows = #newlines+1
+		// Note: on Moz, the following #rows appears to be 1 too many.
+		// Actually, Moz is reserving room for the scrollbar.
+		// If you increase the font size, this behavior becomes readily apparent as the last line gets cut off without the +1.
+		textarea.rows = (textarea.value.match(/\n/g) || []).length + 1;
+	},
+
+	_needsHelpShrinking: dojo.isMoz || dojo.isWebKit,
+
+	_onInput: function(){
+		// Override SimpleTextArea._onInput() to deal with height adjustment
+		this.inherited(arguments);
+		if(this._busyResizing){ return; }
+		this._busyResizing = true;
+		var textarea = this.textbox;
+		if(textarea.scrollHeight && textarea.offsetHeight && textarea.clientHeight){
+			var newH = this._getHeight(textarea) + "px";
+			if(textarea.style.height != newH){
+				textarea.style.maxHeight = textarea.style.height = newH;
+			}
+			if(this._needsHelpShrinking){
+				if(this._setTimeoutHandle){
+					clearTimeout(this._setTimeoutHandle);
+				}
+				this._setTimeoutHandle = setTimeout(dojo.hitch(this, "_shrink"), 0); // try to collapse multiple shrinks into 1
+			}
+		}else{
+			// hidden content of unknown size
+			this._estimateHeight(textarea);
+		}
+		this._busyResizing = false;
+	},
+
+	_busyResizing: false,
+	_shrink: function(){
+		// grow paddingBottom to see if scrollHeight shrinks (when it is unneccesarily big)
+		this._setTimeoutHandle = null;
+		if(this._needsHelpShrinking && !this._busyResizing){
+			this._busyResizing = true;
+			var textarea = this.textbox;
+			var empty = false;
+			if(textarea.value == ''){
+				textarea.value = ' '; // prevent collapse all the way back to 0
+				empty = true;
+			}
+			var scrollHeight = textarea.scrollHeight;
+			if(!scrollHeight){
+				this._estimateHeight(textarea);
+			}else{
+				var oldPadding = textarea.style.paddingBottom;
+				var newPadding = dojo._getPadExtents(textarea);
+				newPadding = newPadding.h - newPadding.t;
+				textarea.style.paddingBottom = newPadding + 1 + "px"; // tweak padding to see if height can be reduced
+				var newH = this._getHeight(textarea) - 1 + "px"; // see if the height changed by the 1px added
+				if(textarea.style.maxHeight != newH){ // if can be reduced, so now try a big chunk
+					textarea.style.paddingBottom = newPadding + scrollHeight + "px";
+					textarea.scrollTop = 0;
+					textarea.style.maxHeight = this._getHeight(textarea) - scrollHeight + "px"; // scrollHeight is the added padding
+				}
+				textarea.style.paddingBottom = oldPadding;
+			}
+			if(empty){
+				textarea.value = '';
+			}
+			this._busyResizing = false;
+		}
+	},
+
+	resize: function(){
+		// summary:
+		//		Resizes the textarea vertically (should be called after a style/value change)
+		this._onInput();
+	},
+
+	_setValueAttr: function(){
+		this.inherited(arguments);
+		this.resize();
+	},
+
+	buildRendering: function(){
+		this.inherited(arguments);
+
+		// tweak textarea style to reduce browser differences
+		dojo.style(this.textbox, { overflowY: 'hidden', overflowX: 'auto', boxSizing: 'border-box', MsBoxSizing: 'border-box', WebkitBoxSizing: 'border-box', MozBoxSizing: 'border-box' });
+	},
+
+	postCreate: function(){
+		this.inherited(arguments);
+
+		this.connect(this.textbox, "onscroll", "_onInput");
+		this.connect(this.textbox, "onresize", "_onInput");
+		this.connect(this.textbox, "onfocus", "_onInput"); // useful when a previous estimate was off a bit
+		this._setTimeoutHandle = setTimeout(dojo.hitch(this, "resize"), 0);
+	},
+
+	uninitialize: function(){
+		if(this._setTimeoutHandle){
+			clearTimeout(this._setTimeoutHandle);
+		}
+		this.inherited(arguments);
+	}
+});
+
+}
+
 if(!dojo._hasResource["dijit.Tooltip"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
 dojo._hasResource["dijit.Tooltip"] = true;
 dojo.provide("dijit.Tooltip");
@@ -12263,6 +12521,401 @@ dojo.declare("scorll.asset.AssetManager", null, {
 
 }
 
+if(!dojo._hasResource["dojox.fx._core"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.fx._core"] = true;
+dojo.provide("dojox.fx._core");
+
+dojox.fx._Line = function(start, end){
+	// summary: a custom _Line to accomodate multi-dimensional values
+	//
+	// description:
+	//	a normal dojo._Line is the curve, and does Line(start,end)
+	//	for propertyAnimation. as we make more complicatied animations, we realize
+	//	some properties can have 2, or 4 values relevant (x,y) or (t,l,r,b) for example
+	//
+	// 	this function provides support for those Lines, and is ported directly from 0.4
+	//	this is a lot of extra code for something so seldom used, so we'll put it here as
+	//	and optional core addition. you can create a new line, and use it during onAnimate
+	//	as you see fit.
+	//
+	// start: Integer|Array
+	//	An Integer (or an Array of integers) to use as a starting point
+	// end: Integer|Array
+	//	An Integer (or an Array of integers) to use as an ending point
+	//
+	// example: see dojox.fx.smoothScroll
+	//
+	// example:
+	// |	// this is 10 .. 100 and 50 .. 500
+	// |	var curve = new dojox.fx._Line([10,50],[100,500]);
+	// |	// dojo.Animation.onAnimate is called at every step of the animation
+	// |	// to define current values. this _Line returns an array
+	// | 	// at each step. arguments[0] and [1] in this example.
+	//
+	this.start = start;
+	this.end = end;
+	
+	var isArray = dojo.isArray(start),
+		d = (isArray ? [] : end - start);
+	
+	if(isArray){
+		// multi-dimensional branch
+		dojo.forEach(this.start, function(s, i){
+			d[i] = this.end[i] - s;
+		}, this);
+		
+		this.getValue = function(/*float*/ n){
+			var res = [];
+			dojo.forEach(this.start, function(s, i){
+				res[i] = (d[i] * n) + s;
+			}, this);
+			return res; // Array
+		}
+	}else{
+		// single value branch, document here for both branches:
+		this.getValue = function(/*float*/ n){
+			// summary: Returns the point on the line, or an array of points
+			// n: a floating point number greater than 0 and less than 1
+			// returns: Mixed
+			return (d * n) + this.start; // Decimal
+		}
+	}
+};
+
+}
+
+if(!dojo._hasResource["dojox.fx.scroll"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.fx.scroll"] = true;
+dojo.provide("dojox.fx.scroll");
+dojo.experimental("dojox.fx.scroll");
+
+
+
+dojox.fx.smoothScroll = function(/* Object */args){
+	// summary: Returns an animation that will smooth-scroll to a node
+	// description: This implementation support either horizontal or vertical scroll, as well as
+	// both. In addition, element in iframe can be scrolled to correctly.
+	// offset: {x: int, y: int} this will be added to the target position
+	// duration: Duration of the animation in milliseconds.
+	// win: a node or window object to scroll
+
+	if(!args.target){ args.target = dojo.position(args.node); }
+
+	var isWindow = dojo[(dojo.isIE ? "isObject" : "isFunction")](args["win"].scrollTo),
+		delta = { x: args.target.x, y: args.target.y }
+	;
+	if(!isWindow){
+		var winPos = dojo.position(args.win);
+		delta.x -= winPos.x;
+		delta.y -= winPos.y;
+	}
+  if(args.offset) {
+    delta.x += args.offset.x;
+    delta.y += args.offset.y;
+  }
+	var _anim = (isWindow) ?
+		(function(val){
+			args.win.scrollTo(val[0],val[1]);
+		}) :
+		(function(val){
+			args.win.scrollLeft = val[0];
+			args.win.scrollTop = val[1];
+		});
+	var anim = new dojo.Animation(dojo.mixin({
+		beforeBegin: function(){
+			if(this.curve){ delete this.curve; }
+			var current = isWindow ? dojo._docScroll() : {x: args.win.scrollLeft, y: args.win.scrollTop};
+			anim.curve = new dojox.fx._Line([current.x,current.y],[current.x + delta.x, current.y + delta.y]);
+		},
+		onAnimate: _anim
+	},args));
+	return anim; // dojo.Animation
+};
+
+}
+
+if(!dojo._hasResource["dojo.fx.easing"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojo.fx.easing"] = true;
+dojo.provide("dojo.fx.easing");
+
+dojo.getObject("fx.easing", true, dojo);
+
+dojo.fx.easing = {
+	// summary:
+	//		Collection of easing functions to use beyond the default
+	//		`dojo._defaultEasing` function.
+	//
+	// description:
+	//
+	//		Easing functions are used to manipulate the iteration through
+	//		an `dojo.Animation`s _Line. _Line being the properties of an Animation,
+	//		and the easing function progresses through that Line determing
+	//		how quickly (or slowly) it should go. Or more accurately: modify
+	//		the value of the _Line based on the percentage of animation completed.
+	//
+	//		All functions follow a simple naming convention of "ease type" + "when".
+	//		If the name of the function ends in Out, the easing described appears
+	//		towards the end of the animation. "In" means during the beginning,
+	//		and InOut means both ranges of the Animation will applied, both
+	//		beginning and end.
+	//
+	//		One does not call the easing function directly, it must be passed to
+	//		the `easing` property of an animation.
+	//
+	//	example:
+	//	|	
+	//	|	var anim = dojo.fadeOut({
+	//	|		node: 'node',
+	//	|		duration: 2000,
+	//	|		//	note there is no ()
+	//	|		easing: dojo.fx.easing.quadIn
+	//	|	}).play();
+	//
+	
+	linear: function(/* Decimal? */n){
+		// summary: A linear easing function
+		return n;
+	},
+
+	quadIn: function(/* Decimal? */n){
+		return Math.pow(n, 2);
+	},
+
+	quadOut: function(/* Decimal? */n){
+		return n * (n - 2) * -1;
+	},
+
+	quadInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 2) / 2; }
+		return -1 * ((--n) * (n - 2) - 1) / 2;
+	},
+
+	cubicIn: function(/* Decimal? */n){
+		return Math.pow(n, 3);
+	},
+
+	cubicOut: function(/* Decimal? */n){
+		return Math.pow(n - 1, 3) + 1;
+	},
+
+	cubicInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 3) / 2; }
+		n -= 2;
+		return (Math.pow(n, 3) + 2) / 2;
+	},
+
+	quartIn: function(/* Decimal? */n){
+		return Math.pow(n, 4);
+	},
+
+	quartOut: function(/* Decimal? */n){
+		return -1 * (Math.pow(n - 1, 4) - 1);
+	},
+
+	quartInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 4) / 2; }
+		n -= 2;
+		return -1 / 2 * (Math.pow(n, 4) - 2);
+	},
+
+	quintIn: function(/* Decimal? */n){
+		return Math.pow(n, 5);
+	},
+
+	quintOut: function(/* Decimal? */n){
+		return Math.pow(n - 1, 5) + 1;
+	},
+
+	quintInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 5) / 2; };
+		n -= 2;
+		return (Math.pow(n, 5) + 2) / 2;
+	},
+
+	sineIn: function(/* Decimal? */n){
+		return -1 * Math.cos(n * (Math.PI / 2)) + 1;
+	},
+
+	sineOut: function(/* Decimal? */n){
+		return Math.sin(n * (Math.PI / 2));
+	},
+
+	sineInOut: function(/* Decimal? */n){
+		return -1 * (Math.cos(Math.PI * n) - 1) / 2;
+	},
+
+	expoIn: function(/* Decimal? */n){
+		return (n == 0) ? 0 : Math.pow(2, 10 * (n - 1));
+	},
+
+	expoOut: function(/* Decimal? */n){
+		return (n == 1) ? 1 : (-1 * Math.pow(2, -10 * n) + 1);
+	},
+
+	expoInOut: function(/* Decimal? */n){
+		if(n == 0){ return 0; }
+		if(n == 1){ return 1; }
+		n = n * 2;
+		if(n < 1){ return Math.pow(2, 10 * (n - 1)) / 2; }
+		--n;
+		return (-1 * Math.pow(2, -10 * n) + 2) / 2;
+	},
+
+	circIn: function(/* Decimal? */n){
+		return -1 * (Math.sqrt(1 - Math.pow(n, 2)) - 1);
+	},
+
+	circOut: function(/* Decimal? */n){
+		n = n - 1;
+		return Math.sqrt(1 - Math.pow(n, 2));
+	},
+
+	circInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return -1 / 2 * (Math.sqrt(1 - Math.pow(n, 2)) - 1); }
+		n -= 2;
+		return 1 / 2 * (Math.sqrt(1 - Math.pow(n, 2)) + 1);
+	},
+
+	backIn: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that starts away from the target,
+		//		and quickly accelerates towards the end value.
+		//
+		//		Use caution when the easing will cause values to become
+		//		negative as some properties cannot be set to negative values.
+		var s = 1.70158;
+		return Math.pow(n, 2) * ((s + 1) * n - s);
+	},
+
+	backOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that pops past the range briefly, and slowly comes back.
+		//
+		// description:
+		//		An easing function that pops past the range briefly, and slowly comes back.
+		//
+		//		Use caution when the easing will cause values to become negative as some
+		//		properties cannot be set to negative values.
+		
+		n = n - 1;
+		var s = 1.70158;
+		return Math.pow(n, 2) * ((s + 1) * n + s) + 1;
+	},
+
+	backInOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function combining the effects of `backIn` and `backOut`
+		//
+		// description:
+		//		An easing function combining the effects of `backIn` and `backOut`.
+		//		Use caution when the easing will cause values to become negative
+		//		as some properties cannot be set to negative values.
+		var s = 1.70158 * 1.525;
+		n = n * 2;
+		if(n < 1){ return (Math.pow(n, 2) * ((s + 1) * n - s)) / 2; }
+		n-=2;
+		return (Math.pow(n, 2) * ((s + 1) * n + s) + 2) / 2;
+	},
+
+	elasticIn: function(/* Decimal? */n){
+		// summary:
+		//		An easing function the elastically snaps from the start value
+		//
+		// description:
+		//		An easing function the elastically snaps from the start value
+		//
+		//		Use caution when the elasticity will cause values to become negative
+		//		as some properties cannot be set to negative values.
+		if(n == 0 || n == 1){ return n; }
+		var p = .3;
+		var s = p / 4;
+		n = n - 1;
+		return -1 * Math.pow(2, 10 * n) * Math.sin((n - s) * (2 * Math.PI) / p);
+	},
+
+	elasticOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that elasticly snaps around the target value,
+		//		near the end of the Animation
+		//
+		// description:
+		//		An easing function that elasticly snaps around the target value,
+		//		near the end of the Animation
+		//
+		//		Use caution when the elasticity will cause values to become
+		//		negative as some properties cannot be set to negative values.
+		if(n==0 || n == 1){ return n; }
+		var p = .3;
+		var s = p / 4;
+		return Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p) + 1;
+	},
+
+	elasticInOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that elasticly snaps around the value, near
+		//		the beginning and end of the Animation.
+		//
+		// description:
+		//		An easing function that elasticly snaps around the value, near
+		//		the beginning and end of the Animation.
+		//
+		//		Use caution when the elasticity will cause values to become
+		//		negative as some properties cannot be set to negative values.
+		if(n == 0) return 0;
+		n = n * 2;
+		if(n == 2) return 1;
+		var p = .3 * 1.5;
+		var s = p / 4;
+		if(n < 1){
+			n -= 1;
+			return -.5 * (Math.pow(2, 10 * n) * Math.sin((n - s) * (2 * Math.PI) / p));
+		}
+		n -= 1;
+		return .5 * (Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p)) + 1;
+	},
+
+	bounceIn: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that 'bounces' near the beginning of an Animation
+		return (1 - dojo.fx.easing.bounceOut(1 - n)); // Decimal
+	},
+
+	bounceOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that 'bounces' near the end of an Animation
+		var s = 7.5625;
+		var p = 2.75;
+		var l;
+		if(n < (1 / p)){
+			l = s * Math.pow(n, 2);
+		}else if(n < (2 / p)){
+			n -= (1.5 / p);
+			l = s * Math.pow(n, 2) + .75;
+		}else if(n < (2.5 / p)){
+			n -= (2.25 / p);
+			l = s * Math.pow(n, 2) + .9375;
+		}else{
+			n -= (2.625 / p);
+			l = s * Math.pow(n, 2) + .984375;
+		}
+		return l;
+	},
+
+	bounceInOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that 'bounces' at the beginning and end of the Animation
+		if(n < 0.5){ return dojo.fx.easing.bounceIn(n * 2) / 2; }
+		return (dojo.fx.easing.bounceOut(n * 2 - 1) / 2) + 0.5; // Decimal
+	}
+};
+
+}
+
 if(!dojo._hasResource["dojo.fx.Toggler"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
 dojo._hasResource["dojo.fx.Toggler"] = true;
 dojo.provide("dojo.fx.Toggler");
@@ -12365,1842 +13018,6 @@ dojo.declare("dojo.fx.Toggler", null, {
 
 }
 
-if(!dojo._hasResource["dojo.fx"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dojo.fx"] = true;
-dojo.provide("dojo.fx");
-
-
-
-/*=====
-dojo.fx = {
-	// summary: Effects library on top of Base animations
-};
-=====*/
-(function(){
-	
-	var d = dojo,
-		_baseObj = {
-			_fire: function(evt, args){
-				if(this[evt]){
-					this[evt].apply(this, args||[]);
-				}
-				return this;
-			}
-		};
-
-	var _chain = function(animations){
-		this._index = -1;
-		this._animations = animations||[];
-		this._current = this._onAnimateCtx = this._onEndCtx = null;
-
-		this.duration = 0;
-		d.forEach(this._animations, function(a){
-			this.duration += a.duration;
-			if(a.delay){ this.duration += a.delay; }
-		}, this);
-	};
-	d.extend(_chain, {
-		_onAnimate: function(){
-			this._fire("onAnimate", arguments);
-		},
-		_onEnd: function(){
-			d.disconnect(this._onAnimateCtx);
-			d.disconnect(this._onEndCtx);
-			this._onAnimateCtx = this._onEndCtx = null;
-			if(this._index + 1 == this._animations.length){
-				this._fire("onEnd");
-			}else{
-				// switch animations
-				this._current = this._animations[++this._index];
-				this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
-				this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
-				this._current.play(0, true);
-			}
-		},
-		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
-			if(!this._current){ this._current = this._animations[this._index = 0]; }
-			if(!gotoStart && this._current.status() == "playing"){ return this; }
-			var beforeBegin = d.connect(this._current, "beforeBegin", this, function(){
-					this._fire("beforeBegin");
-				}),
-				onBegin = d.connect(this._current, "onBegin", this, function(arg){
-					this._fire("onBegin", arguments);
-				}),
-				onPlay = d.connect(this._current, "onPlay", this, function(arg){
-					this._fire("onPlay", arguments);
-					d.disconnect(beforeBegin);
-					d.disconnect(onBegin);
-					d.disconnect(onPlay);
-				});
-			if(this._onAnimateCtx){
-				d.disconnect(this._onAnimateCtx);
-			}
-			this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
-			if(this._onEndCtx){
-				d.disconnect(this._onEndCtx);
-			}
-			this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
-			this._current.play.apply(this._current, arguments);
-			return this;
-		},
-		pause: function(){
-			if(this._current){
-				var e = d.connect(this._current, "onPause", this, function(arg){
-						this._fire("onPause", arguments);
-						d.disconnect(e);
-					});
-				this._current.pause();
-			}
-			return this;
-		},
-		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
-			this.pause();
-			var offset = this.duration * percent;
-			this._current = null;
-			d.some(this._animations, function(a){
-				if(a.duration <= offset){
-					this._current = a;
-					return true;
-				}
-				offset -= a.duration;
-				return false;
-			});
-			if(this._current){
-				this._current.gotoPercent(offset / this._current.duration, andPlay);
-			}
-			return this;
-		},
-		stop: function(/*boolean?*/ gotoEnd){
-			if(this._current){
-				if(gotoEnd){
-					for(; this._index + 1 < this._animations.length; ++this._index){
-						this._animations[this._index].stop(true);
-					}
-					this._current = this._animations[this._index];
-				}
-				var e = d.connect(this._current, "onStop", this, function(arg){
-						this._fire("onStop", arguments);
-						d.disconnect(e);
-					});
-				this._current.stop();
-			}
-			return this;
-		},
-		status: function(){
-			return this._current ? this._current.status() : "stopped";
-		},
-		destroy: function(){
-			if(this._onAnimateCtx){ d.disconnect(this._onAnimateCtx); }
-			if(this._onEndCtx){ d.disconnect(this._onEndCtx); }
-		}
-	});
-	d.extend(_chain, _baseObj);
-
-	dojo.fx.chain = function(/*dojo.Animation[]*/ animations){
-		// summary:
-		//		Chain a list of `dojo.Animation`s to run in sequence
-		//
-		// description:
-		//		Return a `dojo.Animation` which will play all passed
-		//		`dojo.Animation` instances in sequence, firing its own
-		//		synthesized events simulating a single animation. (eg:
-		//		onEnd of this animation means the end of the chain,
-		//		not the individual animations within)
-		//
-		// example:
-		//	Once `node` is faded out, fade in `otherNode`
-		//	|	dojo.fx.chain([
-		//	|		dojo.fadeIn({ node:node }),
-		//	|		dojo.fadeOut({ node:otherNode })
-		//	|	]).play();
-		//
-		return new _chain(animations) // dojo.Animation
-	};
-
-	var _combine = function(animations){
-		this._animations = animations||[];
-		this._connects = [];
-		this._finished = 0;
-
-		this.duration = 0;
-		d.forEach(animations, function(a){
-			var duration = a.duration;
-			if(a.delay){ duration += a.delay; }
-			if(this.duration < duration){ this.duration = duration; }
-			this._connects.push(d.connect(a, "onEnd", this, "_onEnd"));
-		}, this);
-		
-		this._pseudoAnimation = new d.Animation({curve: [0, 1], duration: this.duration});
-		var self = this;
-		d.forEach(["beforeBegin", "onBegin", "onPlay", "onAnimate", "onPause", "onStop", "onEnd"],
-			function(evt){
-				self._connects.push(d.connect(self._pseudoAnimation, evt,
-					function(){ self._fire(evt, arguments); }
-				));
-			}
-		);
-	};
-	d.extend(_combine, {
-		_doAction: function(action, args){
-			d.forEach(this._animations, function(a){
-				a[action].apply(a, args);
-			});
-			return this;
-		},
-		_onEnd: function(){
-			if(++this._finished > this._animations.length){
-				this._fire("onEnd");
-			}
-		},
-		_call: function(action, args){
-			var t = this._pseudoAnimation;
-			t[action].apply(t, args);
-		},
-		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
-			this._finished = 0;
-			this._doAction("play", arguments);
-			this._call("play", arguments);
-			return this;
-		},
-		pause: function(){
-			this._doAction("pause", arguments);
-			this._call("pause", arguments);
-			return this;
-		},
-		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
-			var ms = this.duration * percent;
-			d.forEach(this._animations, function(a){
-				a.gotoPercent(a.duration < ms ? 1 : (ms / a.duration), andPlay);
-			});
-			this._call("gotoPercent", arguments);
-			return this;
-		},
-		stop: function(/*boolean?*/ gotoEnd){
-			this._doAction("stop", arguments);
-			this._call("stop", arguments);
-			return this;
-		},
-		status: function(){
-			return this._pseudoAnimation.status();
-		},
-		destroy: function(){
-			d.forEach(this._connects, dojo.disconnect);
-		}
-	});
-	d.extend(_combine, _baseObj);
-
-	dojo.fx.combine = function(/*dojo.Animation[]*/ animations){
-		// summary:
-		//		Combine a list of `dojo.Animation`s to run in parallel
-		//
-		// description:
-		//		Combine an array of `dojo.Animation`s to run in parallel,
-		//		providing a new `dojo.Animation` instance encompasing each
-		//		animation, firing standard animation events.
-		//
-		// example:
-		//	Fade out `node` while fading in `otherNode` simultaneously
-		//	|	dojo.fx.combine([
-		//	|		dojo.fadeIn({ node:node }),
-		//	|		dojo.fadeOut({ node:otherNode })
-		//	|	]).play();
-		//
-		// example:
-		//	When the longest animation ends, execute a function:
-		//	|	var anim = dojo.fx.combine([
-		//	|		dojo.fadeIn({ node: n, duration:700 }),
-		//	|		dojo.fadeOut({ node: otherNode, duration: 300 })
-		//	|	]);
-		//	|	dojo.connect(anim, "onEnd", function(){
-		//	|		// overall animation is done.
-		//	|	});
-		//	|	anim.play(); // play the animation
-		//
-		return new _combine(animations); // dojo.Animation
-	};
-
-	dojo.fx.wipeIn = function(/*Object*/ args){
-		// summary:
-		//		Expand a node to it's natural height.
-		//
-		// description:
-		//		Returns an animation that will expand the
-		//		node defined in 'args' object from it's current height to
-		//		it's natural height (with no scrollbar).
-		//		Node must have no margin/border/padding.
-		//
-		// args: Object
-		//		A hash-map of standard `dojo.Animation` constructor properties
-		//		(such as easing: node: duration: and so on)
-		//
-		// example:
-		//	|	dojo.fx.wipeIn({
-		//	|		node:"someId"
-		//	|	}).play()
-		var node = args.node = d.byId(args.node), s = node.style, o;
-
-		var anim = d.animateProperty(d.mixin({
-			properties: {
-				height: {
-					// wrapped in functions so we wait till the last second to query (in case value has changed)
-					start: function(){
-						// start at current [computed] height, but use 1px rather than 0
-						// because 0 causes IE to display the whole panel
-						o = s.overflow;
-						s.overflow = "hidden";
-						if(s.visibility == "hidden" || s.display == "none"){
-							s.height = "1px";
-							s.display = "";
-							s.visibility = "";
-							return 1;
-						}else{
-							var height = d.style(node, "height");
-							return Math.max(height, 1);
-						}
-					},
-					end: function(){
-						return node.scrollHeight;
-					}
-				}
-			}
-		}, args));
-
-		d.connect(anim, "onEnd", function(){
-			s.height = "auto";
-			s.overflow = o;
-		});
-
-		return anim; // dojo.Animation
-	};
-
-	dojo.fx.wipeOut = function(/*Object*/ args){
-		// summary:
-		//		Shrink a node to nothing and hide it.
-		//
-		// description:
-		//		Returns an animation that will shrink node defined in "args"
-		//		from it's current height to 1px, and then hide it.
-		//
-		// args: Object
-		//		A hash-map of standard `dojo.Animation` constructor properties
-		//		(such as easing: node: duration: and so on)
-		//
-		// example:
-		//	|	dojo.fx.wipeOut({ node:"someId" }).play()
-		
-		var node = args.node = d.byId(args.node), s = node.style, o;
-		
-		var anim = d.animateProperty(d.mixin({
-			properties: {
-				height: {
-					end: 1 // 0 causes IE to display the whole panel
-				}
-			}
-		}, args));
-
-		d.connect(anim, "beforeBegin", function(){
-			o = s.overflow;
-			s.overflow = "hidden";
-			s.display = "";
-		});
-		d.connect(anim, "onEnd", function(){
-			s.overflow = o;
-			s.height = "auto";
-			s.display = "none";
-		});
-
-		return anim; // dojo.Animation
-	};
-
-	dojo.fx.slideTo = function(/*Object*/ args){
-		// summary:
-		//		Slide a node to a new top/left position
-		//
-		// description:
-		//		Returns an animation that will slide "node"
-		//		defined in args Object from its current position to
-		//		the position defined by (args.left, args.top).
-		//
-		// args: Object
-		//		A hash-map of standard `dojo.Animation` constructor properties
-		//		(such as easing: node: duration: and so on). Special args members
-		//		are `top` and `left`, which indicate the new position to slide to.
-		//
-		// example:
-		//	|	dojo.fx.slideTo({ node: node, left:"40", top:"50", units:"px" }).play()
-
-		var node = args.node = d.byId(args.node),
-			top = null, left = null;
-
-		var init = (function(n){
-			return function(){
-				var cs = d.getComputedStyle(n);
-				var pos = cs.position;
-				top = (pos == 'absolute' ? n.offsetTop : parseInt(cs.top) || 0);
-				left = (pos == 'absolute' ? n.offsetLeft : parseInt(cs.left) || 0);
-				if(pos != 'absolute' && pos != 'relative'){
-					var ret = d.position(n, true);
-					top = ret.y;
-					left = ret.x;
-					n.style.position="absolute";
-					n.style.top=top+"px";
-					n.style.left=left+"px";
-				}
-			};
-		})(node);
-		init();
-
-		var anim = d.animateProperty(d.mixin({
-			properties: {
-				top: args.top || 0,
-				left: args.left || 0
-			}
-		}, args));
-		d.connect(anim, "beforeBegin", anim, init);
-
-		return anim; // dojo.Animation
-	};
-
-})();
-
-}
-
-if(!dojo._hasResource["dijit.layout._ContentPaneResizeMixin"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dijit.layout._ContentPaneResizeMixin"] = true;
-dojo.provide("dijit.layout._ContentPaneResizeMixin");
-
-
-
-
-dojo.declare("dijit.layout._ContentPaneResizeMixin", null, {
-	// summary:
-	//		Resize() functionality of ContentPane.   If there's a single layout widget
-	//		child then it will call resize() with the same dimensions as the ContentPane.
-	//		Otherwise just calls resize on each child.
-	//
-	//		Also implements basic startup() functionality, where starting the parent
-	//		will start the children
-
-	// doLayout: Boolean
-	//		- false - don't adjust size of children
-	//		- true - if there is a single visible child widget, set it's size to
-	//				however big the ContentPane is
-	doLayout: true,
-
-	// isContainer: [protected] Boolean
-	//		Indicates that this widget acts as a "parent" to the descendant widgets.
-	//		When the parent is started it will call startup() on the child widgets.
-	//		See also `isLayoutContainer`.
-	isContainer: true,
-
-	// isLayoutContainer: [protected] Boolean
-	//		Indicates that this widget will call resize() on it's child widgets
-	//		when they become visible.
-	isLayoutContainer: true,
-
-	_startChildren: function(){
-		// summary:
-		//		Call startup() on all children including non _Widget ones like dojo.dnd.Source objects
-
-		// This starts all the widgets
-		dojo.forEach(this.getChildren(), function(child){
-			child.startup();
-			child._started = true;
-		});
-	},
-
-	startup: function(){
-		// summary:
-		//		See `dijit.layout._LayoutWidget.startup` for description.
-		//		Although ContentPane doesn't extend _LayoutWidget, it does implement
-		//		the same API.
-
-		if(this._started){ return; }
-
-		var parent = dijit._Contained.prototype.getParent.call(this);
-		this._childOfLayoutWidget = parent && parent.isLayoutContainer;
-
-		// I need to call resize() on my child/children (when I become visible), unless
-		// I'm the child of a layout widget in which case my parent will call resize() on me and I'll do it then.
-		this._needLayout = !this._childOfLayoutWidget;
-
-		this.inherited(arguments);
-
-		this._startChildren();
-
-		if(this._isShown()){
-			this._onShow();
-		}
-
-		if(!this._childOfLayoutWidget){
-			// If my parent isn't a layout container, since my style *may be* width=height=100%
-			// or something similar (either set directly or via a CSS class),
-			// monitor when my size changes so that I can re-layout.
-			// For browsers where I can't directly monitor when my size changes,
-			// monitor when the viewport changes size, which *may* indicate a size change for me.
-			this.connect(dojo.isIE ? this.domNode : dojo.global, 'onresize', function(){
-				// Using function(){} closure to ensure no arguments to resize.
-				this._needLayout = !this._childOfLayoutWidget;
-				this.resize();
-			});
-		}
-	},
-
-	_checkIfSingleChild: function(){
-		// summary:
-		//		Test if we have exactly one visible widget as a child,
-		//		and if so assume that we are a container for that widget,
-		//		and should propagate startup() and resize() calls to it.
-		//		Skips over things like data stores since they aren't visible.
-
-		var childNodes = dojo.query("> *", this.containerNode).filter(function(node){
-				return node.tagName !== "SCRIPT"; // or a regexp for hidden elements like script|area|map|etc..
-			}),
-			childWidgetNodes = childNodes.filter(function(node){
-				return dojo.hasAttr(node, "data-dojo-type") || dojo.hasAttr(node, "dojoType") || dojo.hasAttr(node, "widgetId");
-			}),
-			candidateWidgets = dojo.filter(childWidgetNodes.map(dijit.byNode), function(widget){
-				return widget && widget.domNode && widget.resize;
-			});
-
-		if(
-			// all child nodes are widgets
-			childNodes.length == childWidgetNodes.length &&
-
-			// all but one are invisible (like dojo.data)
-			candidateWidgets.length == 1
-		){
-			this._singleChild = candidateWidgets[0];
-		}else{
-			delete this._singleChild;
-		}
-
-		// So we can set overflow: hidden to avoid a safari bug w/scrollbars showing up (#9449)
-		dojo.toggleClass(this.containerNode, this.baseClass + "SingleChild", !!this._singleChild);
-	},
-
-	resize: function(changeSize, resultSize){
-		// summary:
-		//		See `dijit.layout._LayoutWidget.resize` for description.
-		//		Although ContentPane doesn't extend _LayoutWidget, it does implement
-		//		the same API.
-
-		// For the TabContainer --> BorderContainer --> ContentPane case, _onShow() is
-		// never called, so resize() is our trigger to do the initial href download (see [20099]).
-		// However, don't load href for closed TitlePanes.
-		if(!this._wasShown && this.open !== false){
-			this._onShow();
-		}
-
-		this._resizeCalled = true;
-
-		this._scheduleLayout(changeSize, resultSize);
-	},
-
-	_scheduleLayout: function(changeSize, resultSize){
-		// summary:
-		//		Resize myself, and call resize() on each of my child layout widgets, either now
-		//		(if I'm currently visible) or when I become visible
-		if(this._isShown()){
-			this._layout(changeSize, resultSize);
-		}else{
-			this._needLayout = true;
-			this._changeSize = changeSize;
-			this._resultSize = resultSize;
-		}
-	},
-
-	_layout: function(changeSize, resultSize){
-		// summary:
-		//		Resize myself according to optional changeSize/resultSize parameters, like a layout widget.
-		//		Also, since I am a Container widget, each of my children expects me to
-		//		call resize() or layout() on them.
-		//
-		//		Should be called on initialization and also whenever we get new content
-		//		(from an href, or from set('content', ...))... but deferred until
-		//		the ContentPane is visible
-
-		// Set margin box size, unless it wasn't specified, in which case use current size.
-		if(changeSize){
-			dojo.marginBox(this.domNode, changeSize);
-		}
-
-		// Compute content box size of containerNode in case we [later] need to size our single child.
-		var cn = this.containerNode;
-		if(cn === this.domNode){
-			// If changeSize or resultSize was passed to this method and this.containerNode ==
-			// this.domNode then we can compute the content-box size without querying the node,
-			// which is more reliable (similar to LayoutWidget.resize) (see for example #9449).
-			var mb = resultSize || {};
-			dojo.mixin(mb, changeSize || {}); // changeSize overrides resultSize
-			if(!("h" in mb) || !("w" in mb)){
-				mb = dojo.mixin(dojo.marginBox(cn), mb); // just use dojo.marginBox() to fill in missing values
-			}
-			this._contentBox = dijit.layout.marginBox2contentBox(cn, mb);
-		}else{
-			this._contentBox = dojo.contentBox(cn);
-		}
-
-		this._layoutChildren();
-
-		delete this._needLayout;
-	},
-	
-	_layoutChildren: function(){
-		// Call _checkIfSingleChild() again in case app has manually mucked w/the content
-		// of the ContentPane (rather than changing it through the set("content", ...) API.
-		if(this.doLayout){
-			this._checkIfSingleChild();
-		}
-
-		if(this._singleChild && this._singleChild.resize){
-			var cb = this._contentBox || dojo.contentBox(this.containerNode);
-
-			// note: if widget has padding this._contentBox will have l and t set,
-			// but don't pass them to resize() or it will doubly-offset the child
-			this._singleChild.resize({w: cb.w, h: cb.h});
-		}else{
-			// All my child widgets are independently sized (rather than matching my size),
-			// but I still need to call resize() on each child to make it layout.
-			dojo.forEach(this.getChildren(), function(widget){
-				if(widget.resize){
-					widget.resize();
-				}
-			});
-		}
-	},
-
-	_isShown: function(){
-		// summary:
-		//		Returns true if the content is currently shown.
-		// description:
-		//		If I am a child of a layout widget then it actually returns true if I've ever been visible,
-		//		not whether I'm currently visible, since that's much faster than tracing up the DOM/widget
-		//		tree every call, and at least solves the performance problem on page load by deferring loading
-		//		hidden ContentPanes until they are first shown
-
-		if(this._childOfLayoutWidget){
-			// If we are TitlePane, etc - we return that only *IF* we've been resized
-			if(this._resizeCalled && "open" in this){
-				return this.open;
-			}
-			return this._resizeCalled;
-		}else if("open" in this){
-			return this.open;		// for TitlePane, etc.
-		}else{
-			var node = this.domNode, parent = this.domNode.parentNode;
-			return (node.style.display != 'none') && (node.style.visibility != 'hidden') && !dojo.hasClass(node, "dijitHidden") &&
-					parent && parent.style && (parent.style.display != 'none');
-		}
-	},
-
-	_onShow: function(){
-		// summary:
-		//		Called when the ContentPane is made visible
-		// description:
-		//		For a plain ContentPane, this is called on initialization, from startup().
-		//		If the ContentPane is a hidden pane of a TabContainer etc., then it's
-		//		called whenever the pane is made visible.
-		//
-		//		Does layout/resize of child widget(s)
-
-		if(this._needLayout){
-			// If a layout has been scheduled for when we become visible, do it now
-			this._layout(this._changeSize, this._resultSize);
-		}
-
-		this.inherited(arguments);
-
-		// Need to keep track of whether ContentPane has been shown (which is different than
-		// whether or not it's currently visible).
-		this._wasShown = true;
-	}
-});
-
-}
-
-if(!dojo._hasResource["dojo.html"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dojo.html"] = true;
-dojo.provide("dojo.html");
-
-
-dojo.getObject("html", true, dojo);
-
-// the parser might be needed..
-(function(){ // private scope, sort of a namespace
-
-	// idCounter is incremented with each instantiation to allow asignment of a unique id for tracking, logging purposes
-	var idCounter = 0,
-		d = dojo;
-	
-	dojo.html._secureForInnerHtml = function(/*String*/ cont){
-		// summary:
-		//		removes !DOCTYPE and title elements from the html string.
-		//
-		//		khtml is picky about dom faults, you can't attach a style or <title> node as child of body
-		//		must go into head, so we need to cut out those tags
-		//	cont:
-		//		An html string for insertion into the dom
-		//
-		return cont.replace(/(?:\s*<!DOCTYPE\s[^>]+>|<title[^>]*>[\s\S]*?<\/title>)/ig, ""); // String
-	};
-
-/*====
-	dojo.html._emptyNode = function(node){
-		// summary:
-		//		removes all child nodes from the given node
-		//	node: DOMNode
-		//		the parent element
-	};
-=====*/
-	dojo.html._emptyNode = dojo.empty;
-
-	dojo.html._setNodeContent = function(/* DomNode */ node, /* String|DomNode|NodeList */ cont){
-		// summary:
-		//		inserts the given content into the given node
-		//	node:
-		//		the parent element
-		//	content:
-		//		the content to be set on the parent element.
-		//		This can be an html string, a node reference or a NodeList, dojo.NodeList, Array or other enumerable list of nodes
-		
-		// always empty
-		d.empty(node);
-
-		if(cont) {
-			if(typeof cont == "string") {
-				cont = d._toDom(cont, node.ownerDocument);
-			}
-			if(!cont.nodeType && d.isArrayLike(cont)) {
-				// handle as enumerable, but it may shrink as we enumerate it
-				for(var startlen=cont.length, i=0; i<cont.length; i=startlen==cont.length ? i+1 : 0) {
-					d.place( cont[i], node, "last");
-				}
-			} else {
-				// pass nodes, documentFragments and unknowns through to dojo.place
-				d.place(cont, node, "last");
-			}
-		}
-
-		// return DomNode
-		return node;
-	};
-
-	// we wrap up the content-setting operation in a object
-	dojo.declare("dojo.html._ContentSetter", null,
-		{
-			// node: DomNode|String
-			//		An node which will be the parent element that we set content into
-			node: "",
-
-			// content: String|DomNode|DomNode[]
-			//		The content to be placed in the node. Can be an HTML string, a node reference, or a enumerable list of nodes
-			content: "",
-			
-			// id: String?
-			//		Usually only used internally, and auto-generated with each instance
-			id: "",
-
-			// cleanContent: Boolean
-			//		Should the content be treated as a full html document,
-			//		and the real content stripped of <html>, <body> wrapper before injection
-			cleanContent: false,
-			
-			// extractContent: Boolean
-			//		Should the content be treated as a full html document, and the real content stripped of <html>, <body> wrapper before injection
-			extractContent: false,
-
-			// parseContent: Boolean
-			//		Should the node by passed to the parser after the new content is set
-			parseContent: false,
-
-			// parserScope: String
-			//		Flag passed to parser.  Root for attribute names to search for.   If scopeName is dojo,
-			//		will search for data-dojo-type (or dojoType).  For backwards compatibility
-			//		reasons defaults to dojo._scopeName (which is "dojo" except when
-			//		multi-version support is used, when it will be something like dojo16, dojo20, etc.)
-			parserScope: dojo._scopeName,
-
-			// startup: Boolean
-			//		Start the child widgets after parsing them.   Only obeyed if parseContent is true.
-			startup: true,
-			
-			// lifecyle methods
-			constructor: function(/* Object */params, /* String|DomNode */node){
-				//	summary:
-				//		Provides a configurable, extensible object to wrap the setting on content on a node
-				//		call the set() method to actually set the content..
- 
-				// the original params are mixed directly into the instance "this"
-				dojo.mixin(this, params || {});
-
-				// give precedence to params.node vs. the node argument
-				// and ensure its a node, not an id string
-				node = this.node = dojo.byId( this.node || node );
-	
-				if(!this.id){
-					this.id = [
-						"Setter",
-						(node) ? node.id || node.tagName : "",
-						idCounter++
-					].join("_");
-				}
-			},
-			set: function(/* String|DomNode|NodeList? */ cont, /* Object? */ params){
-				// summary:
-				//		front-end to the set-content sequence
-				//	cont:
-				//		An html string, node or enumerable list of nodes for insertion into the dom
-				//		If not provided, the object's content property will be used
-				if(undefined !== cont){
-					this.content = cont;
-				}
-				// in the re-use scenario, set needs to be able to mixin new configuration
-				if(params){
-					this._mixin(params);
-				}
-
-				this.onBegin();
-				this.setContent();
-				this.onEnd();
-
-				return this.node;
-			},
-			setContent: function(){
-				// summary:
-				//		sets the content on the node
-
-				var node = this.node;
-				if(!node) {
-				    // can't proceed
-					throw new Error(this.declaredClass + ": setContent given no node");
-				}
-				try{
-					node = dojo.html._setNodeContent(node, this.content);
-				}catch(e){
-					// check if a domfault occurs when we are appending this.errorMessage
-					// like for instance if domNode is a UL and we try append a DIV
-	
-					// FIXME: need to allow the user to provide a content error message string
-					var errMess = this.onContentError(e);
-					try{
-						node.innerHTML = errMess;
-					}catch(e){
-						console.error('Fatal ' + this.declaredClass + '.setContent could not change content due to '+e.message, e);
-					}
-				}
-				// always put back the node for the next method
-				this.node = node; // DomNode
-			},
-			
-			empty: function() {
-				// summary
-				//	cleanly empty out existing content
-
-				// destroy any widgets from a previous run
-				// NOTE: if you dont want this you'll need to empty
-				// the parseResults array property yourself to avoid bad things happenning
-				if(this.parseResults && this.parseResults.length) {
-					dojo.forEach(this.parseResults, function(w) {
-						if(w.destroy){
-							w.destroy();
-						}
-					});
-					delete this.parseResults;
-				}
-				// this is fast, but if you know its already empty or safe, you could
-				// override empty to skip this step
-				dojo.html._emptyNode(this.node);
-			},
-	
-			onBegin: function(){
-				// summary
-				//		Called after instantiation, but before set();
-				//		It allows modification of any of the object properties
-				//		- including the node and content provided - before the set operation actually takes place
-				//		This default implementation checks for cleanContent and extractContent flags to
-				//		optionally pre-process html string content
-				var cont = this.content;
-	
-				if(dojo.isString(cont)){
-					if(this.cleanContent){
-						cont = dojo.html._secureForInnerHtml(cont);
-					}
-  
-					if(this.extractContent){
-						var match = cont.match(/<body[^>]*>\s*([\s\S]+)\s*<\/body>/im);
-						if(match){ cont = match[1]; }
-					}
-				}
-
-				// clean out the node and any cruft associated with it - like widgets
-				this.empty();
-				
-				this.content = cont;
-				return this.node; /* DomNode */
-			},
-	
-			onEnd: function(){
-				// summary
-				//		Called after set(), when the new content has been pushed into the node
-				//		It provides an opportunity for post-processing before handing back the node to the caller
-				//		This default implementation checks a parseContent flag to optionally run the dojo parser over the new content
-				if(this.parseContent){
-					// populates this.parseResults if you need those..
-					this._parse();
-				}
-				return this.node; /* DomNode */
-			},
-	
-			tearDown: function(){
-				// summary
-				//		manually reset the Setter instance if its being re-used for example for another set()
-				// description
-				//		tearDown() is not called automatically.
-				//		In normal use, the Setter instance properties are simply allowed to fall out of scope
-				//		but the tearDown method can be called to explicitly reset this instance.
-				delete this.parseResults;
-				delete this.node;
-				delete this.content;
-			},
-  
-			onContentError: function(err){
-				return "Error occured setting content: " + err;
-			},
-			
-			_mixin: function(params){
-				// mix properties/methods into the instance
-				// TODO: the intention with tearDown is to put the Setter's state
-				// back to that of the original constructor (vs. deleting/resetting everything regardless of ctor params)
-				// so we could do something here to move the original properties aside for later restoration
-				var empty = {}, key;
-				for(key in params){
-					if(key in empty){ continue; }
-					// TODO: here's our opportunity to mask the properties we dont consider configurable/overridable
-					// .. but history shows we'll almost always guess wrong
-					this[key] = params[key];
-				}
-			},
-			_parse: function(){
-				// summary:
-				//		runs the dojo parser over the node contents, storing any results in this.parseResults
-				//		Any errors resulting from parsing are passed to _onError for handling
-
-				var rootNode = this.node;
-				try{
-					// store the results (widgets, whatever) for potential retrieval
-					var inherited = {};
-					dojo.forEach(["dir", "lang", "textDir"], function(name){
-						if(this[name]){
-							inherited[name] = this[name];
-						}
-					}, this);
-					this.parseResults = dojo.parser.parse({
-						rootNode: rootNode,
-						noStart: !this.startup,
-						inherited: inherited,
-						scope: this.parserScope
-					});
-				}catch(e){
-					this._onError('Content', e, "Error parsing in _ContentSetter#"+this.id);
-				}
-			},
-  
-			_onError: function(type, err, consoleText){
-				// summary:
-				//		shows user the string that is returned by on[type]Error
-				//		overide/implement on[type]Error and return your own string to customize
-				var errText = this['on' + type + 'Error'].call(this, err);
-				if(consoleText){
-					console.error(consoleText, err);
-				}else if(errText){ // a empty string won't change current content
-					dojo.html._setNodeContent(this.node, errText, true);
-				}
-			}
-	}); // end dojo.declare()
-
-	dojo.html.set = function(/* DomNode */ node, /* String|DomNode|NodeList */ cont, /* Object? */ params){
-			// summary:
-			//		inserts (replaces) the given content into the given node. dojo.place(cont, node, "only")
-			//		may be a better choice for simple HTML insertion.
-			// description:
-			//		Unless you need to use the params capabilities of this method, you should use
-			//		dojo.place(cont, node, "only"). dojo.place() has more robust support for injecting
-			//		an HTML string into the DOM, but it only handles inserting an HTML string as DOM
-			//		elements, or inserting a DOM node. dojo.place does not handle NodeList insertions
-			//		or the other capabilities as defined by the params object for this method.
-			//	node:
-			//		the parent element that will receive the content
-			//	cont:
-			//		the content to be set on the parent element.
-			//		This can be an html string, a node reference or a NodeList, dojo.NodeList, Array or other enumerable list of nodes
-			//	params:
-			//		Optional flags/properties to configure the content-setting. See dojo.html._ContentSetter
-			//	example:
-			//		A safe string/node/nodelist content replacement/injection with hooks for extension
-			//		Example Usage:
-			//		dojo.html.set(node, "some string");
-			//		dojo.html.set(node, contentNode, {options});
-			//		dojo.html.set(node, myNode.childNodes, {options});
-		if(undefined == cont){
-			console.warn("dojo.html.set: no cont argument provided, using empty string");
-			cont = "";
-		}
-		if(!params){
-			// simple and fast
-			return dojo.html._setNodeContent(node, cont, true);
-		}else{
-			// more options but slower
-			// note the arguments are reversed in order, to match the convention for instantiation via the parser
-			var op = new dojo.html._ContentSetter(dojo.mixin(
-					params,
-					{ content: cont, node: node }
-			));
-			return op.set();
-		}
-	};
-})();
-
-}
-
-if(!dojo._hasResource["dijit.layout.ContentPane"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dijit.layout.ContentPane"] = true;
-dojo.provide("dijit.layout.ContentPane");
-
-
-
-
-
-
-
-dojo.declare(
-	"dijit.layout.ContentPane", [dijit._Widget, dijit.layout._ContentPaneResizeMixin],
-{
-	// summary:
-	//		A widget containing an HTML fragment, specified inline
-	//		or by uri.  Fragment may include widgets.
-	//
-	// description:
-	//		This widget embeds a document fragment in the page, specified
-	//		either by uri, javascript generated markup or DOM reference.
-	//		Any widgets within this content are instantiated and managed,
-	//		but laid out according to the HTML structure.  Unlike IFRAME,
-	//		ContentPane embeds a document fragment as would be found
-	//		inside the BODY tag of a full HTML document.  It should not
-	//		contain the HTML, HEAD, or BODY tags.
-	//		For more advanced functionality with scripts and
-	//		stylesheets, see dojox.layout.ContentPane.  This widget may be
-	//		used stand alone or as a base class for other widgets.
-	//		ContentPane is useful as a child of other layout containers
-	//		such as BorderContainer or TabContainer, but note that those
-	//		widgets can contain any widget as a child.
-	//
-	// example:
-	//		Some quick samples:
-	//		To change the innerHTML: cp.set('content', '<b>new content</b>')
-	//
-	//		Or you can send it a NodeList: cp.set('content', dojo.query('div [class=selected]', userSelection))
-	//
-	//		To do an ajax update: cp.set('href', url)
-
-	// href: String
-	//		The href of the content that displays now.
-	//		Set this at construction if you want to load data externally when the
-	//		pane is shown.  (Set preload=true to load it immediately.)
-	//		Changing href after creation doesn't have any effect; Use set('href', ...);
-	href: "",
-
-/*=====
-	// content: String || DomNode || NodeList || dijit._Widget
-	//		The innerHTML of the ContentPane.
-	//		Note that the initialization parameter / argument to set("content", ...)
-	//		can be a String, DomNode, Nodelist, or _Widget.
-	content: "",
-=====*/
-
-	// extractContent: Boolean
-	//		Extract visible content from inside of <body> .... </body>.
-	//		I.e., strip <html> and <head> (and it's contents) from the href
-	extractContent: false,
-
-	// parseOnLoad: Boolean
-	//		Parse content and create the widgets, if any.
-	parseOnLoad: true,
-
-	// parserScope: String
-	//		Flag passed to parser.  Root for attribute names to search for.   If scopeName is dojo,
-	//		will search for data-dojo-type (or dojoType).  For backwards compatibility
-	//		reasons defaults to dojo._scopeName (which is "dojo" except when
-	//		multi-version support is used, when it will be something like dojo16, dojo20, etc.)
-	parserScope: dojo._scopeName,
-
-	// preventCache: Boolean
-	//		Prevent caching of data from href's by appending a timestamp to the href.
-	preventCache: false,
-
-	// preload: Boolean
-	//		Force load of data on initialization even if pane is hidden.
-	preload: false,
-
-	// refreshOnShow: Boolean
-	//		Refresh (re-download) content when pane goes from hidden to shown
-	refreshOnShow: false,
-
-	// loadingMessage: String
-	//		Message that shows while downloading
-	loadingMessage: "<span class='dijitContentPaneLoading'>${loadingState}</span>",
-
-	// errorMessage: String
-	//		Message that shows if an error occurs
-	errorMessage: "<span class='dijitContentPaneError'>${errorState}</span>",
-
-	// isLoaded: [readonly] Boolean
-	//		True if the ContentPane has data in it, either specified
-	//		during initialization (via href or inline content), or set
-	//		via set('content', ...) / set('href', ...)
-	//
-	//		False if it doesn't have any content, or if ContentPane is
-	//		still in the process of downloading href.
-	isLoaded: false,
-
-	baseClass: "dijitContentPane",
-
-	// ioArgs: Object
-	//		Parameters to pass to xhrGet() request, for example:
-	// |	<div dojoType="dijit.layout.ContentPane" href="./bar" ioArgs="{timeout: 500}">
-	ioArgs: {},
-
-	// onLoadDeferred: [readonly] dojo.Deferred
-	//		This is the `dojo.Deferred` returned by set('href', ...) and refresh().
-	//		Calling onLoadDeferred.addCallback() or addErrback() registers your
-	//		callback to be called only once, when the prior set('href', ...) call or
-	//		the initial href parameter to the constructor finishes loading.
-	//
-	//		This is different than an onLoad() handler which gets called any time any href
-	//		or content is loaded.
-	onLoadDeferred: null,
-
-	// Override _Widget's attributeMap because we don't want the title attribute (used to specify
-	// tab labels) to be copied to ContentPane.domNode... otherwise a tooltip shows up over the
-	// entire pane.
-	attributeMap: dojo.delegate(dijit._Widget.prototype.attributeMap, {
-		title: []
-	}),
-
-	// Flag to parser that I'll parse my contents, so it shouldn't.
-	stopParser: true,
-
-	// template: [private] Boolean
-	//		Flag from the parser that this ContentPane is inside a template
-	//		so the contents are pre-parsed.
-	// (TODO: this declaration can be commented out in 2.0)
-	template: false,
-
-	create: function(params, srcNodeRef){
-		// Convert a srcNodeRef argument into a content parameter, so that the original contents are
-		// processed in the same way as contents set via set("content", ...), calling the parser etc.
-		// Avoid modifying original params object since that breaks NodeList instantiation, see #11906.
-		if((!params || !params.template) && srcNodeRef && !("href" in params) && !("content" in params)){
-			var df = dojo.doc.createDocumentFragment();
-			srcNodeRef = dojo.byId(srcNodeRef)
-			while(srcNodeRef.firstChild){
-				df.appendChild(srcNodeRef.firstChild);
-			}
-			params = dojo.delegate(params, {content: df});
-		}
-		this.inherited(arguments, [params, srcNodeRef]);
-	},
-
-	postMixInProperties: function(){
-		this.inherited(arguments);
-		var messages = dojo.i18n.getLocalization("dijit", "loading", this.lang);
-		this.loadingMessage = dojo.string.substitute(this.loadingMessage, messages);
-		this.errorMessage = dojo.string.substitute(this.errorMessage, messages);
-	},
-
-	buildRendering: function(){
-		this.inherited(arguments);
-
-		// Since we have no template we need to set this.containerNode ourselves, to make getChildren() work.
-		// For subclasses of ContentPane that do have a template, does nothing.
-		if(!this.containerNode){
-			this.containerNode = this.domNode;
-		}
-
-		// remove the title attribute so it doesn't show up when hovering
-		// over a node  (TODO: remove in 2.0, no longer needed after #11490)
-		this.domNode.title = "";
-
-		if(!dojo.attr(this.domNode,"role")){
-			dijit.setWaiRole(this.domNode, "group");
-		}
-	},
-
-	_startChildren: function(){
-		// summary:
-		//		Call startup() on all children including non _Widget ones like dojo.dnd.Source objects
-
-		// This starts all the widgets
-		this.inherited(arguments);
-
-		// And this catches stuff like dojo.dnd.Source
-		if(this._contentSetter){
-			dojo.forEach(this._contentSetter.parseResults, function(obj){
-				if(!obj._started && !obj._destroyed && dojo.isFunction(obj.startup)){
-					obj.startup();
-					obj._started = true;
-				}
-			}, this);
-		}
-	},
-
-	setHref: function(/*String|Uri*/ href){
-		// summary:
-		//		Deprecated.   Use set('href', ...) instead.
-		dojo.deprecated("dijit.layout.ContentPane.setHref() is deprecated. Use set('href', ...) instead.", "", "2.0");
-		return this.set("href", href);
-	},
-	_setHrefAttr: function(/*String|Uri*/ href){
-		// summary:
-		//		Hook so set("href", ...) works.
-		// description:
-		//		Reset the (external defined) content of this pane and replace with new url
-		//		Note: It delays the download until widget is shown if preload is false.
-		//	href:
-		//		url to the page you want to get, must be within the same domain as your mainpage
-
-		// Cancel any in-flight requests (a set('href', ...) will cancel any in-flight set('href', ...))
-		this.cancel();
-
-		this.onLoadDeferred = new dojo.Deferred(dojo.hitch(this, "cancel"));
-		this.onLoadDeferred.addCallback(dojo.hitch(this, "onLoad"));
-
-		this._set("href", href);
-
-		// _setHrefAttr() is called during creation and by the user, after creation.
-		// Assuming preload == false, only in the second case do we actually load the URL;
-		// otherwise it's done in startup(), and only if this widget is shown.
-		if(this.preload || (this._created && this._isShown())){
-			this._load();
-		}else{
-			// Set flag to indicate that href needs to be loaded the next time the
-			// ContentPane is made visible
-			this._hrefChanged = true;
-		}
-
-		return this.onLoadDeferred;		// dojo.Deferred
-	},
-
-	setContent: function(/*String|DomNode|Nodelist*/data){
-		// summary:
-		//		Deprecated.   Use set('content', ...) instead.
-		dojo.deprecated("dijit.layout.ContentPane.setContent() is deprecated.  Use set('content', ...) instead.", "", "2.0");
-		this.set("content", data);
-	},
-	_setContentAttr: function(/*String|DomNode|Nodelist*/data){
-		// summary:
-		//		Hook to make set("content", ...) work.
-		//		Replaces old content with data content, include style classes from old content
-		//	data:
-		//		the new Content may be String, DomNode or NodeList
-		//
-		//		if data is a NodeList (or an array of nodes) nodes are copied
-		//		so you can import nodes from another document implicitly
-
-		// clear href so we can't run refresh and clear content
-		// refresh should only work if we downloaded the content
-		this._set("href", "");
-
-		// Cancel any in-flight requests (a set('content', ...) will cancel any in-flight set('href', ...))
-		this.cancel();
-
-		// Even though user is just setting content directly, still need to define an onLoadDeferred
-		// because the _onLoadHandler() handler is still getting called from setContent()
-		this.onLoadDeferred = new dojo.Deferred(dojo.hitch(this, "cancel"));
-		if(this._created){
-			// For back-compat reasons, call onLoad() for set('content', ...)
-			// calls but not for content specified in srcNodeRef (ie: <div dojoType=ContentPane>...</div>)
-			// or as initialization parameter (ie: new ContentPane({content: ...})
-			this.onLoadDeferred.addCallback(dojo.hitch(this, "onLoad"));
-		}
-
-		this._setContent(data || "");
-
-		this._isDownloaded = false; // mark that content is from a set('content') not a set('href')
-
-		return this.onLoadDeferred; 	// dojo.Deferred
-	},
-	_getContentAttr: function(){
-		// summary:
-		//		Hook to make get("content") work
-		return this.containerNode.innerHTML;
-	},
-
-	cancel: function(){
-		// summary:
-		//		Cancels an in-flight download of content
-		if(this._xhrDfd && (this._xhrDfd.fired == -1)){
-			this._xhrDfd.cancel();
-		}
-		delete this._xhrDfd; // garbage collect
-
-		this.onLoadDeferred = null;
-	},
-
-	uninitialize: function(){
-		if(this._beingDestroyed){
-			this.cancel();
-		}
-		this.inherited(arguments);
-	},
-
-	destroyRecursive: function(/*Boolean*/ preserveDom){
-		// summary:
-		//		Destroy the ContentPane and its contents
-
-		// if we have multiple controllers destroying us, bail after the first
-		if(this._beingDestroyed){
-			return;
-		}
-		this.inherited(arguments);
-	},
-
-	_onShow: function(){
-		// summary:
-		//		Called when the ContentPane is made visible
-		// description:
-		//		For a plain ContentPane, this is called on initialization, from startup().
-		//		If the ContentPane is a hidden pane of a TabContainer etc., then it's
-		//		called whenever the pane is made visible.
-		//
-		//		Does necessary processing, including href download and layout/resize of
-		//		child widget(s)
-
-		this.inherited(arguments);
-
-		if(this.href){
-			if(!this._xhrDfd && // if there's an href that isn't already being loaded
-				(!this.isLoaded || this._hrefChanged || this.refreshOnShow)
-			){
-				return this.refresh();	// If child has an href, promise that fires when the load is complete
-			}
-		}
-	},
-
-	refresh: function(){
-		// summary:
-		//		[Re]download contents of href and display
-		// description:
-		//		1. cancels any currently in-flight requests
-		//		2. posts "loading..." message
-		//		3. sends XHR to download new data
-
-		// Cancel possible prior in-flight request
-		this.cancel();
-
-		this.onLoadDeferred = new dojo.Deferred(dojo.hitch(this, "cancel"));
-		this.onLoadDeferred.addCallback(dojo.hitch(this, "onLoad"));
-		this._load();
-		return this.onLoadDeferred;		// If child has an href, promise that fires when refresh is complete
-	},
-
-	_load: function(){
-		// summary:
-		//		Load/reload the href specified in this.href
-
-		// display loading message
-		this._setContent(this.onDownloadStart(), true);
-
-		var self = this;
-		var getArgs = {
-			preventCache: (this.preventCache || this.refreshOnShow),
-			url: this.href,
-			handleAs: "text"
-		};
-		if(dojo.isObject(this.ioArgs)){
-			dojo.mixin(getArgs, this.ioArgs);
-		}
-
-		var hand = (this._xhrDfd = (this.ioMethod || dojo.xhrGet)(getArgs));
-
-		hand.addCallback(function(html){
-			try{
-				self._isDownloaded = true;
-				self._setContent(html, false);
-				self.onDownloadEnd();
-			}catch(err){
-				self._onError('Content', err); // onContentError
-			}
-			delete self._xhrDfd;
-			return html;
-		});
-
-		hand.addErrback(function(err){
-			if(!hand.canceled){
-				// show error message in the pane
-				self._onError('Download', err); // onDownloadError
-			}
-			delete self._xhrDfd;
-			return err;
-		});
-
-		// Remove flag saying that a load is needed
-		delete this._hrefChanged;
-	},
-
-	_onLoadHandler: function(data){
-		// summary:
-		//		This is called whenever new content is being loaded
-		this._set("isLoaded", true);
-		try{
-			this.onLoadDeferred.callback(data);
-		}catch(e){
-			console.error('Error '+this.widgetId+' running custom onLoad code: ' + e.message);
-		}
-	},
-
-	_onUnloadHandler: function(){
-		// summary:
-		//		This is called whenever the content is being unloaded
-		this._set("isLoaded", false);
-		try{
-			this.onUnload();
-		}catch(e){
-			console.error('Error '+this.widgetId+' running custom onUnload code: ' + e.message);
-		}
-	},
-
-	destroyDescendants: function(){
-		// summary:
-		//		Destroy all the widgets inside the ContentPane and empty containerNode
-
-		// Make sure we call onUnload (but only when the ContentPane has real content)
-		if(this.isLoaded){
-			this._onUnloadHandler();
-		}
-
-		// Even if this.isLoaded == false there might still be a "Loading..." message
-		// to erase, so continue...
-
-		// For historical reasons we need to delete all widgets under this.containerNode,
-		// even ones that the user has created manually.
-		var setter = this._contentSetter;
-		dojo.forEach(this.getChildren(), function(widget){
-			if(widget.destroyRecursive){
-				widget.destroyRecursive();
-			}
-		});
-		if(setter){
-			// Most of the widgets in setter.parseResults have already been destroyed, but
-			// things like Menu that have been moved to <body> haven't yet
-			dojo.forEach(setter.parseResults, function(widget){
-				if(widget.destroyRecursive && widget.domNode && widget.domNode.parentNode == dojo.body()){
-					widget.destroyRecursive();
-				}
-			});
-			delete setter.parseResults;
-		}
-
-		// And then clear away all the DOM nodes
-		dojo.html._emptyNode(this.containerNode);
-
-		// Delete any state information we have about current contents
-		delete this._singleChild;
-	},
-
-	_setContent: function(/*String|DocumentFragment*/ cont, /*Boolean*/ isFakeContent){
-		// summary:
-		//		Insert the content into the container node
-
-		// first get rid of child widgets
-		this.destroyDescendants();
-
-		// dojo.html.set will take care of the rest of the details
-		// we provide an override for the error handling to ensure the widget gets the errors
-		// configure the setter instance with only the relevant widget instance properties
-		// NOTE: unless we hook into attr, or provide property setters for each property,
-		// we need to re-configure the ContentSetter with each use
-		var setter = this._contentSetter;
-		if(! (setter && setter instanceof dojo.html._ContentSetter)){
-			setter = this._contentSetter = new dojo.html._ContentSetter({
-				node: this.containerNode,
-				_onError: dojo.hitch(this, this._onError),
-				onContentError: dojo.hitch(this, function(e){
-					// fires if a domfault occurs when we are appending this.errorMessage
-					// like for instance if domNode is a UL and we try append a DIV
-					var errMess = this.onContentError(e);
-					try{
-						this.containerNode.innerHTML = errMess;
-					}catch(e){
-						console.error('Fatal '+this.id+' could not change content due to '+e.message, e);
-					}
-				})/*,
-				_onError */
-			});
-		};
-
-		var setterParams = dojo.mixin({
-			cleanContent: this.cleanContent,
-			extractContent: this.extractContent,
-			parseContent: this.parseOnLoad,
-			parserScope: this.parserScope,
-			startup: false,
-			dir: this.dir,
-			lang: this.lang
-		}, this._contentSetterParams || {});
-
-		setter.set( (dojo.isObject(cont) && cont.domNode) ? cont.domNode : cont, setterParams );
-
-		// setter params must be pulled afresh from the ContentPane each time
-		delete this._contentSetterParams;
-
-		if(this.doLayout){
-			this._checkIfSingleChild();
-		}
-
-		if(!isFakeContent){
-			if(this._started){
-				// Startup each top level child widget (and they will start their children, recursively)
-				this._startChildren();
-	
-				// Call resize() on each of my child layout widgets,
-				// or resize() on my single child layout widget...
-				// either now (if I'm currently visible) or when I become visible
-				this._scheduleLayout();
-			}
-
-			this._onLoadHandler(cont);
-		}
-	},
-
-	_onError: function(type, err, consoleText){
-		this.onLoadDeferred.errback(err);
-
-		// shows user the string that is returned by on[type]Error
-		// override on[type]Error and return your own string to customize
-		var errText = this['on' + type + 'Error'].call(this, err);
-		if(consoleText){
-			console.error(consoleText, err);
-		}else if(errText){// a empty string won't change current content
-			this._setContent(errText, true);
-		}
-	},
-
-	// EVENT's, should be overide-able
-	onLoad: function(data){
-		// summary:
-		//		Event hook, is called after everything is loaded and widgetified
-		// tags:
-		//		callback
-	},
-
-	onUnload: function(){
-		// summary:
-		//		Event hook, is called before old content is cleared
-		// tags:
-		//		callback
-	},
-
-	onDownloadStart: function(){
-		// summary:
-		//		Called before download starts.
-		// description:
-		//		The string returned by this function will be the html
-		//		that tells the user we are loading something.
-		//		Override with your own function if you want to change text.
-		// tags:
-		//		extension
-		return this.loadingMessage;
-	},
-
-	onContentError: function(/*Error*/ error){
-		// summary:
-		//		Called on DOM faults, require faults etc. in content.
-		//
-		//		In order to display an error message in the pane, return
-		//		the error message from this method, as an HTML string.
-		//
-		//		By default (if this method is not overriden), it returns
-		//		nothing, so the error message is just printed to the console.
-		// tags:
-		//		extension
-	},
-
-	onDownloadError: function(/*Error*/ error){
-		// summary:
-		//		Called when download error occurs.
-		//
-		//		In order to display an error message in the pane, return
-		//		the error message from this method, as an HTML string.
-		//
-		//		Default behavior (if this method is not overriden) is to display
-		//		the error message inside the pane.
-		// tags:
-		//		extension
-		return this.errorMessage;
-	},
-
-	onDownloadEnd: function(){
-		// summary:
-		//		Called when download is finished.
-		// tags:
-		//		callback
-	}
-});
-
-}
-
-if(!dojo._hasResource["dijit.TitlePane"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dijit.TitlePane"] = true;
-dojo.provide("dijit.TitlePane");
-
-
-
-
-
-
-dojo.declare(
-	"dijit.TitlePane",
-	[dijit.layout.ContentPane, dijit._Templated, dijit._CssStateMixin],
-{
-	// summary:
-	//		A pane with a title on top, that can be expanded or collapsed.
-	//
-	// description:
-	//		An accessible container with a title Heading, and a content
-	//		section that slides open and closed. TitlePane is an extension to
-	//		`dijit.layout.ContentPane`, providing all the useful content-control aspects from it.
-	//
-	// example:
-	// | 	// load a TitlePane from remote file:
-	// |	var foo = new dijit.TitlePane({ href: "foobar.html", title:"Title" });
-	// |	foo.startup();
-	//
-	// example:
-	// |	<!-- markup href example: -->
-	// |	<div dojoType="dijit.TitlePane" href="foobar.html" title="Title"></div>
-	//
-	// example:
-	// |	<!-- markup with inline data -->
-	// | 	<div dojoType="dijit.TitlePane" title="Title">
-	// |		<p>I am content</p>
-	// |	</div>
-
-	// title: String
-	//		Title of the pane
-	title: "",
-
-	// open: Boolean
-	//		Whether pane is opened or closed.
-	open: true,
-
-	// toggleable: Boolean
-	//		Whether pane can be opened or closed by clicking the title bar.
-	toggleable: true,
-
-	// tabIndex: String
-	//		Tabindex setting for the title (so users can tab to the title then
-	//		use space/enter to open/close the title pane)
-	tabIndex: "0",
-
-	// duration: Integer
-	//		Time in milliseconds to fade in/fade out
-	duration: dijit.defaultDuration,
-
-	// baseClass: [protected] String
-	//		The root className to be placed on this widget's domNode.
-	baseClass: "dijitTitlePane",
-
-	templateString: dojo.cache("dijit", "templates/TitlePane.html", "<div>\n\t<div dojoAttachEvent=\"onclick:_onTitleClick, onkeypress:_onTitleKey\"\n\t\t\tclass=\"dijitTitlePaneTitle\" dojoAttachPoint=\"titleBarNode\">\n\t\t<div class=\"dijitTitlePaneTitleFocus\" dojoAttachPoint=\"focusNode\">\n\t\t\t<img src=\"${_blankGif}\" alt=\"\" dojoAttachPoint=\"arrowNode\" class=\"dijitArrowNode\" role=\"presentation\"\n\t\t\t/><span dojoAttachPoint=\"arrowNodeInner\" class=\"dijitArrowNodeInner\"></span\n\t\t\t><span dojoAttachPoint=\"titleNode\" class=\"dijitTitlePaneTextNode\"></span>\n\t\t</div>\n\t</div>\n\t<div class=\"dijitTitlePaneContentOuter\" dojoAttachPoint=\"hideNode\" role=\"presentation\">\n\t\t<div class=\"dijitReset\" dojoAttachPoint=\"wipeNode\" role=\"presentation\">\n\t\t\t<div class=\"dijitTitlePaneContentInner\" dojoAttachPoint=\"containerNode\" role=\"region\" id=\"${id}_pane\">\n\t\t\t\t<!-- nested divs because wipeIn()/wipeOut() doesn't work right on node w/padding etc.  Put padding on inner div. -->\n\t\t\t</div>\n\t\t</div>\n\t</div>\n</div>\n"),
-
-	attributeMap: dojo.delegate(dijit.layout.ContentPane.prototype.attributeMap, {
-		title: { node: "titleNode", type: "innerHTML" },
-		tooltip: {node: "focusNode", type: "attribute", attribute: "title"},	// focusNode spans the entire width, titleNode doesn't
-		id:""
-	}),
-
-	buildRendering: function(){
-		this.inherited(arguments);
-		dojo.setSelectable(this.titleNode, false);
-	},
-
-	postCreate: function(){
-		this.inherited(arguments);
-		
-		// Hover and focus effect on title bar, except for non-toggleable TitlePanes
-		// This should really be controlled from _setToggleableAttr() but _CssStateMixin
-		// doesn't provide a way to disconnect a previous _trackMouseState() call
-		if(this.toggleable){
-			this._trackMouseState(this.titleBarNode, "dijitTitlePaneTitle");
-		}
-
-		// setup open/close animations
-		var hideNode = this.hideNode, wipeNode = this.wipeNode;
-		this._wipeIn = dojo.fx.wipeIn({
-			node: this.wipeNode,
-			duration: this.duration,
-			beforeBegin: function(){
-				hideNode.style.display="";
-			}
-		});
-		this._wipeOut = dojo.fx.wipeOut({
-			node: this.wipeNode,
-			duration: this.duration,
-			onEnd: function(){
-				hideNode.style.display="none";
-			}
-		});
-	},
-
-	_setOpenAttr: function(/*Boolean*/ open, /*Boolean*/ animate){
-		// summary:
-		//		Hook to make set("open", boolean) control the open/closed state of the pane.
-		// open: Boolean
-		//		True if you want to open the pane, false if you want to close it.
-
-		dojo.forEach([this._wipeIn, this._wipeOut], function(animation){
-			if(animation && animation.status() == "playing"){
-				animation.stop();
-			}
-		});
-
-		if(animate){
-			var anim = this[open ? "_wipeIn" : "_wipeOut"];
-			anim.play();
-		}else{
-			this.hideNode.style.display = this.wipeNode.style.display = open ? "" : "none";
-		}
-
-		// load content (if this is the first time we are opening the TitlePane
-		// and content is specified as an href, or href was set when hidden)
-		if(this._started){
-			if(open){
-				this._onShow();
-			}else{
-				this.onHide();
-			}
-		}
-
-		this.arrowNodeInner.innerHTML = open ? "-" : "+";
-
-		dijit.setWaiState(this.containerNode,"hidden", open ? "false" : "true");
-		dijit.setWaiState(this.focusNode, "pressed", open ? "true" : "false");
-
-		this._set("open", open);
-
-		this._setCss();
-	},
-
-	_setToggleableAttr: function(/*Boolean*/ canToggle){
-		// summary:
-		//		Hook to make set("toggleable", boolean) work.
-		// canToggle: Boolean
-		//		True to allow user to open/close pane by clicking title bar.
-
-		dijit.setWaiRole(this.focusNode, canToggle ? "button" : "heading");
-		if(canToggle){
-			// TODO: if canToggle is switched from true to false shouldn't we remove this setting?
-			dijit.setWaiState(this.focusNode, "controls", this.id+"_pane");
-			dojo.attr(this.focusNode, "tabIndex", this.tabIndex);
-		}else{
-			dojo.removeAttr(this.focusNode, "tabIndex");
-		}
-
-		this._set("toggleable", canToggle);
-
-		this._setCss();
-	},
-
-	_setContentAttr: function(/*String|DomNode|Nodelist*/ content){
-		// summary:
-		//		Hook to make set("content", ...) work.
-		// 		Typically called when an href is loaded.  Our job is to make the animation smooth.
-
-		if(!this.open || !this._wipeOut || this._wipeOut.status() == "playing"){
-			// we are currently *closing* the pane (or the pane is closed), so just let that continue
-			this.inherited(arguments);
-		}else{
-			if(this._wipeIn && this._wipeIn.status() == "playing"){
-				this._wipeIn.stop();
-			}
-
-			// freeze container at current height so that adding new content doesn't make it jump
-			dojo.marginBox(this.wipeNode, { h: dojo.marginBox(this.wipeNode).h });
-
-			// add the new content (erasing the old content, if any)
-			this.inherited(arguments);
-
-			// call _wipeIn.play() to animate from current height to new height
-			if(this._wipeIn){
-				this._wipeIn.play();
-			}else{
-				this.hideNode.style.display = "";
-			}
-		}
-	},
-
-	toggle: function(){
-		// summary:
-		//		Switches between opened and closed state
-		// tags:
-		//		private
-
-		this._setOpenAttr(!this.open, true);
-	},
-
-	_setCss: function(){
-		// summary:
-		//		Set the open/close css state for the TitlePane
-		// tags:
-		//		private
-
-		var node = this.titleBarNode || this.focusNode;
-		var oldCls = this._titleBarClass;
-		this._titleBarClass = "dijit" + (this.toggleable ? "" : "Fixed") + (this.open ? "Open" : "Closed");
-		dojo.replaceClass(node, this._titleBarClass, oldCls || "");
-
-		this.arrowNodeInner.innerHTML = this.open ? "-" : "+";
-	},
-
-	_onTitleKey: function(/*Event*/ e){
-		// summary:
-		//		Handler for when user hits a key
-		// tags:
-		//		private
-
-		if(e.charOrCode == dojo.keys.ENTER || e.charOrCode == ' '){
-			if(this.toggleable){
-				this.toggle();
-			}
-			dojo.stopEvent(e);
-		}else if(e.charOrCode == dojo.keys.DOWN_ARROW && this.open){
-			this.containerNode.focus();
-			e.preventDefault();
-	 	}
-	},
-
-	_onTitleClick: function(){
-		// summary:
-		//		Handler when user clicks the title bar
-		// tags:
-		//		private
-		if(this.toggleable){
-			this.toggle();
-		}
-	},
-
-	setTitle: function(/*String*/ title){
-		// summary:
-		//		Deprecated.  Use set('title', ...) instead.
-		// tags:
-		//		deprecated
-		dojo.deprecated("dijit.TitlePane.setTitle() is deprecated.  Use set('title', ...) instead.", "", "2.0");
-		this.set("title", title);
-	}
-});
-
-}
-
 if(!dojo._hasResource["scorll.asset.AssetMenu"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
 dojo._hasResource["scorll.asset.AssetMenu"] = true;
 dojo.provide("scorll.asset.AssetMenu");
@@ -14283,6 +13100,15 @@ dojo.declare("scorll.asset.AssetMenu", [
         toggler.hide();
       }, 300);
     }
+  },
+  disable: function (disabled) {
+    this.addBeforeButton.setAttribute('disabled', disabled);
+    this.editButton.setAttribute('disabled', disabled);
+    this.deleteButton.setAttribute('disabled', disabled);
+    this.cutButton.setAttribute('disabled', disabled);
+    this.copyButton.setAttribute('disabled', disabled);
+    this.pasteButton.setAttribute('disabled', disabled);
+    this.statsButton.setAttribute('disabled', disabled);
   }
 });
 
@@ -24932,9 +23758,36 @@ dojo.declare("scorll.asset.TrackingStats", [
 
 }
 
+if(!dojo._hasResource["scorll.asset.AssetDeleteConfirm"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["scorll.asset.AssetDeleteConfirm"] = true;
+dojo.provide("scorll.asset.AssetDeleteConfirm");
+
+
+
+
+dojo.declare("scorll.asset.AssetDeleteConfirm", [
+  dijit._Widget, dijit._Templated
+  ], {
+  widgetsInTemplate: true,
+  templateString:"<div style=\"margin-left: 60px; margin-top: 80px;\">\n  Do you really want to delete this asset?\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"yesButton\"\n    dojoAttachEvent=\"onClick:yes\">\n    Yes\n  </div>\n  <div dojoType=\"dijit.form.Button\" dojoAttachPoint=\"noButton\"\n    dojoAttachEvent=\"onClick:no\">\n    No\n  </div>\n",
+  postCreate: function () {},
+  yes: function () {
+    this.onConfirm();
+  },
+  no: function () {
+    this.onCancel();
+  }
+});
+
+}
+
 if(!dojo._hasResource["scorll.asset.AssetWrapper"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
 dojo._hasResource["scorll.asset.AssetWrapper"] = true;
 dojo.provide("scorll.asset.AssetWrapper");
+
+
+
+
 
 
 
@@ -24969,12 +23822,18 @@ dojo.declare("scorll.asset.AssetWrapper", [
     }
     this.registerClipboardEvents();
     this.registerMenuEvents();
+    dojo.connect(this.stage.user, "onRolesChange", function () {
+      var disabled = !wrapper.stage.user.hasRole("teacher");
+      wrapper.menu.disable(disabled);
+    });
+    var disabled = !wrapper.stage.user.hasRole("teacher");
+    wrapper.menu.disable(disabled);
   },
   createWidget: function (asset) {
     var wrapper = this;
-    var menu = this.menu;
-    var widget = this.widget = this.assetManager.getAssetRenderer(this.stage, asset);
-    this.stage.registerAsset(widget);
+    var menu = wrapper.menu;
+    var widget = wrapper.widget = wrapper.assetManager.getAssetRenderer(wrapper.stage, asset);
+    wrapper.stage.registerAsset(widget);
     menu.widget = widget;
     dojo.connect(widget, "onMouseOver", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -24992,7 +23851,9 @@ dojo.declare("scorll.asset.AssetWrapper", [
     dojo.connect(widget, "onLoginRequired", function (callback) {
       wrapper.showLogin(callback);
     });
-    widget && dojo.place(widget.domNode, this.domNode);
+    var anchor = widget.item.id.substr(0, 4) + widget.item.id.substr(-4);
+    dojo.place('<a name="' + anchor + '"></a>', wrapper.domNode);
+    widget && dojo.place(widget.domNode, wrapper.domNode);
   },
   updateAsset: function (asset) {
     this.asset = asset;
@@ -25051,6 +23912,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         title: "Edit Asset",
         toggleable: false
       });
+      container.domNode.style["margin-top"] = 20;
       dojo.destroy(container.arrowNode);
       form.placeAt(container.containerNode);
       container.placeAt(widget.domNode, "before");
@@ -25064,6 +23926,30 @@ dojo.declare("scorll.asset.AssetWrapper", [
         widget.domNode.style.display = "block";
         menu.domNode.style.display = "block";
       });
+      setTimeout(function () {
+        var windowH = dojo.window.getBox().h;
+        var wrapperY = dojo.position(container.domNode).y;
+        var wrapperH = dojo.position(container.domNode).h + 10;
+        var notInView = wrapperY < 0 || (wrapperY + wrapperH) > windowH;
+        if (wrapperH < windowH && notInView) {
+          var offsetY = 0;
+          if (wrapperY > 0) {
+            offsetY = windowH - wrapperH;
+          }
+          else {
+            offsetY += 30;
+          }
+          dojox.fx.smoothScroll({
+            win: window,
+            node: wrapper.domNode,
+            easing: dojo.fx.easing.quintIn,
+            duration: 300,
+            offset: {
+              y: -offsetY
+            }
+          }).play();
+        }
+      });
     });
     dojo.connect(menu, "onDelete", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -25071,7 +23957,20 @@ dojo.declare("scorll.asset.AssetWrapper", [
       }
       var widget = wrapper.widget;
       menu.hide(true);
-      stage.content.remove(widget.item);
+      var confirmW = new scorll.asset.AssetDeleteConfirm();
+      confirmW.domNode.style.width = dojo.position(wrapper.domNode).w - 60;
+      confirmW.domNode.style.height = dojo.position(wrapper.domNode).h - 80;
+      menu.domNode.style.display = "none";
+      widget.domNode.style.display = "none";
+      confirmW.placeAt(wrapper.domNode);
+      dojo.connect(confirmW, "onConfirm", function () {
+        stage.content.remove(widget.item);
+      });
+      dojo.connect(confirmW, "onCancel", function () {
+        confirmW.destroyRecursive();
+        menu.domNode.style.display = "block";
+        widget.domNode.style.display = "block";
+      });
     });
     dojo.connect(menu, "onCut", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -25453,6 +24352,406 @@ dojo.declare("dojo.dnd.__TimedMoveableArgs", [dojo.dnd.__MoveableArgs], {
 			}
 		}
 	});
+})();
+
+}
+
+if(!dojo._hasResource["dojo.fx"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojo.fx"] = true;
+dojo.provide("dojo.fx");
+
+
+
+/*=====
+dojo.fx = {
+	// summary: Effects library on top of Base animations
+};
+=====*/
+(function(){
+	
+	var d = dojo,
+		_baseObj = {
+			_fire: function(evt, args){
+				if(this[evt]){
+					this[evt].apply(this, args||[]);
+				}
+				return this;
+			}
+		};
+
+	var _chain = function(animations){
+		this._index = -1;
+		this._animations = animations||[];
+		this._current = this._onAnimateCtx = this._onEndCtx = null;
+
+		this.duration = 0;
+		d.forEach(this._animations, function(a){
+			this.duration += a.duration;
+			if(a.delay){ this.duration += a.delay; }
+		}, this);
+	};
+	d.extend(_chain, {
+		_onAnimate: function(){
+			this._fire("onAnimate", arguments);
+		},
+		_onEnd: function(){
+			d.disconnect(this._onAnimateCtx);
+			d.disconnect(this._onEndCtx);
+			this._onAnimateCtx = this._onEndCtx = null;
+			if(this._index + 1 == this._animations.length){
+				this._fire("onEnd");
+			}else{
+				// switch animations
+				this._current = this._animations[++this._index];
+				this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
+				this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
+				this._current.play(0, true);
+			}
+		},
+		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
+			if(!this._current){ this._current = this._animations[this._index = 0]; }
+			if(!gotoStart && this._current.status() == "playing"){ return this; }
+			var beforeBegin = d.connect(this._current, "beforeBegin", this, function(){
+					this._fire("beforeBegin");
+				}),
+				onBegin = d.connect(this._current, "onBegin", this, function(arg){
+					this._fire("onBegin", arguments);
+				}),
+				onPlay = d.connect(this._current, "onPlay", this, function(arg){
+					this._fire("onPlay", arguments);
+					d.disconnect(beforeBegin);
+					d.disconnect(onBegin);
+					d.disconnect(onPlay);
+				});
+			if(this._onAnimateCtx){
+				d.disconnect(this._onAnimateCtx);
+			}
+			this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
+			if(this._onEndCtx){
+				d.disconnect(this._onEndCtx);
+			}
+			this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
+			this._current.play.apply(this._current, arguments);
+			return this;
+		},
+		pause: function(){
+			if(this._current){
+				var e = d.connect(this._current, "onPause", this, function(arg){
+						this._fire("onPause", arguments);
+						d.disconnect(e);
+					});
+				this._current.pause();
+			}
+			return this;
+		},
+		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
+			this.pause();
+			var offset = this.duration * percent;
+			this._current = null;
+			d.some(this._animations, function(a){
+				if(a.duration <= offset){
+					this._current = a;
+					return true;
+				}
+				offset -= a.duration;
+				return false;
+			});
+			if(this._current){
+				this._current.gotoPercent(offset / this._current.duration, andPlay);
+			}
+			return this;
+		},
+		stop: function(/*boolean?*/ gotoEnd){
+			if(this._current){
+				if(gotoEnd){
+					for(; this._index + 1 < this._animations.length; ++this._index){
+						this._animations[this._index].stop(true);
+					}
+					this._current = this._animations[this._index];
+				}
+				var e = d.connect(this._current, "onStop", this, function(arg){
+						this._fire("onStop", arguments);
+						d.disconnect(e);
+					});
+				this._current.stop();
+			}
+			return this;
+		},
+		status: function(){
+			return this._current ? this._current.status() : "stopped";
+		},
+		destroy: function(){
+			if(this._onAnimateCtx){ d.disconnect(this._onAnimateCtx); }
+			if(this._onEndCtx){ d.disconnect(this._onEndCtx); }
+		}
+	});
+	d.extend(_chain, _baseObj);
+
+	dojo.fx.chain = function(/*dojo.Animation[]*/ animations){
+		// summary:
+		//		Chain a list of `dojo.Animation`s to run in sequence
+		//
+		// description:
+		//		Return a `dojo.Animation` which will play all passed
+		//		`dojo.Animation` instances in sequence, firing its own
+		//		synthesized events simulating a single animation. (eg:
+		//		onEnd of this animation means the end of the chain,
+		//		not the individual animations within)
+		//
+		// example:
+		//	Once `node` is faded out, fade in `otherNode`
+		//	|	dojo.fx.chain([
+		//	|		dojo.fadeIn({ node:node }),
+		//	|		dojo.fadeOut({ node:otherNode })
+		//	|	]).play();
+		//
+		return new _chain(animations) // dojo.Animation
+	};
+
+	var _combine = function(animations){
+		this._animations = animations||[];
+		this._connects = [];
+		this._finished = 0;
+
+		this.duration = 0;
+		d.forEach(animations, function(a){
+			var duration = a.duration;
+			if(a.delay){ duration += a.delay; }
+			if(this.duration < duration){ this.duration = duration; }
+			this._connects.push(d.connect(a, "onEnd", this, "_onEnd"));
+		}, this);
+		
+		this._pseudoAnimation = new d.Animation({curve: [0, 1], duration: this.duration});
+		var self = this;
+		d.forEach(["beforeBegin", "onBegin", "onPlay", "onAnimate", "onPause", "onStop", "onEnd"],
+			function(evt){
+				self._connects.push(d.connect(self._pseudoAnimation, evt,
+					function(){ self._fire(evt, arguments); }
+				));
+			}
+		);
+	};
+	d.extend(_combine, {
+		_doAction: function(action, args){
+			d.forEach(this._animations, function(a){
+				a[action].apply(a, args);
+			});
+			return this;
+		},
+		_onEnd: function(){
+			if(++this._finished > this._animations.length){
+				this._fire("onEnd");
+			}
+		},
+		_call: function(action, args){
+			var t = this._pseudoAnimation;
+			t[action].apply(t, args);
+		},
+		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
+			this._finished = 0;
+			this._doAction("play", arguments);
+			this._call("play", arguments);
+			return this;
+		},
+		pause: function(){
+			this._doAction("pause", arguments);
+			this._call("pause", arguments);
+			return this;
+		},
+		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
+			var ms = this.duration * percent;
+			d.forEach(this._animations, function(a){
+				a.gotoPercent(a.duration < ms ? 1 : (ms / a.duration), andPlay);
+			});
+			this._call("gotoPercent", arguments);
+			return this;
+		},
+		stop: function(/*boolean?*/ gotoEnd){
+			this._doAction("stop", arguments);
+			this._call("stop", arguments);
+			return this;
+		},
+		status: function(){
+			return this._pseudoAnimation.status();
+		},
+		destroy: function(){
+			d.forEach(this._connects, dojo.disconnect);
+		}
+	});
+	d.extend(_combine, _baseObj);
+
+	dojo.fx.combine = function(/*dojo.Animation[]*/ animations){
+		// summary:
+		//		Combine a list of `dojo.Animation`s to run in parallel
+		//
+		// description:
+		//		Combine an array of `dojo.Animation`s to run in parallel,
+		//		providing a new `dojo.Animation` instance encompasing each
+		//		animation, firing standard animation events.
+		//
+		// example:
+		//	Fade out `node` while fading in `otherNode` simultaneously
+		//	|	dojo.fx.combine([
+		//	|		dojo.fadeIn({ node:node }),
+		//	|		dojo.fadeOut({ node:otherNode })
+		//	|	]).play();
+		//
+		// example:
+		//	When the longest animation ends, execute a function:
+		//	|	var anim = dojo.fx.combine([
+		//	|		dojo.fadeIn({ node: n, duration:700 }),
+		//	|		dojo.fadeOut({ node: otherNode, duration: 300 })
+		//	|	]);
+		//	|	dojo.connect(anim, "onEnd", function(){
+		//	|		// overall animation is done.
+		//	|	});
+		//	|	anim.play(); // play the animation
+		//
+		return new _combine(animations); // dojo.Animation
+	};
+
+	dojo.fx.wipeIn = function(/*Object*/ args){
+		// summary:
+		//		Expand a node to it's natural height.
+		//
+		// description:
+		//		Returns an animation that will expand the
+		//		node defined in 'args' object from it's current height to
+		//		it's natural height (with no scrollbar).
+		//		Node must have no margin/border/padding.
+		//
+		// args: Object
+		//		A hash-map of standard `dojo.Animation` constructor properties
+		//		(such as easing: node: duration: and so on)
+		//
+		// example:
+		//	|	dojo.fx.wipeIn({
+		//	|		node:"someId"
+		//	|	}).play()
+		var node = args.node = d.byId(args.node), s = node.style, o;
+
+		var anim = d.animateProperty(d.mixin({
+			properties: {
+				height: {
+					// wrapped in functions so we wait till the last second to query (in case value has changed)
+					start: function(){
+						// start at current [computed] height, but use 1px rather than 0
+						// because 0 causes IE to display the whole panel
+						o = s.overflow;
+						s.overflow = "hidden";
+						if(s.visibility == "hidden" || s.display == "none"){
+							s.height = "1px";
+							s.display = "";
+							s.visibility = "";
+							return 1;
+						}else{
+							var height = d.style(node, "height");
+							return Math.max(height, 1);
+						}
+					},
+					end: function(){
+						return node.scrollHeight;
+					}
+				}
+			}
+		}, args));
+
+		d.connect(anim, "onEnd", function(){
+			s.height = "auto";
+			s.overflow = o;
+		});
+
+		return anim; // dojo.Animation
+	};
+
+	dojo.fx.wipeOut = function(/*Object*/ args){
+		// summary:
+		//		Shrink a node to nothing and hide it.
+		//
+		// description:
+		//		Returns an animation that will shrink node defined in "args"
+		//		from it's current height to 1px, and then hide it.
+		//
+		// args: Object
+		//		A hash-map of standard `dojo.Animation` constructor properties
+		//		(such as easing: node: duration: and so on)
+		//
+		// example:
+		//	|	dojo.fx.wipeOut({ node:"someId" }).play()
+		
+		var node = args.node = d.byId(args.node), s = node.style, o;
+		
+		var anim = d.animateProperty(d.mixin({
+			properties: {
+				height: {
+					end: 1 // 0 causes IE to display the whole panel
+				}
+			}
+		}, args));
+
+		d.connect(anim, "beforeBegin", function(){
+			o = s.overflow;
+			s.overflow = "hidden";
+			s.display = "";
+		});
+		d.connect(anim, "onEnd", function(){
+			s.overflow = o;
+			s.height = "auto";
+			s.display = "none";
+		});
+
+		return anim; // dojo.Animation
+	};
+
+	dojo.fx.slideTo = function(/*Object*/ args){
+		// summary:
+		//		Slide a node to a new top/left position
+		//
+		// description:
+		//		Returns an animation that will slide "node"
+		//		defined in args Object from its current position to
+		//		the position defined by (args.left, args.top).
+		//
+		// args: Object
+		//		A hash-map of standard `dojo.Animation` constructor properties
+		//		(such as easing: node: duration: and so on). Special args members
+		//		are `top` and `left`, which indicate the new position to slide to.
+		//
+		// example:
+		//	|	dojo.fx.slideTo({ node: node, left:"40", top:"50", units:"px" }).play()
+
+		var node = args.node = d.byId(args.node),
+			top = null, left = null;
+
+		var init = (function(n){
+			return function(){
+				var cs = d.getComputedStyle(n);
+				var pos = cs.position;
+				top = (pos == 'absolute' ? n.offsetTop : parseInt(cs.top) || 0);
+				left = (pos == 'absolute' ? n.offsetLeft : parseInt(cs.left) || 0);
+				if(pos != 'absolute' && pos != 'relative'){
+					var ret = d.position(n, true);
+					top = ret.y;
+					left = ret.x;
+					n.style.position="absolute";
+					n.style.top=top+"px";
+					n.style.left=left+"px";
+				}
+			};
+		})(node);
+		init();
+
+		var anim = d.animateProperty(d.mixin({
+			properties: {
+				top: args.top || 0,
+				left: args.left || 0
+			}
+		}, args));
+		d.connect(anim, "beforeBegin", anim, init);
+
+		return anim; // dojo.Animation
+	};
+
 })();
 
 }
@@ -26089,6 +25388,1191 @@ dojo.declare(
 		}
 	}
 );
+
+}
+
+if(!dojo._hasResource["dijit.layout._ContentPaneResizeMixin"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dijit.layout._ContentPaneResizeMixin"] = true;
+dojo.provide("dijit.layout._ContentPaneResizeMixin");
+
+
+
+
+dojo.declare("dijit.layout._ContentPaneResizeMixin", null, {
+	// summary:
+	//		Resize() functionality of ContentPane.   If there's a single layout widget
+	//		child then it will call resize() with the same dimensions as the ContentPane.
+	//		Otherwise just calls resize on each child.
+	//
+	//		Also implements basic startup() functionality, where starting the parent
+	//		will start the children
+
+	// doLayout: Boolean
+	//		- false - don't adjust size of children
+	//		- true - if there is a single visible child widget, set it's size to
+	//				however big the ContentPane is
+	doLayout: true,
+
+	// isContainer: [protected] Boolean
+	//		Indicates that this widget acts as a "parent" to the descendant widgets.
+	//		When the parent is started it will call startup() on the child widgets.
+	//		See also `isLayoutContainer`.
+	isContainer: true,
+
+	// isLayoutContainer: [protected] Boolean
+	//		Indicates that this widget will call resize() on it's child widgets
+	//		when they become visible.
+	isLayoutContainer: true,
+
+	_startChildren: function(){
+		// summary:
+		//		Call startup() on all children including non _Widget ones like dojo.dnd.Source objects
+
+		// This starts all the widgets
+		dojo.forEach(this.getChildren(), function(child){
+			child.startup();
+			child._started = true;
+		});
+	},
+
+	startup: function(){
+		// summary:
+		//		See `dijit.layout._LayoutWidget.startup` for description.
+		//		Although ContentPane doesn't extend _LayoutWidget, it does implement
+		//		the same API.
+
+		if(this._started){ return; }
+
+		var parent = dijit._Contained.prototype.getParent.call(this);
+		this._childOfLayoutWidget = parent && parent.isLayoutContainer;
+
+		// I need to call resize() on my child/children (when I become visible), unless
+		// I'm the child of a layout widget in which case my parent will call resize() on me and I'll do it then.
+		this._needLayout = !this._childOfLayoutWidget;
+
+		this.inherited(arguments);
+
+		this._startChildren();
+
+		if(this._isShown()){
+			this._onShow();
+		}
+
+		if(!this._childOfLayoutWidget){
+			// If my parent isn't a layout container, since my style *may be* width=height=100%
+			// or something similar (either set directly or via a CSS class),
+			// monitor when my size changes so that I can re-layout.
+			// For browsers where I can't directly monitor when my size changes,
+			// monitor when the viewport changes size, which *may* indicate a size change for me.
+			this.connect(dojo.isIE ? this.domNode : dojo.global, 'onresize', function(){
+				// Using function(){} closure to ensure no arguments to resize.
+				this._needLayout = !this._childOfLayoutWidget;
+				this.resize();
+			});
+		}
+	},
+
+	_checkIfSingleChild: function(){
+		// summary:
+		//		Test if we have exactly one visible widget as a child,
+		//		and if so assume that we are a container for that widget,
+		//		and should propagate startup() and resize() calls to it.
+		//		Skips over things like data stores since they aren't visible.
+
+		var childNodes = dojo.query("> *", this.containerNode).filter(function(node){
+				return node.tagName !== "SCRIPT"; // or a regexp for hidden elements like script|area|map|etc..
+			}),
+			childWidgetNodes = childNodes.filter(function(node){
+				return dojo.hasAttr(node, "data-dojo-type") || dojo.hasAttr(node, "dojoType") || dojo.hasAttr(node, "widgetId");
+			}),
+			candidateWidgets = dojo.filter(childWidgetNodes.map(dijit.byNode), function(widget){
+				return widget && widget.domNode && widget.resize;
+			});
+
+		if(
+			// all child nodes are widgets
+			childNodes.length == childWidgetNodes.length &&
+
+			// all but one are invisible (like dojo.data)
+			candidateWidgets.length == 1
+		){
+			this._singleChild = candidateWidgets[0];
+		}else{
+			delete this._singleChild;
+		}
+
+		// So we can set overflow: hidden to avoid a safari bug w/scrollbars showing up (#9449)
+		dojo.toggleClass(this.containerNode, this.baseClass + "SingleChild", !!this._singleChild);
+	},
+
+	resize: function(changeSize, resultSize){
+		// summary:
+		//		See `dijit.layout._LayoutWidget.resize` for description.
+		//		Although ContentPane doesn't extend _LayoutWidget, it does implement
+		//		the same API.
+
+		// For the TabContainer --> BorderContainer --> ContentPane case, _onShow() is
+		// never called, so resize() is our trigger to do the initial href download (see [20099]).
+		// However, don't load href for closed TitlePanes.
+		if(!this._wasShown && this.open !== false){
+			this._onShow();
+		}
+
+		this._resizeCalled = true;
+
+		this._scheduleLayout(changeSize, resultSize);
+	},
+
+	_scheduleLayout: function(changeSize, resultSize){
+		// summary:
+		//		Resize myself, and call resize() on each of my child layout widgets, either now
+		//		(if I'm currently visible) or when I become visible
+		if(this._isShown()){
+			this._layout(changeSize, resultSize);
+		}else{
+			this._needLayout = true;
+			this._changeSize = changeSize;
+			this._resultSize = resultSize;
+		}
+	},
+
+	_layout: function(changeSize, resultSize){
+		// summary:
+		//		Resize myself according to optional changeSize/resultSize parameters, like a layout widget.
+		//		Also, since I am a Container widget, each of my children expects me to
+		//		call resize() or layout() on them.
+		//
+		//		Should be called on initialization and also whenever we get new content
+		//		(from an href, or from set('content', ...))... but deferred until
+		//		the ContentPane is visible
+
+		// Set margin box size, unless it wasn't specified, in which case use current size.
+		if(changeSize){
+			dojo.marginBox(this.domNode, changeSize);
+		}
+
+		// Compute content box size of containerNode in case we [later] need to size our single child.
+		var cn = this.containerNode;
+		if(cn === this.domNode){
+			// If changeSize or resultSize was passed to this method and this.containerNode ==
+			// this.domNode then we can compute the content-box size without querying the node,
+			// which is more reliable (similar to LayoutWidget.resize) (see for example #9449).
+			var mb = resultSize || {};
+			dojo.mixin(mb, changeSize || {}); // changeSize overrides resultSize
+			if(!("h" in mb) || !("w" in mb)){
+				mb = dojo.mixin(dojo.marginBox(cn), mb); // just use dojo.marginBox() to fill in missing values
+			}
+			this._contentBox = dijit.layout.marginBox2contentBox(cn, mb);
+		}else{
+			this._contentBox = dojo.contentBox(cn);
+		}
+
+		this._layoutChildren();
+
+		delete this._needLayout;
+	},
+	
+	_layoutChildren: function(){
+		// Call _checkIfSingleChild() again in case app has manually mucked w/the content
+		// of the ContentPane (rather than changing it through the set("content", ...) API.
+		if(this.doLayout){
+			this._checkIfSingleChild();
+		}
+
+		if(this._singleChild && this._singleChild.resize){
+			var cb = this._contentBox || dojo.contentBox(this.containerNode);
+
+			// note: if widget has padding this._contentBox will have l and t set,
+			// but don't pass them to resize() or it will doubly-offset the child
+			this._singleChild.resize({w: cb.w, h: cb.h});
+		}else{
+			// All my child widgets are independently sized (rather than matching my size),
+			// but I still need to call resize() on each child to make it layout.
+			dojo.forEach(this.getChildren(), function(widget){
+				if(widget.resize){
+					widget.resize();
+				}
+			});
+		}
+	},
+
+	_isShown: function(){
+		// summary:
+		//		Returns true if the content is currently shown.
+		// description:
+		//		If I am a child of a layout widget then it actually returns true if I've ever been visible,
+		//		not whether I'm currently visible, since that's much faster than tracing up the DOM/widget
+		//		tree every call, and at least solves the performance problem on page load by deferring loading
+		//		hidden ContentPanes until they are first shown
+
+		if(this._childOfLayoutWidget){
+			// If we are TitlePane, etc - we return that only *IF* we've been resized
+			if(this._resizeCalled && "open" in this){
+				return this.open;
+			}
+			return this._resizeCalled;
+		}else if("open" in this){
+			return this.open;		// for TitlePane, etc.
+		}else{
+			var node = this.domNode, parent = this.domNode.parentNode;
+			return (node.style.display != 'none') && (node.style.visibility != 'hidden') && !dojo.hasClass(node, "dijitHidden") &&
+					parent && parent.style && (parent.style.display != 'none');
+		}
+	},
+
+	_onShow: function(){
+		// summary:
+		//		Called when the ContentPane is made visible
+		// description:
+		//		For a plain ContentPane, this is called on initialization, from startup().
+		//		If the ContentPane is a hidden pane of a TabContainer etc., then it's
+		//		called whenever the pane is made visible.
+		//
+		//		Does layout/resize of child widget(s)
+
+		if(this._needLayout){
+			// If a layout has been scheduled for when we become visible, do it now
+			this._layout(this._changeSize, this._resultSize);
+		}
+
+		this.inherited(arguments);
+
+		// Need to keep track of whether ContentPane has been shown (which is different than
+		// whether or not it's currently visible).
+		this._wasShown = true;
+	}
+});
+
+}
+
+if(!dojo._hasResource["dojo.html"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojo.html"] = true;
+dojo.provide("dojo.html");
+
+
+dojo.getObject("html", true, dojo);
+
+// the parser might be needed..
+(function(){ // private scope, sort of a namespace
+
+	// idCounter is incremented with each instantiation to allow asignment of a unique id for tracking, logging purposes
+	var idCounter = 0,
+		d = dojo;
+	
+	dojo.html._secureForInnerHtml = function(/*String*/ cont){
+		// summary:
+		//		removes !DOCTYPE and title elements from the html string.
+		//
+		//		khtml is picky about dom faults, you can't attach a style or <title> node as child of body
+		//		must go into head, so we need to cut out those tags
+		//	cont:
+		//		An html string for insertion into the dom
+		//
+		return cont.replace(/(?:\s*<!DOCTYPE\s[^>]+>|<title[^>]*>[\s\S]*?<\/title>)/ig, ""); // String
+	};
+
+/*====
+	dojo.html._emptyNode = function(node){
+		// summary:
+		//		removes all child nodes from the given node
+		//	node: DOMNode
+		//		the parent element
+	};
+=====*/
+	dojo.html._emptyNode = dojo.empty;
+
+	dojo.html._setNodeContent = function(/* DomNode */ node, /* String|DomNode|NodeList */ cont){
+		// summary:
+		//		inserts the given content into the given node
+		//	node:
+		//		the parent element
+		//	content:
+		//		the content to be set on the parent element.
+		//		This can be an html string, a node reference or a NodeList, dojo.NodeList, Array or other enumerable list of nodes
+		
+		// always empty
+		d.empty(node);
+
+		if(cont) {
+			if(typeof cont == "string") {
+				cont = d._toDom(cont, node.ownerDocument);
+			}
+			if(!cont.nodeType && d.isArrayLike(cont)) {
+				// handle as enumerable, but it may shrink as we enumerate it
+				for(var startlen=cont.length, i=0; i<cont.length; i=startlen==cont.length ? i+1 : 0) {
+					d.place( cont[i], node, "last");
+				}
+			} else {
+				// pass nodes, documentFragments and unknowns through to dojo.place
+				d.place(cont, node, "last");
+			}
+		}
+
+		// return DomNode
+		return node;
+	};
+
+	// we wrap up the content-setting operation in a object
+	dojo.declare("dojo.html._ContentSetter", null,
+		{
+			// node: DomNode|String
+			//		An node which will be the parent element that we set content into
+			node: "",
+
+			// content: String|DomNode|DomNode[]
+			//		The content to be placed in the node. Can be an HTML string, a node reference, or a enumerable list of nodes
+			content: "",
+			
+			// id: String?
+			//		Usually only used internally, and auto-generated with each instance
+			id: "",
+
+			// cleanContent: Boolean
+			//		Should the content be treated as a full html document,
+			//		and the real content stripped of <html>, <body> wrapper before injection
+			cleanContent: false,
+			
+			// extractContent: Boolean
+			//		Should the content be treated as a full html document, and the real content stripped of <html>, <body> wrapper before injection
+			extractContent: false,
+
+			// parseContent: Boolean
+			//		Should the node by passed to the parser after the new content is set
+			parseContent: false,
+
+			// parserScope: String
+			//		Flag passed to parser.  Root for attribute names to search for.   If scopeName is dojo,
+			//		will search for data-dojo-type (or dojoType).  For backwards compatibility
+			//		reasons defaults to dojo._scopeName (which is "dojo" except when
+			//		multi-version support is used, when it will be something like dojo16, dojo20, etc.)
+			parserScope: dojo._scopeName,
+
+			// startup: Boolean
+			//		Start the child widgets after parsing them.   Only obeyed if parseContent is true.
+			startup: true,
+			
+			// lifecyle methods
+			constructor: function(/* Object */params, /* String|DomNode */node){
+				//	summary:
+				//		Provides a configurable, extensible object to wrap the setting on content on a node
+				//		call the set() method to actually set the content..
+ 
+				// the original params are mixed directly into the instance "this"
+				dojo.mixin(this, params || {});
+
+				// give precedence to params.node vs. the node argument
+				// and ensure its a node, not an id string
+				node = this.node = dojo.byId( this.node || node );
+	
+				if(!this.id){
+					this.id = [
+						"Setter",
+						(node) ? node.id || node.tagName : "",
+						idCounter++
+					].join("_");
+				}
+			},
+			set: function(/* String|DomNode|NodeList? */ cont, /* Object? */ params){
+				// summary:
+				//		front-end to the set-content sequence
+				//	cont:
+				//		An html string, node or enumerable list of nodes for insertion into the dom
+				//		If not provided, the object's content property will be used
+				if(undefined !== cont){
+					this.content = cont;
+				}
+				// in the re-use scenario, set needs to be able to mixin new configuration
+				if(params){
+					this._mixin(params);
+				}
+
+				this.onBegin();
+				this.setContent();
+				this.onEnd();
+
+				return this.node;
+			},
+			setContent: function(){
+				// summary:
+				//		sets the content on the node
+
+				var node = this.node;
+				if(!node) {
+				    // can't proceed
+					throw new Error(this.declaredClass + ": setContent given no node");
+				}
+				try{
+					node = dojo.html._setNodeContent(node, this.content);
+				}catch(e){
+					// check if a domfault occurs when we are appending this.errorMessage
+					// like for instance if domNode is a UL and we try append a DIV
+	
+					// FIXME: need to allow the user to provide a content error message string
+					var errMess = this.onContentError(e);
+					try{
+						node.innerHTML = errMess;
+					}catch(e){
+						console.error('Fatal ' + this.declaredClass + '.setContent could not change content due to '+e.message, e);
+					}
+				}
+				// always put back the node for the next method
+				this.node = node; // DomNode
+			},
+			
+			empty: function() {
+				// summary
+				//	cleanly empty out existing content
+
+				// destroy any widgets from a previous run
+				// NOTE: if you dont want this you'll need to empty
+				// the parseResults array property yourself to avoid bad things happenning
+				if(this.parseResults && this.parseResults.length) {
+					dojo.forEach(this.parseResults, function(w) {
+						if(w.destroy){
+							w.destroy();
+						}
+					});
+					delete this.parseResults;
+				}
+				// this is fast, but if you know its already empty or safe, you could
+				// override empty to skip this step
+				dojo.html._emptyNode(this.node);
+			},
+	
+			onBegin: function(){
+				// summary
+				//		Called after instantiation, but before set();
+				//		It allows modification of any of the object properties
+				//		- including the node and content provided - before the set operation actually takes place
+				//		This default implementation checks for cleanContent and extractContent flags to
+				//		optionally pre-process html string content
+				var cont = this.content;
+	
+				if(dojo.isString(cont)){
+					if(this.cleanContent){
+						cont = dojo.html._secureForInnerHtml(cont);
+					}
+  
+					if(this.extractContent){
+						var match = cont.match(/<body[^>]*>\s*([\s\S]+)\s*<\/body>/im);
+						if(match){ cont = match[1]; }
+					}
+				}
+
+				// clean out the node and any cruft associated with it - like widgets
+				this.empty();
+				
+				this.content = cont;
+				return this.node; /* DomNode */
+			},
+	
+			onEnd: function(){
+				// summary
+				//		Called after set(), when the new content has been pushed into the node
+				//		It provides an opportunity for post-processing before handing back the node to the caller
+				//		This default implementation checks a parseContent flag to optionally run the dojo parser over the new content
+				if(this.parseContent){
+					// populates this.parseResults if you need those..
+					this._parse();
+				}
+				return this.node; /* DomNode */
+			},
+	
+			tearDown: function(){
+				// summary
+				//		manually reset the Setter instance if its being re-used for example for another set()
+				// description
+				//		tearDown() is not called automatically.
+				//		In normal use, the Setter instance properties are simply allowed to fall out of scope
+				//		but the tearDown method can be called to explicitly reset this instance.
+				delete this.parseResults;
+				delete this.node;
+				delete this.content;
+			},
+  
+			onContentError: function(err){
+				return "Error occured setting content: " + err;
+			},
+			
+			_mixin: function(params){
+				// mix properties/methods into the instance
+				// TODO: the intention with tearDown is to put the Setter's state
+				// back to that of the original constructor (vs. deleting/resetting everything regardless of ctor params)
+				// so we could do something here to move the original properties aside for later restoration
+				var empty = {}, key;
+				for(key in params){
+					if(key in empty){ continue; }
+					// TODO: here's our opportunity to mask the properties we dont consider configurable/overridable
+					// .. but history shows we'll almost always guess wrong
+					this[key] = params[key];
+				}
+			},
+			_parse: function(){
+				// summary:
+				//		runs the dojo parser over the node contents, storing any results in this.parseResults
+				//		Any errors resulting from parsing are passed to _onError for handling
+
+				var rootNode = this.node;
+				try{
+					// store the results (widgets, whatever) for potential retrieval
+					var inherited = {};
+					dojo.forEach(["dir", "lang", "textDir"], function(name){
+						if(this[name]){
+							inherited[name] = this[name];
+						}
+					}, this);
+					this.parseResults = dojo.parser.parse({
+						rootNode: rootNode,
+						noStart: !this.startup,
+						inherited: inherited,
+						scope: this.parserScope
+					});
+				}catch(e){
+					this._onError('Content', e, "Error parsing in _ContentSetter#"+this.id);
+				}
+			},
+  
+			_onError: function(type, err, consoleText){
+				// summary:
+				//		shows user the string that is returned by on[type]Error
+				//		overide/implement on[type]Error and return your own string to customize
+				var errText = this['on' + type + 'Error'].call(this, err);
+				if(consoleText){
+					console.error(consoleText, err);
+				}else if(errText){ // a empty string won't change current content
+					dojo.html._setNodeContent(this.node, errText, true);
+				}
+			}
+	}); // end dojo.declare()
+
+	dojo.html.set = function(/* DomNode */ node, /* String|DomNode|NodeList */ cont, /* Object? */ params){
+			// summary:
+			//		inserts (replaces) the given content into the given node. dojo.place(cont, node, "only")
+			//		may be a better choice for simple HTML insertion.
+			// description:
+			//		Unless you need to use the params capabilities of this method, you should use
+			//		dojo.place(cont, node, "only"). dojo.place() has more robust support for injecting
+			//		an HTML string into the DOM, but it only handles inserting an HTML string as DOM
+			//		elements, or inserting a DOM node. dojo.place does not handle NodeList insertions
+			//		or the other capabilities as defined by the params object for this method.
+			//	node:
+			//		the parent element that will receive the content
+			//	cont:
+			//		the content to be set on the parent element.
+			//		This can be an html string, a node reference or a NodeList, dojo.NodeList, Array or other enumerable list of nodes
+			//	params:
+			//		Optional flags/properties to configure the content-setting. See dojo.html._ContentSetter
+			//	example:
+			//		A safe string/node/nodelist content replacement/injection with hooks for extension
+			//		Example Usage:
+			//		dojo.html.set(node, "some string");
+			//		dojo.html.set(node, contentNode, {options});
+			//		dojo.html.set(node, myNode.childNodes, {options});
+		if(undefined == cont){
+			console.warn("dojo.html.set: no cont argument provided, using empty string");
+			cont = "";
+		}
+		if(!params){
+			// simple and fast
+			return dojo.html._setNodeContent(node, cont, true);
+		}else{
+			// more options but slower
+			// note the arguments are reversed in order, to match the convention for instantiation via the parser
+			var op = new dojo.html._ContentSetter(dojo.mixin(
+					params,
+					{ content: cont, node: node }
+			));
+			return op.set();
+		}
+	};
+})();
+
+}
+
+if(!dojo._hasResource["dijit.layout.ContentPane"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dijit.layout.ContentPane"] = true;
+dojo.provide("dijit.layout.ContentPane");
+
+
+
+
+
+
+
+dojo.declare(
+	"dijit.layout.ContentPane", [dijit._Widget, dijit.layout._ContentPaneResizeMixin],
+{
+	// summary:
+	//		A widget containing an HTML fragment, specified inline
+	//		or by uri.  Fragment may include widgets.
+	//
+	// description:
+	//		This widget embeds a document fragment in the page, specified
+	//		either by uri, javascript generated markup or DOM reference.
+	//		Any widgets within this content are instantiated and managed,
+	//		but laid out according to the HTML structure.  Unlike IFRAME,
+	//		ContentPane embeds a document fragment as would be found
+	//		inside the BODY tag of a full HTML document.  It should not
+	//		contain the HTML, HEAD, or BODY tags.
+	//		For more advanced functionality with scripts and
+	//		stylesheets, see dojox.layout.ContentPane.  This widget may be
+	//		used stand alone or as a base class for other widgets.
+	//		ContentPane is useful as a child of other layout containers
+	//		such as BorderContainer or TabContainer, but note that those
+	//		widgets can contain any widget as a child.
+	//
+	// example:
+	//		Some quick samples:
+	//		To change the innerHTML: cp.set('content', '<b>new content</b>')
+	//
+	//		Or you can send it a NodeList: cp.set('content', dojo.query('div [class=selected]', userSelection))
+	//
+	//		To do an ajax update: cp.set('href', url)
+
+	// href: String
+	//		The href of the content that displays now.
+	//		Set this at construction if you want to load data externally when the
+	//		pane is shown.  (Set preload=true to load it immediately.)
+	//		Changing href after creation doesn't have any effect; Use set('href', ...);
+	href: "",
+
+/*=====
+	// content: String || DomNode || NodeList || dijit._Widget
+	//		The innerHTML of the ContentPane.
+	//		Note that the initialization parameter / argument to set("content", ...)
+	//		can be a String, DomNode, Nodelist, or _Widget.
+	content: "",
+=====*/
+
+	// extractContent: Boolean
+	//		Extract visible content from inside of <body> .... </body>.
+	//		I.e., strip <html> and <head> (and it's contents) from the href
+	extractContent: false,
+
+	// parseOnLoad: Boolean
+	//		Parse content and create the widgets, if any.
+	parseOnLoad: true,
+
+	// parserScope: String
+	//		Flag passed to parser.  Root for attribute names to search for.   If scopeName is dojo,
+	//		will search for data-dojo-type (or dojoType).  For backwards compatibility
+	//		reasons defaults to dojo._scopeName (which is "dojo" except when
+	//		multi-version support is used, when it will be something like dojo16, dojo20, etc.)
+	parserScope: dojo._scopeName,
+
+	// preventCache: Boolean
+	//		Prevent caching of data from href's by appending a timestamp to the href.
+	preventCache: false,
+
+	// preload: Boolean
+	//		Force load of data on initialization even if pane is hidden.
+	preload: false,
+
+	// refreshOnShow: Boolean
+	//		Refresh (re-download) content when pane goes from hidden to shown
+	refreshOnShow: false,
+
+	// loadingMessage: String
+	//		Message that shows while downloading
+	loadingMessage: "<span class='dijitContentPaneLoading'>${loadingState}</span>",
+
+	// errorMessage: String
+	//		Message that shows if an error occurs
+	errorMessage: "<span class='dijitContentPaneError'>${errorState}</span>",
+
+	// isLoaded: [readonly] Boolean
+	//		True if the ContentPane has data in it, either specified
+	//		during initialization (via href or inline content), or set
+	//		via set('content', ...) / set('href', ...)
+	//
+	//		False if it doesn't have any content, or if ContentPane is
+	//		still in the process of downloading href.
+	isLoaded: false,
+
+	baseClass: "dijitContentPane",
+
+	// ioArgs: Object
+	//		Parameters to pass to xhrGet() request, for example:
+	// |	<div dojoType="dijit.layout.ContentPane" href="./bar" ioArgs="{timeout: 500}">
+	ioArgs: {},
+
+	// onLoadDeferred: [readonly] dojo.Deferred
+	//		This is the `dojo.Deferred` returned by set('href', ...) and refresh().
+	//		Calling onLoadDeferred.addCallback() or addErrback() registers your
+	//		callback to be called only once, when the prior set('href', ...) call or
+	//		the initial href parameter to the constructor finishes loading.
+	//
+	//		This is different than an onLoad() handler which gets called any time any href
+	//		or content is loaded.
+	onLoadDeferred: null,
+
+	// Override _Widget's attributeMap because we don't want the title attribute (used to specify
+	// tab labels) to be copied to ContentPane.domNode... otherwise a tooltip shows up over the
+	// entire pane.
+	attributeMap: dojo.delegate(dijit._Widget.prototype.attributeMap, {
+		title: []
+	}),
+
+	// Flag to parser that I'll parse my contents, so it shouldn't.
+	stopParser: true,
+
+	// template: [private] Boolean
+	//		Flag from the parser that this ContentPane is inside a template
+	//		so the contents are pre-parsed.
+	// (TODO: this declaration can be commented out in 2.0)
+	template: false,
+
+	create: function(params, srcNodeRef){
+		// Convert a srcNodeRef argument into a content parameter, so that the original contents are
+		// processed in the same way as contents set via set("content", ...), calling the parser etc.
+		// Avoid modifying original params object since that breaks NodeList instantiation, see #11906.
+		if((!params || !params.template) && srcNodeRef && !("href" in params) && !("content" in params)){
+			var df = dojo.doc.createDocumentFragment();
+			srcNodeRef = dojo.byId(srcNodeRef)
+			while(srcNodeRef.firstChild){
+				df.appendChild(srcNodeRef.firstChild);
+			}
+			params = dojo.delegate(params, {content: df});
+		}
+		this.inherited(arguments, [params, srcNodeRef]);
+	},
+
+	postMixInProperties: function(){
+		this.inherited(arguments);
+		var messages = dojo.i18n.getLocalization("dijit", "loading", this.lang);
+		this.loadingMessage = dojo.string.substitute(this.loadingMessage, messages);
+		this.errorMessage = dojo.string.substitute(this.errorMessage, messages);
+	},
+
+	buildRendering: function(){
+		this.inherited(arguments);
+
+		// Since we have no template we need to set this.containerNode ourselves, to make getChildren() work.
+		// For subclasses of ContentPane that do have a template, does nothing.
+		if(!this.containerNode){
+			this.containerNode = this.domNode;
+		}
+
+		// remove the title attribute so it doesn't show up when hovering
+		// over a node  (TODO: remove in 2.0, no longer needed after #11490)
+		this.domNode.title = "";
+
+		if(!dojo.attr(this.domNode,"role")){
+			dijit.setWaiRole(this.domNode, "group");
+		}
+	},
+
+	_startChildren: function(){
+		// summary:
+		//		Call startup() on all children including non _Widget ones like dojo.dnd.Source objects
+
+		// This starts all the widgets
+		this.inherited(arguments);
+
+		// And this catches stuff like dojo.dnd.Source
+		if(this._contentSetter){
+			dojo.forEach(this._contentSetter.parseResults, function(obj){
+				if(!obj._started && !obj._destroyed && dojo.isFunction(obj.startup)){
+					obj.startup();
+					obj._started = true;
+				}
+			}, this);
+		}
+	},
+
+	setHref: function(/*String|Uri*/ href){
+		// summary:
+		//		Deprecated.   Use set('href', ...) instead.
+		dojo.deprecated("dijit.layout.ContentPane.setHref() is deprecated. Use set('href', ...) instead.", "", "2.0");
+		return this.set("href", href);
+	},
+	_setHrefAttr: function(/*String|Uri*/ href){
+		// summary:
+		//		Hook so set("href", ...) works.
+		// description:
+		//		Reset the (external defined) content of this pane and replace with new url
+		//		Note: It delays the download until widget is shown if preload is false.
+		//	href:
+		//		url to the page you want to get, must be within the same domain as your mainpage
+
+		// Cancel any in-flight requests (a set('href', ...) will cancel any in-flight set('href', ...))
+		this.cancel();
+
+		this.onLoadDeferred = new dojo.Deferred(dojo.hitch(this, "cancel"));
+		this.onLoadDeferred.addCallback(dojo.hitch(this, "onLoad"));
+
+		this._set("href", href);
+
+		// _setHrefAttr() is called during creation and by the user, after creation.
+		// Assuming preload == false, only in the second case do we actually load the URL;
+		// otherwise it's done in startup(), and only if this widget is shown.
+		if(this.preload || (this._created && this._isShown())){
+			this._load();
+		}else{
+			// Set flag to indicate that href needs to be loaded the next time the
+			// ContentPane is made visible
+			this._hrefChanged = true;
+		}
+
+		return this.onLoadDeferred;		// dojo.Deferred
+	},
+
+	setContent: function(/*String|DomNode|Nodelist*/data){
+		// summary:
+		//		Deprecated.   Use set('content', ...) instead.
+		dojo.deprecated("dijit.layout.ContentPane.setContent() is deprecated.  Use set('content', ...) instead.", "", "2.0");
+		this.set("content", data);
+	},
+	_setContentAttr: function(/*String|DomNode|Nodelist*/data){
+		// summary:
+		//		Hook to make set("content", ...) work.
+		//		Replaces old content with data content, include style classes from old content
+		//	data:
+		//		the new Content may be String, DomNode or NodeList
+		//
+		//		if data is a NodeList (or an array of nodes) nodes are copied
+		//		so you can import nodes from another document implicitly
+
+		// clear href so we can't run refresh and clear content
+		// refresh should only work if we downloaded the content
+		this._set("href", "");
+
+		// Cancel any in-flight requests (a set('content', ...) will cancel any in-flight set('href', ...))
+		this.cancel();
+
+		// Even though user is just setting content directly, still need to define an onLoadDeferred
+		// because the _onLoadHandler() handler is still getting called from setContent()
+		this.onLoadDeferred = new dojo.Deferred(dojo.hitch(this, "cancel"));
+		if(this._created){
+			// For back-compat reasons, call onLoad() for set('content', ...)
+			// calls but not for content specified in srcNodeRef (ie: <div dojoType=ContentPane>...</div>)
+			// or as initialization parameter (ie: new ContentPane({content: ...})
+			this.onLoadDeferred.addCallback(dojo.hitch(this, "onLoad"));
+		}
+
+		this._setContent(data || "");
+
+		this._isDownloaded = false; // mark that content is from a set('content') not a set('href')
+
+		return this.onLoadDeferred; 	// dojo.Deferred
+	},
+	_getContentAttr: function(){
+		// summary:
+		//		Hook to make get("content") work
+		return this.containerNode.innerHTML;
+	},
+
+	cancel: function(){
+		// summary:
+		//		Cancels an in-flight download of content
+		if(this._xhrDfd && (this._xhrDfd.fired == -1)){
+			this._xhrDfd.cancel();
+		}
+		delete this._xhrDfd; // garbage collect
+
+		this.onLoadDeferred = null;
+	},
+
+	uninitialize: function(){
+		if(this._beingDestroyed){
+			this.cancel();
+		}
+		this.inherited(arguments);
+	},
+
+	destroyRecursive: function(/*Boolean*/ preserveDom){
+		// summary:
+		//		Destroy the ContentPane and its contents
+
+		// if we have multiple controllers destroying us, bail after the first
+		if(this._beingDestroyed){
+			return;
+		}
+		this.inherited(arguments);
+	},
+
+	_onShow: function(){
+		// summary:
+		//		Called when the ContentPane is made visible
+		// description:
+		//		For a plain ContentPane, this is called on initialization, from startup().
+		//		If the ContentPane is a hidden pane of a TabContainer etc., then it's
+		//		called whenever the pane is made visible.
+		//
+		//		Does necessary processing, including href download and layout/resize of
+		//		child widget(s)
+
+		this.inherited(arguments);
+
+		if(this.href){
+			if(!this._xhrDfd && // if there's an href that isn't already being loaded
+				(!this.isLoaded || this._hrefChanged || this.refreshOnShow)
+			){
+				return this.refresh();	// If child has an href, promise that fires when the load is complete
+			}
+		}
+	},
+
+	refresh: function(){
+		// summary:
+		//		[Re]download contents of href and display
+		// description:
+		//		1. cancels any currently in-flight requests
+		//		2. posts "loading..." message
+		//		3. sends XHR to download new data
+
+		// Cancel possible prior in-flight request
+		this.cancel();
+
+		this.onLoadDeferred = new dojo.Deferred(dojo.hitch(this, "cancel"));
+		this.onLoadDeferred.addCallback(dojo.hitch(this, "onLoad"));
+		this._load();
+		return this.onLoadDeferred;		// If child has an href, promise that fires when refresh is complete
+	},
+
+	_load: function(){
+		// summary:
+		//		Load/reload the href specified in this.href
+
+		// display loading message
+		this._setContent(this.onDownloadStart(), true);
+
+		var self = this;
+		var getArgs = {
+			preventCache: (this.preventCache || this.refreshOnShow),
+			url: this.href,
+			handleAs: "text"
+		};
+		if(dojo.isObject(this.ioArgs)){
+			dojo.mixin(getArgs, this.ioArgs);
+		}
+
+		var hand = (this._xhrDfd = (this.ioMethod || dojo.xhrGet)(getArgs));
+
+		hand.addCallback(function(html){
+			try{
+				self._isDownloaded = true;
+				self._setContent(html, false);
+				self.onDownloadEnd();
+			}catch(err){
+				self._onError('Content', err); // onContentError
+			}
+			delete self._xhrDfd;
+			return html;
+		});
+
+		hand.addErrback(function(err){
+			if(!hand.canceled){
+				// show error message in the pane
+				self._onError('Download', err); // onDownloadError
+			}
+			delete self._xhrDfd;
+			return err;
+		});
+
+		// Remove flag saying that a load is needed
+		delete this._hrefChanged;
+	},
+
+	_onLoadHandler: function(data){
+		// summary:
+		//		This is called whenever new content is being loaded
+		this._set("isLoaded", true);
+		try{
+			this.onLoadDeferred.callback(data);
+		}catch(e){
+			console.error('Error '+this.widgetId+' running custom onLoad code: ' + e.message);
+		}
+	},
+
+	_onUnloadHandler: function(){
+		// summary:
+		//		This is called whenever the content is being unloaded
+		this._set("isLoaded", false);
+		try{
+			this.onUnload();
+		}catch(e){
+			console.error('Error '+this.widgetId+' running custom onUnload code: ' + e.message);
+		}
+	},
+
+	destroyDescendants: function(){
+		// summary:
+		//		Destroy all the widgets inside the ContentPane and empty containerNode
+
+		// Make sure we call onUnload (but only when the ContentPane has real content)
+		if(this.isLoaded){
+			this._onUnloadHandler();
+		}
+
+		// Even if this.isLoaded == false there might still be a "Loading..." message
+		// to erase, so continue...
+
+		// For historical reasons we need to delete all widgets under this.containerNode,
+		// even ones that the user has created manually.
+		var setter = this._contentSetter;
+		dojo.forEach(this.getChildren(), function(widget){
+			if(widget.destroyRecursive){
+				widget.destroyRecursive();
+			}
+		});
+		if(setter){
+			// Most of the widgets in setter.parseResults have already been destroyed, but
+			// things like Menu that have been moved to <body> haven't yet
+			dojo.forEach(setter.parseResults, function(widget){
+				if(widget.destroyRecursive && widget.domNode && widget.domNode.parentNode == dojo.body()){
+					widget.destroyRecursive();
+				}
+			});
+			delete setter.parseResults;
+		}
+
+		// And then clear away all the DOM nodes
+		dojo.html._emptyNode(this.containerNode);
+
+		// Delete any state information we have about current contents
+		delete this._singleChild;
+	},
+
+	_setContent: function(/*String|DocumentFragment*/ cont, /*Boolean*/ isFakeContent){
+		// summary:
+		//		Insert the content into the container node
+
+		// first get rid of child widgets
+		this.destroyDescendants();
+
+		// dojo.html.set will take care of the rest of the details
+		// we provide an override for the error handling to ensure the widget gets the errors
+		// configure the setter instance with only the relevant widget instance properties
+		// NOTE: unless we hook into attr, or provide property setters for each property,
+		// we need to re-configure the ContentSetter with each use
+		var setter = this._contentSetter;
+		if(! (setter && setter instanceof dojo.html._ContentSetter)){
+			setter = this._contentSetter = new dojo.html._ContentSetter({
+				node: this.containerNode,
+				_onError: dojo.hitch(this, this._onError),
+				onContentError: dojo.hitch(this, function(e){
+					// fires if a domfault occurs when we are appending this.errorMessage
+					// like for instance if domNode is a UL and we try append a DIV
+					var errMess = this.onContentError(e);
+					try{
+						this.containerNode.innerHTML = errMess;
+					}catch(e){
+						console.error('Fatal '+this.id+' could not change content due to '+e.message, e);
+					}
+				})/*,
+				_onError */
+			});
+		};
+
+		var setterParams = dojo.mixin({
+			cleanContent: this.cleanContent,
+			extractContent: this.extractContent,
+			parseContent: this.parseOnLoad,
+			parserScope: this.parserScope,
+			startup: false,
+			dir: this.dir,
+			lang: this.lang
+		}, this._contentSetterParams || {});
+
+		setter.set( (dojo.isObject(cont) && cont.domNode) ? cont.domNode : cont, setterParams );
+
+		// setter params must be pulled afresh from the ContentPane each time
+		delete this._contentSetterParams;
+
+		if(this.doLayout){
+			this._checkIfSingleChild();
+		}
+
+		if(!isFakeContent){
+			if(this._started){
+				// Startup each top level child widget (and they will start their children, recursively)
+				this._startChildren();
+	
+				// Call resize() on each of my child layout widgets,
+				// or resize() on my single child layout widget...
+				// either now (if I'm currently visible) or when I become visible
+				this._scheduleLayout();
+			}
+
+			this._onLoadHandler(cont);
+		}
+	},
+
+	_onError: function(type, err, consoleText){
+		this.onLoadDeferred.errback(err);
+
+		// shows user the string that is returned by on[type]Error
+		// override on[type]Error and return your own string to customize
+		var errText = this['on' + type + 'Error'].call(this, err);
+		if(consoleText){
+			console.error(consoleText, err);
+		}else if(errText){// a empty string won't change current content
+			this._setContent(errText, true);
+		}
+	},
+
+	// EVENT's, should be overide-able
+	onLoad: function(data){
+		// summary:
+		//		Event hook, is called after everything is loaded and widgetified
+		// tags:
+		//		callback
+	},
+
+	onUnload: function(){
+		// summary:
+		//		Event hook, is called before old content is cleared
+		// tags:
+		//		callback
+	},
+
+	onDownloadStart: function(){
+		// summary:
+		//		Called before download starts.
+		// description:
+		//		The string returned by this function will be the html
+		//		that tells the user we are loading something.
+		//		Override with your own function if you want to change text.
+		// tags:
+		//		extension
+		return this.loadingMessage;
+	},
+
+	onContentError: function(/*Error*/ error){
+		// summary:
+		//		Called on DOM faults, require faults etc. in content.
+		//
+		//		In order to display an error message in the pane, return
+		//		the error message from this method, as an HTML string.
+		//
+		//		By default (if this method is not overriden), it returns
+		//		nothing, so the error message is just printed to the console.
+		// tags:
+		//		extension
+	},
+
+	onDownloadError: function(/*Error*/ error){
+		// summary:
+		//		Called when download error occurs.
+		//
+		//		In order to display an error message in the pane, return
+		//		the error message from this method, as an HTML string.
+		//
+		//		Default behavior (if this method is not overriden) is to display
+		//		the error message inside the pane.
+		// tags:
+		//		extension
+		return this.errorMessage;
+	},
+
+	onDownloadEnd: function(){
+		// summary:
+		//		Called when download is finished.
+		// tags:
+		//		callback
+	}
+});
 
 }
 
@@ -26904,7 +27388,7 @@ dojo.declare("scorll.stage.Stage", null, {
     // USER
     var user = stage.user;
     user.client = client;
-    dojo.connect(user, "onRolesChange", function() {
+    dojo.connect(user, "onRolesChange", function () {
       contentTitleBox.disabled = !user.hasRole("teacher");
     });
     // CONTENT
@@ -26913,14 +27397,16 @@ dojo.declare("scorll.stage.Stage", null, {
     stage.observe();
     dojo.connect(content, "onTitleChange", function (title) {
       contentTitleBox.set("value", title);
+      document.title = "Scorll - " + title;
     });
     // CONTENT TITLE
     var contentTitleBox = new dijit.InlineEditBox({
-      editor: "dijit.form.TextBox",
+      editor: "dijit.form.Textarea",
       disabled: true
     }, "title");
     dojo.connect(contentTitleBox, "onChange", function (value) {
       content.setTitle(value);
+      document.title = "Scorll - " + value;
     });
     // ASSET MANAGER
     var assetManager = stage.assetManager = new scorll.asset.AssetManager();
@@ -28166,264 +28652,6 @@ dojo.declare("scorll.asset.AssetForm", [
 
 }
 
-if(!dojo._hasResource["dijit.form.SimpleTextarea"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dijit.form.SimpleTextarea"] = true;
-dojo.provide("dijit.form.SimpleTextarea");
-
-
-
-dojo.declare("dijit.form.SimpleTextarea",
-	dijit.form.TextBox,
-	{
-	// summary:
-	//		A simple textarea that degrades, and responds to
-	// 		minimal LayoutContainer usage, and works with dijit.form.Form.
-	//		Doesn't automatically size according to input, like Textarea.
-	//
-	// example:
-	//	|	<textarea dojoType="dijit.form.SimpleTextarea" name="foo" value="bar" rows=30 cols=40></textarea>
-	//
-	// example:
-	//	|	new dijit.form.SimpleTextarea({ rows:20, cols:30 }, "foo");
-
-	baseClass: "dijitTextBox dijitTextArea",
-
-	attributeMap: dojo.delegate(dijit.form._FormValueWidget.prototype.attributeMap, {
-		rows:"textbox", cols: "textbox"
-	}),
-
-	// rows: Number
-	//		The number of rows of text.
-	rows: "3",
-
-	// rows: Number
-	//		The number of characters per line.
-	cols: "20",
-
-	templateString: "<textarea ${!nameAttrSetting} dojoAttachPoint='focusNode,containerNode,textbox' autocomplete='off'></textarea>",
-
-	postMixInProperties: function(){
-		// Copy value from srcNodeRef, unless user specified a value explicitly (or there is no srcNodeRef)
-		// TODO: parser will handle this in 2.0
-		if(!this.value && this.srcNodeRef){
-			this.value = this.srcNodeRef.value;
-		}
-		this.inherited(arguments);
-	},
-
-	buildRendering: function(){
-		this.inherited(arguments);
-		if(dojo.isIE && this.cols){ // attribute selectors is not supported in IE6
-			dojo.addClass(this.textbox, "dijitTextAreaCols");
-		}
-	},
-
-	filter: function(/*String*/ value){
-		// Override TextBox.filter to deal with newlines... specifically (IIRC) this is for IE which writes newlines
-		// as \r\n instead of just \n
-		if(value){
-			value = value.replace(/\r/g,"");
-		}
-		return this.inherited(arguments);
-	},
-
-	_previousValue: "",
-	_onInput: function(/*Event?*/ e){
-		// Override TextBox._onInput() to enforce maxLength restriction
-		if(this.maxLength){
-			var maxLength = parseInt(this.maxLength);
-			var value = this.textbox.value.replace(/\r/g,'');
-			var overflow = value.length - maxLength;
-			if(overflow > 0){
-				if(e){ dojo.stopEvent(e); }
-				var textarea = this.textbox;
-				if(textarea.selectionStart){
-					var pos = textarea.selectionStart;
-					var cr = 0;
-					if(dojo.isOpera){
-						cr = (this.textbox.value.substring(0,pos).match(/\r/g) || []).length;
-					}
-					this.textbox.value = value.substring(0,pos-overflow-cr)+value.substring(pos-cr);
-					textarea.setSelectionRange(pos-overflow, pos-overflow);
-				}else if(dojo.doc.selection){ //IE
-					textarea.focus();
-					var range = dojo.doc.selection.createRange();
-					// delete overflow characters
-					range.moveStart("character", -overflow);
-					range.text = '';
-					// show cursor
-					range.select();
-				}
-			}
-			this._previousValue = this.textbox.value;
-		}
-		this.inherited(arguments);
-	}
-});
-
-}
-
-if(!dojo._hasResource["dijit.form.Textarea"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dijit.form.Textarea"] = true;
-dojo.provide("dijit.form.Textarea");
-
-
-
-dojo.declare(
-	"dijit.form.Textarea",
-	dijit.form.SimpleTextarea,
-	{
-	// summary:
-	//		A textarea widget that adjusts it's height according to the amount of data.
-	//
-	// description:
-	//		A textarea that dynamically expands/contracts (changing it's height) as
-	//		the user types, to display all the text without requiring a scroll bar.
-	//
-	//		Takes nearly all the parameters (name, value, etc.) that a vanilla textarea takes.
-	//		Rows is not supported since this widget adjusts the height.
-	//
-	// example:
-	// |	<textarea dojoType="dijit.form.TextArea">...</textarea>
-
-
-	// TODO: for 2.0, rename this to ExpandingTextArea, and rename SimpleTextarea to Textarea
-
-	baseClass: "dijitTextBox dijitTextArea dijitExpandingTextArea",
-
-	// Override SimpleTextArea.cols to default to width:100%, for backward compatibility
-	cols: "",
-
-	_previousNewlines: 0,
-	_strictMode: (dojo.doc.compatMode != 'BackCompat'), // not the same as !dojo.isQuirks
-
-	_getHeight: function(textarea){
-		var newH = textarea.scrollHeight;
-		if(dojo.isIE){
-			newH += textarea.offsetHeight - textarea.clientHeight - ((dojo.isIE < 8 && this._strictMode) ? dojo._getPadBorderExtents(textarea).h : 0);
-		}else if(dojo.isMoz){
-			newH += textarea.offsetHeight - textarea.clientHeight; // creates room for horizontal scrollbar
-		}else if(dojo.isWebKit){
-			newH += dojo._getBorderExtents(textarea).h;
-		}else{ // Opera 9.6 (TODO: test if this is still needed)
-			newH += dojo._getPadBorderExtents(textarea).h;
-		}
-		return newH;
-	},
-
-	_estimateHeight: function(textarea){
-		// summary:
-		// 		Approximate the height when the textarea is invisible with the number of lines in the text.
-		// 		Fails when someone calls setValue with a long wrapping line, but the layout fixes itself when the user clicks inside so . . .
-		// 		In IE, the resize event is supposed to fire when the textarea becomes visible again and that will correct the size automatically.
-		//
-		textarea.style.maxHeight = "";
-		textarea.style.height = "auto";
-		// #rows = #newlines+1
-		// Note: on Moz, the following #rows appears to be 1 too many.
-		// Actually, Moz is reserving room for the scrollbar.
-		// If you increase the font size, this behavior becomes readily apparent as the last line gets cut off without the +1.
-		textarea.rows = (textarea.value.match(/\n/g) || []).length + 1;
-	},
-
-	_needsHelpShrinking: dojo.isMoz || dojo.isWebKit,
-
-	_onInput: function(){
-		// Override SimpleTextArea._onInput() to deal with height adjustment
-		this.inherited(arguments);
-		if(this._busyResizing){ return; }
-		this._busyResizing = true;
-		var textarea = this.textbox;
-		if(textarea.scrollHeight && textarea.offsetHeight && textarea.clientHeight){
-			var newH = this._getHeight(textarea) + "px";
-			if(textarea.style.height != newH){
-				textarea.style.maxHeight = textarea.style.height = newH;
-			}
-			if(this._needsHelpShrinking){
-				if(this._setTimeoutHandle){
-					clearTimeout(this._setTimeoutHandle);
-				}
-				this._setTimeoutHandle = setTimeout(dojo.hitch(this, "_shrink"), 0); // try to collapse multiple shrinks into 1
-			}
-		}else{
-			// hidden content of unknown size
-			this._estimateHeight(textarea);
-		}
-		this._busyResizing = false;
-	},
-
-	_busyResizing: false,
-	_shrink: function(){
-		// grow paddingBottom to see if scrollHeight shrinks (when it is unneccesarily big)
-		this._setTimeoutHandle = null;
-		if(this._needsHelpShrinking && !this._busyResizing){
-			this._busyResizing = true;
-			var textarea = this.textbox;
-			var empty = false;
-			if(textarea.value == ''){
-				textarea.value = ' '; // prevent collapse all the way back to 0
-				empty = true;
-			}
-			var scrollHeight = textarea.scrollHeight;
-			if(!scrollHeight){
-				this._estimateHeight(textarea);
-			}else{
-				var oldPadding = textarea.style.paddingBottom;
-				var newPadding = dojo._getPadExtents(textarea);
-				newPadding = newPadding.h - newPadding.t;
-				textarea.style.paddingBottom = newPadding + 1 + "px"; // tweak padding to see if height can be reduced
-				var newH = this._getHeight(textarea) - 1 + "px"; // see if the height changed by the 1px added
-				if(textarea.style.maxHeight != newH){ // if can be reduced, so now try a big chunk
-					textarea.style.paddingBottom = newPadding + scrollHeight + "px";
-					textarea.scrollTop = 0;
-					textarea.style.maxHeight = this._getHeight(textarea) - scrollHeight + "px"; // scrollHeight is the added padding
-				}
-				textarea.style.paddingBottom = oldPadding;
-			}
-			if(empty){
-				textarea.value = '';
-			}
-			this._busyResizing = false;
-		}
-	},
-
-	resize: function(){
-		// summary:
-		//		Resizes the textarea vertically (should be called after a style/value change)
-		this._onInput();
-	},
-
-	_setValueAttr: function(){
-		this.inherited(arguments);
-		this.resize();
-	},
-
-	buildRendering: function(){
-		this.inherited(arguments);
-
-		// tweak textarea style to reduce browser differences
-		dojo.style(this.textbox, { overflowY: 'hidden', overflowX: 'auto', boxSizing: 'border-box', MsBoxSizing: 'border-box', WebkitBoxSizing: 'border-box', MozBoxSizing: 'border-box' });
-	},
-
-	postCreate: function(){
-		this.inherited(arguments);
-
-		this.connect(this.textbox, "onscroll", "_onInput");
-		this.connect(this.textbox, "onresize", "_onInput");
-		this.connect(this.textbox, "onfocus", "_onInput"); // useful when a previous estimate was off a bit
-		this._setTimeoutHandle = setTimeout(dojo.hitch(this, "resize"), 0);
-	},
-
-	uninitialize: function(){
-		if(this._setTimeoutHandle){
-			clearTimeout(this._setTimeoutHandle);
-		}
-		this.inherited(arguments);
-	}
-});
-
-}
-
 if(!dojo._hasResource["scorll.asset.TextForm"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
 dojo._hasResource["scorll.asset.TextForm"] = true;
 dojo.provide("scorll.asset.TextForm");
@@ -28448,7 +28676,11 @@ dojo.declare("scorll.asset.TextForm", [
     if (data.title) {
       this.titleText.attr('value', data.title);
     }
-    this.bodyText.attr('value', data.text);
+    this.bodyText.attr('value', data.text + "\n");
+    var asset = this;
+    setTimeout(function () {
+      asset.bodyText.focus();
+    });
   },
   submit: function () {
     var title = null;

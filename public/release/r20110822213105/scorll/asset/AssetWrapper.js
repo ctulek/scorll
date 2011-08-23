@@ -11,12 +11,16 @@ dojo.provide("scorll.asset.AssetWrapper");
 
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
-dojo.require("dijit.TitlePane");
+dojo.require("dijit._Templated");
+dojo.require("dojox.fx.scroll");
+dojo.require("dojo.fx.easing");
+dojo.require("dojo.window");
 
 dojo.require("scorll.asset.AssetMenu");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
 dojo.require("scorll.asset.TrackingStats");
+dojo.require("scorll.asset.AssetDeleteConfirm");
 
 dojo.declare("scorll.asset.AssetWrapper", [
   dijit._Widget, dijit._Templated
@@ -42,12 +46,18 @@ dojo.declare("scorll.asset.AssetWrapper", [
     }
     this.registerClipboardEvents();
     this.registerMenuEvents();
+    dojo.connect(this.stage.user, "onRolesChange", function () {
+      var disabled = !wrapper.stage.user.hasRole("teacher");
+      wrapper.menu.disable(disabled);
+    });
+    var disabled = !wrapper.stage.user.hasRole("teacher");
+    wrapper.menu.disable(disabled);
   },
   createWidget: function (asset) {
     var wrapper = this;
-    var menu = this.menu;
-    var widget = this.widget = this.assetManager.getAssetRenderer(this.stage, asset);
-    this.stage.registerAsset(widget);
+    var menu = wrapper.menu;
+    var widget = wrapper.widget = wrapper.assetManager.getAssetRenderer(wrapper.stage, asset);
+    wrapper.stage.registerAsset(widget);
     menu.widget = widget;
     dojo.connect(widget, "onMouseOver", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -65,7 +75,9 @@ dojo.declare("scorll.asset.AssetWrapper", [
     dojo.connect(widget, "onLoginRequired", function (callback) {
       wrapper.showLogin(callback);
     });
-    widget && dojo.place(widget.domNode, this.domNode);
+    var anchor = widget.item.id.substr(0, 4) + widget.item.id.substr(-4);
+    dojo.place('<a name="' + anchor + '"></a>', wrapper.domNode);
+    widget && dojo.place(widget.domNode, wrapper.domNode);
   },
   updateAsset: function (asset) {
     this.asset = asset;
@@ -124,6 +136,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         title: "Edit Asset",
         toggleable: false
       });
+      container.domNode.style["margin-top"] = 20;
       dojo.destroy(container.arrowNode);
       form.placeAt(container.containerNode);
       container.placeAt(widget.domNode, "before");
@@ -137,6 +150,30 @@ dojo.declare("scorll.asset.AssetWrapper", [
         widget.domNode.style.display = "block";
         menu.domNode.style.display = "block";
       });
+      setTimeout(function () {
+        var windowH = dojo.window.getBox().h;
+        var wrapperY = dojo.position(container.domNode).y;
+        var wrapperH = dojo.position(container.domNode).h + 10;
+        var notInView = wrapperY < 0 || (wrapperY + wrapperH) > windowH;
+        if (wrapperH < windowH && notInView) {
+          var offsetY = 0;
+          if (wrapperY > 0) {
+            offsetY = windowH - wrapperH;
+          }
+          else {
+            offsetY += 30;
+          }
+          dojox.fx.smoothScroll({
+            win: window,
+            node: wrapper.domNode,
+            easing: dojo.fx.easing.quintIn,
+            duration: 300,
+            offset: {
+              y: -offsetY
+            }
+          }).play();
+        }
+      });
     });
     dojo.connect(menu, "onDelete", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -144,7 +181,20 @@ dojo.declare("scorll.asset.AssetWrapper", [
       }
       var widget = wrapper.widget;
       menu.hide(true);
-      stage.content.remove(widget.item);
+      var confirmW = new scorll.asset.AssetDeleteConfirm();
+      confirmW.domNode.style.width = dojo.position(wrapper.domNode).w - 60;
+      confirmW.domNode.style.height = dojo.position(wrapper.domNode).h - 80;
+      menu.domNode.style.display = "none";
+      widget.domNode.style.display = "none";
+      confirmW.placeAt(wrapper.domNode);
+      dojo.connect(confirmW, "onConfirm", function () {
+        stage.content.remove(widget.item);
+      });
+      dojo.connect(confirmW, "onCancel", function () {
+        confirmW.destroyRecursive();
+        menu.domNode.style.display = "block";
+        widget.domNode.style.display = "block";
+      });
     });
     dojo.connect(menu, "onCut", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
