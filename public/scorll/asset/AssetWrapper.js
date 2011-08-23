@@ -37,7 +37,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
     }
     this.registerClipboardEvents();
     this.registerMenuEvents();
-    dojo.connect(this.stage.user, "onRolesChange", function() {
+    dojo.connect(this.stage.user, "onRolesChange", function () {
       var disabled = !wrapper.stage.user.hasRole("teacher");
       wrapper.menu.disable(disabled);
     });
@@ -47,8 +47,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
   createWidget: function (asset) {
     var wrapper = this;
     var menu = wrapper.menu;
-    var widget = wrapper.widget
-      = wrapper.assetManager.getAssetRenderer(wrapper.stage, asset);
+    var widget = wrapper.widget = wrapper.assetManager.getAssetRenderer(wrapper.stage, asset);
     wrapper.stage.registerAsset(widget);
     menu.widget = widget;
     dojo.connect(widget, "onMouseOver", function () {
@@ -67,7 +66,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
     dojo.connect(widget, "onLoginRequired", function (callback) {
       wrapper.showLogin(callback);
     });
-    var anchor = widget.item.id.substr(0,4) + widget.item.id.substr(-4);
+    var anchor = widget.item.id.substr(0, 4) + widget.item.id.substr(-4);
     dojo.place('<a name="' + anchor + '"></a>', wrapper.domNode);
     widget && dojo.place(widget.domNode, wrapper.domNode);
   },
@@ -142,20 +141,28 @@ dojo.declare("scorll.asset.AssetWrapper", [
         widget.domNode.style.display = "block";
         menu.domNode.style.display = "block";
       });
-      setTimeout(function() {
+      setTimeout(function () {
         var windowH = dojo.window.getBox().h;
         var wrapperY = dojo.position(container.domNode).y;
         var wrapperH = dojo.position(container.domNode).h + 10;
         var notInView = wrapperY < 0 || (wrapperY + wrapperH) > windowH;
-        if(wrapperH < windowH && notInView) {
+        if (wrapperH < windowH && notInView) {
           var offsetY = 0;
-          if(wrapperY > 0) {
+          if (wrapperY > 0) {
             offsetY = windowH - wrapperH;
-          } else {
+          }
+          else {
             offsetY += 30;
           }
-          dojox.fx.smoothScroll({win: window, node: wrapper.domNode, easing:
-           dojo.fx.easing.quintIn, duration: 300, offset:{y: -offsetY}}).play();
+          dojox.fx.smoothScroll({
+            win: window,
+            node: wrapper.domNode,
+            easing: dojo.fx.easing.quintIn,
+            duration: 300,
+            offset: {
+              y: -offsetY
+            }
+          }).play();
         }
       });
     });
@@ -171,10 +178,10 @@ dojo.declare("scorll.asset.AssetWrapper", [
       menu.domNode.style.display = "none";
       widget.domNode.style.display = "none";
       confirmW.placeAt(wrapper.domNode);
-      dojo.connect(confirmW, "onConfirm", function() {
+      dojo.connect(confirmW, "onConfirm", function () {
         stage.content.remove(widget.item);
       });
-      dojo.connect(confirmW, "onCancel", function() {
+      dojo.connect(confirmW, "onCancel", function () {
         confirmW.destroyRecursive();
         menu.domNode.style.display = "block";
         widget.domNode.style.display = "block";

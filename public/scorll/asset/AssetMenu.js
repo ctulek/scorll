@@ -79,7 +79,7 @@ dojo.declare("scorll.asset.AssetMenu", [
       }, 300);
     }
   },
-  disable: function(disabled) {
+  disable: function (disabled) {
     this.addBeforeButton.setAttribute('disabled', disabled);
     this.editButton.setAttribute('disabled', disabled);
     this.deleteButton.setAttribute('disabled', disabled);

@@ -8,12 +8,11 @@ dojo.declare("scorll.asset.AssetDeleteConfirm", [
   ], {
   widgetsInTemplate: true,
   templatePath: dojo.moduleUrl("scorll.asset", "AssetDeleteConfirm.html"),
-  postCreate: function() {
-  },
-  yes: function() {
+  postCreate: function () {},
+  yes: function () {
     this.onConfirm();
   },
-  no: function() {
+  no: function () {
     this.onCancel();
   }
 });

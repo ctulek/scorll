@@ -22,7 +22,7 @@ dojo.declare("scorll.asset.TextForm", [
     }
     this.bodyText.attr('value', data.text + "\n");
     var asset = this;
-    setTimeout(function() {
+    setTimeout(function () {
       asset.bodyText.focus();
     });
   },

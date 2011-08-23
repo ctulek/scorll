@@ -45,7 +45,7 @@ dojo.declare("scorll.stage.Stage", null, {
     // USER
     var user = stage.user;
     user.client = client;
-    dojo.connect(user, "onRolesChange", function() {
+    dojo.connect(user, "onRolesChange", function () {
       contentTitleBox.disabled = !user.hasRole("teacher");
     });
     // CONTENT
