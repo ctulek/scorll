@@ -20,7 +20,11 @@ dojo.declare("scorll.asset.TextForm", [
     if (data.title) {
       this.titleText.attr('value', data.title);
     }
-    this.bodyText.attr('value', data.text);
+    this.bodyText.attr('value', data.text + "\n");
+    var asset = this;
+    setTimeout(function() {
+      asset.bodyText.focus();
+    });
   },
   submit: function () {
     var title = null;
