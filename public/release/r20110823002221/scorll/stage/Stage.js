@@ -13,7 +13,9 @@ dojo.require("dojo.NodeList-traverse");
 
 dojo.require("dijit.InlineEditBox");
 dojo.require("dijit.form.Textarea");
+dojo.require("dojo.fx");
 
+dojo.require("scorll.util");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
 dojo.require("scorll.asset.AssetManager");
@@ -98,6 +100,12 @@ dojo.declare("scorll.stage.Stage", null, {
       else {
         dojo.place(assetWrapper.domNode, "stage");
       }
+      if(stage.content.loaded) {
+        assetWrapper.domNode.style.display = "none";
+        setTimeout(function() {
+          dojo.fx.wipeIn({node: assetWrapper.domNode}).play();
+        });
+      }
       dojo.connect(assetWrapper, "onAdd", function () {
         var index = dojo.query("#stage").children().indexOf(assetWrapper.domNode);
         var form = new scorll.asset.NewAssetForm({
@@ -109,7 +117,12 @@ dojo.declare("scorll.stage.Stage", null, {
           form.destroyRecursive();
         });
         dojo.connect(form, "onCancel", function () {
-          form.destroyRecursive();
+          dojo.fx.wipeOut({
+            node: form.domNode,
+            onEnd: function () {
+              form.destroyRecursive();
+            }
+          }).play()
         });
       });
       dojo.connect(assetWrapper, "onCut", function () {
@@ -137,7 +150,9 @@ dojo.declare("scorll.stage.Stage", null, {
     dojo.connect(stage.content, "onRemove", function (id) {
       var assetWrapper = dijit.byId("asset-wrapper-" + id);
       if (assetWrapper) {
-        assetWrapper.destroyRecursive();
+        dojo.fx.wipeOut({node: assetWrapper.domNode, onEnd: function() {
+          assetWrapper.destroyRecursive();
+        }}).play();
       }
     });
     dojo.connect(stage.content, "onMove", function (id, position) {
@@ -147,13 +162,19 @@ dojo.declare("scorll.stage.Stage", null, {
       }
       var sibling = dojo.query("#stage > div");
       sibling = sibling[position];
-      dojo.byId("stage").removeChild(assetWrapper.domNode);
-      if (sibling) {
-        dojo.place(assetWrapper.domNode, sibling, "before");
-      }
-      else {
-        dojo.place(assetWrapper.domNode, "stage");
-      }
+      dojo.fx.wipeOut({node: assetWrapper.domNode, onEnd: function() {
+        dojo.byId("stage").removeChild(assetWrapper.domNode);
+        if (sibling) {
+          dojo.place(assetWrapper.domNode, sibling, "before");
+        }
+        else {
+          dojo.place(assetWrapper.domNode, "stage");
+        }
+        assetWrapper.domNode.style.display = "none";
+        setTimeout(function() {
+          dojo.fx.wipeIn({node: assetWrapper.domNode}).play();
+        });
+      }}).play();
     });
   },
   paste: function (position) {

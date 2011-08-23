@@ -12,10 +12,8 @@ dojo.provide("scorll.asset.AssetWrapper");
 dojo.require("dijit._Widget");
 dojo.require("dijit._Templated");
 dojo.require("dijit._Templated");
-dojo.require("dojox.fx.scroll");
-dojo.require("dojo.fx.easing");
-dojo.require("dojo.window");
 
+dojo.require("scorll.util");
 dojo.require("scorll.asset.AssetMenu");
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
@@ -150,30 +148,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         widget.domNode.style.display = "block";
         menu.domNode.style.display = "block";
       });
-      setTimeout(function () {
-        var windowH = dojo.window.getBox().h;
-        var wrapperY = dojo.position(container.domNode).y;
-        var wrapperH = dojo.position(container.domNode).h + 10;
-        var notInView = wrapperY < 0 || (wrapperY + wrapperH) > windowH;
-        if (wrapperH < windowH && notInView) {
-          var offsetY = 0;
-          if (wrapperY > 0) {
-            offsetY = windowH - wrapperH;
-          }
-          else {
-            offsetY += 30;
-          }
-          dojox.fx.smoothScroll({
-            win: window,
-            node: wrapper.domNode,
-            easing: dojo.fx.easing.quintIn,
-            duration: 300,
-            offset: {
-              y: -offsetY
-            }
-          }).play();
-        }
-      });
+      scorll.util.slideIntoView(container.domNode); 
     });
     dojo.connect(menu, "onDelete", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -184,16 +159,26 @@ dojo.declare("scorll.asset.AssetWrapper", [
       var confirmW = new scorll.asset.AssetDeleteConfirm();
       confirmW.domNode.style.width = dojo.position(wrapper.domNode).w - 60;
       confirmW.domNode.style.height = dojo.position(wrapper.domNode).h - 80;
-      menu.domNode.style.display = "none";
-      widget.domNode.style.display = "none";
-      confirmW.placeAt(wrapper.domNode);
+      dojo.fadeOut({node: widget.domNode, onEnd: function() {
+        menu.domNode.style.display = "none";
+        widget.domNode.style.display = "none";
+        confirmW.placeAt(wrapper.domNode);
+        dojo.fadeIn({node: confirmW.domNode}).play();
+      }}).play();
       dojo.connect(confirmW, "onConfirm", function () {
         stage.content.remove(widget.item);
       });
       dojo.connect(confirmW, "onCancel", function () {
-        confirmW.destroyRecursive();
-        menu.domNode.style.display = "block";
-        widget.domNode.style.display = "block";
+        dojo.fadeOut({node: confirmW.domNode, onEnd: function() {
+          confirmW.destroyRecursive();
+          menu.domNode.style.display = "block";
+          widget.domNode.style.display = "block";
+          dojo.fadeIn({node: widget.domNode, onEnd: function() {
+            if (stage.cutObject == wrapper) {
+              wrapper.widget.domNode.style['opacity'] = .3;
+            }
+          }}).play();
+        }}).play();
       });
     });
     dojo.connect(menu, "onCut", function () {

@@ -9333,6 +9333,941 @@ dojo.declare(
 
 }
 
+if(!dojo._hasResource["dojo.fx.Toggler"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojo.fx.Toggler"] = true;
+dojo.provide("dojo.fx.Toggler");
+
+
+dojo.declare("dojo.fx.Toggler", null, {
+	// summary:
+	//		A simple `dojo.Animation` toggler API.
+	//
+	// description:
+	//		class constructor for an animation toggler. It accepts a packed
+	//		set of arguments about what type of animation to use in each
+	//		direction, duration, etc. All available members are mixed into
+	//		these animations from the constructor (for example, `node`,
+	//		`showDuration`, `hideDuration`).
+	//
+	// example:
+	//	|	var t = new dojo.fx.Toggler({
+	//	|		node: "nodeId",
+	//	|		showDuration: 500,
+	//	|		// hideDuration will default to "200"
+	//	|		showFunc: dojo.fx.wipeIn,
+	//	|		// hideFunc will default to "fadeOut"
+	//	|	});
+	//	|	t.show(100); // delay showing for 100ms
+	//	|	// ...time passes...
+	//	|	t.hide();
+
+	// node: DomNode
+	//		the node to target for the showing and hiding animations
+	node: null,
+
+	// showFunc: Function
+	//		The function that returns the `dojo.Animation` to show the node
+	showFunc: dojo.fadeIn,
+
+	// hideFunc: Function
+	//		The function that returns the `dojo.Animation` to hide the node
+	hideFunc: dojo.fadeOut,
+
+	// showDuration:
+	//		Time in milliseconds to run the show Animation
+	showDuration: 200,
+
+	// hideDuration:
+	//		Time in milliseconds to run the hide Animation
+	hideDuration: 200,
+
+	// FIXME: need a policy for where the toggler should "be" the next
+	// time show/hide are called if we're stopped somewhere in the
+	// middle.
+	// FIXME: also would be nice to specify individual showArgs/hideArgs mixed into
+	// each animation individually.
+	// FIXME: also would be nice to have events from the animations exposed/bridged
+
+	/*=====
+	_showArgs: null,
+	_showAnim: null,
+
+	_hideArgs: null,
+	_hideAnim: null,
+
+	_isShowing: false,
+	_isHiding: false,
+	=====*/
+
+	constructor: function(args){
+		var _t = this;
+
+		dojo.mixin(_t, args);
+		_t.node = args.node;
+		_t._showArgs = dojo.mixin({}, args);
+		_t._showArgs.node = _t.node;
+		_t._showArgs.duration = _t.showDuration;
+		_t.showAnim = _t.showFunc(_t._showArgs);
+
+		_t._hideArgs = dojo.mixin({}, args);
+		_t._hideArgs.node = _t.node;
+		_t._hideArgs.duration = _t.hideDuration;
+		_t.hideAnim = _t.hideFunc(_t._hideArgs);
+
+		dojo.connect(_t.showAnim, "beforeBegin", dojo.hitch(_t.hideAnim, "stop", true));
+		dojo.connect(_t.hideAnim, "beforeBegin", dojo.hitch(_t.showAnim, "stop", true));
+	},
+
+	show: function(delay){
+		// summary: Toggle the node to showing
+		// delay: Integer?
+		//		Ammount of time to stall playing the show animation
+		return this.showAnim.play(delay || 0);
+	},
+
+	hide: function(delay){
+		// summary: Toggle the node to hidden
+		// delay: Integer?
+		//		Ammount of time to stall playing the hide animation
+		return this.hideAnim.play(delay || 0);
+	}
+});
+
+}
+
+if(!dojo._hasResource["dojo.fx"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojo.fx"] = true;
+dojo.provide("dojo.fx");
+
+
+
+/*=====
+dojo.fx = {
+	// summary: Effects library on top of Base animations
+};
+=====*/
+(function(){
+	
+	var d = dojo,
+		_baseObj = {
+			_fire: function(evt, args){
+				if(this[evt]){
+					this[evt].apply(this, args||[]);
+				}
+				return this;
+			}
+		};
+
+	var _chain = function(animations){
+		this._index = -1;
+		this._animations = animations||[];
+		this._current = this._onAnimateCtx = this._onEndCtx = null;
+
+		this.duration = 0;
+		d.forEach(this._animations, function(a){
+			this.duration += a.duration;
+			if(a.delay){ this.duration += a.delay; }
+		}, this);
+	};
+	d.extend(_chain, {
+		_onAnimate: function(){
+			this._fire("onAnimate", arguments);
+		},
+		_onEnd: function(){
+			d.disconnect(this._onAnimateCtx);
+			d.disconnect(this._onEndCtx);
+			this._onAnimateCtx = this._onEndCtx = null;
+			if(this._index + 1 == this._animations.length){
+				this._fire("onEnd");
+			}else{
+				// switch animations
+				this._current = this._animations[++this._index];
+				this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
+				this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
+				this._current.play(0, true);
+			}
+		},
+		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
+			if(!this._current){ this._current = this._animations[this._index = 0]; }
+			if(!gotoStart && this._current.status() == "playing"){ return this; }
+			var beforeBegin = d.connect(this._current, "beforeBegin", this, function(){
+					this._fire("beforeBegin");
+				}),
+				onBegin = d.connect(this._current, "onBegin", this, function(arg){
+					this._fire("onBegin", arguments);
+				}),
+				onPlay = d.connect(this._current, "onPlay", this, function(arg){
+					this._fire("onPlay", arguments);
+					d.disconnect(beforeBegin);
+					d.disconnect(onBegin);
+					d.disconnect(onPlay);
+				});
+			if(this._onAnimateCtx){
+				d.disconnect(this._onAnimateCtx);
+			}
+			this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
+			if(this._onEndCtx){
+				d.disconnect(this._onEndCtx);
+			}
+			this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
+			this._current.play.apply(this._current, arguments);
+			return this;
+		},
+		pause: function(){
+			if(this._current){
+				var e = d.connect(this._current, "onPause", this, function(arg){
+						this._fire("onPause", arguments);
+						d.disconnect(e);
+					});
+				this._current.pause();
+			}
+			return this;
+		},
+		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
+			this.pause();
+			var offset = this.duration * percent;
+			this._current = null;
+			d.some(this._animations, function(a){
+				if(a.duration <= offset){
+					this._current = a;
+					return true;
+				}
+				offset -= a.duration;
+				return false;
+			});
+			if(this._current){
+				this._current.gotoPercent(offset / this._current.duration, andPlay);
+			}
+			return this;
+		},
+		stop: function(/*boolean?*/ gotoEnd){
+			if(this._current){
+				if(gotoEnd){
+					for(; this._index + 1 < this._animations.length; ++this._index){
+						this._animations[this._index].stop(true);
+					}
+					this._current = this._animations[this._index];
+				}
+				var e = d.connect(this._current, "onStop", this, function(arg){
+						this._fire("onStop", arguments);
+						d.disconnect(e);
+					});
+				this._current.stop();
+			}
+			return this;
+		},
+		status: function(){
+			return this._current ? this._current.status() : "stopped";
+		},
+		destroy: function(){
+			if(this._onAnimateCtx){ d.disconnect(this._onAnimateCtx); }
+			if(this._onEndCtx){ d.disconnect(this._onEndCtx); }
+		}
+	});
+	d.extend(_chain, _baseObj);
+
+	dojo.fx.chain = function(/*dojo.Animation[]*/ animations){
+		// summary:
+		//		Chain a list of `dojo.Animation`s to run in sequence
+		//
+		// description:
+		//		Return a `dojo.Animation` which will play all passed
+		//		`dojo.Animation` instances in sequence, firing its own
+		//		synthesized events simulating a single animation. (eg:
+		//		onEnd of this animation means the end of the chain,
+		//		not the individual animations within)
+		//
+		// example:
+		//	Once `node` is faded out, fade in `otherNode`
+		//	|	dojo.fx.chain([
+		//	|		dojo.fadeIn({ node:node }),
+		//	|		dojo.fadeOut({ node:otherNode })
+		//	|	]).play();
+		//
+		return new _chain(animations) // dojo.Animation
+	};
+
+	var _combine = function(animations){
+		this._animations = animations||[];
+		this._connects = [];
+		this._finished = 0;
+
+		this.duration = 0;
+		d.forEach(animations, function(a){
+			var duration = a.duration;
+			if(a.delay){ duration += a.delay; }
+			if(this.duration < duration){ this.duration = duration; }
+			this._connects.push(d.connect(a, "onEnd", this, "_onEnd"));
+		}, this);
+		
+		this._pseudoAnimation = new d.Animation({curve: [0, 1], duration: this.duration});
+		var self = this;
+		d.forEach(["beforeBegin", "onBegin", "onPlay", "onAnimate", "onPause", "onStop", "onEnd"],
+			function(evt){
+				self._connects.push(d.connect(self._pseudoAnimation, evt,
+					function(){ self._fire(evt, arguments); }
+				));
+			}
+		);
+	};
+	d.extend(_combine, {
+		_doAction: function(action, args){
+			d.forEach(this._animations, function(a){
+				a[action].apply(a, args);
+			});
+			return this;
+		},
+		_onEnd: function(){
+			if(++this._finished > this._animations.length){
+				this._fire("onEnd");
+			}
+		},
+		_call: function(action, args){
+			var t = this._pseudoAnimation;
+			t[action].apply(t, args);
+		},
+		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
+			this._finished = 0;
+			this._doAction("play", arguments);
+			this._call("play", arguments);
+			return this;
+		},
+		pause: function(){
+			this._doAction("pause", arguments);
+			this._call("pause", arguments);
+			return this;
+		},
+		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
+			var ms = this.duration * percent;
+			d.forEach(this._animations, function(a){
+				a.gotoPercent(a.duration < ms ? 1 : (ms / a.duration), andPlay);
+			});
+			this._call("gotoPercent", arguments);
+			return this;
+		},
+		stop: function(/*boolean?*/ gotoEnd){
+			this._doAction("stop", arguments);
+			this._call("stop", arguments);
+			return this;
+		},
+		status: function(){
+			return this._pseudoAnimation.status();
+		},
+		destroy: function(){
+			d.forEach(this._connects, dojo.disconnect);
+		}
+	});
+	d.extend(_combine, _baseObj);
+
+	dojo.fx.combine = function(/*dojo.Animation[]*/ animations){
+		// summary:
+		//		Combine a list of `dojo.Animation`s to run in parallel
+		//
+		// description:
+		//		Combine an array of `dojo.Animation`s to run in parallel,
+		//		providing a new `dojo.Animation` instance encompasing each
+		//		animation, firing standard animation events.
+		//
+		// example:
+		//	Fade out `node` while fading in `otherNode` simultaneously
+		//	|	dojo.fx.combine([
+		//	|		dojo.fadeIn({ node:node }),
+		//	|		dojo.fadeOut({ node:otherNode })
+		//	|	]).play();
+		//
+		// example:
+		//	When the longest animation ends, execute a function:
+		//	|	var anim = dojo.fx.combine([
+		//	|		dojo.fadeIn({ node: n, duration:700 }),
+		//	|		dojo.fadeOut({ node: otherNode, duration: 300 })
+		//	|	]);
+		//	|	dojo.connect(anim, "onEnd", function(){
+		//	|		// overall animation is done.
+		//	|	});
+		//	|	anim.play(); // play the animation
+		//
+		return new _combine(animations); // dojo.Animation
+	};
+
+	dojo.fx.wipeIn = function(/*Object*/ args){
+		// summary:
+		//		Expand a node to it's natural height.
+		//
+		// description:
+		//		Returns an animation that will expand the
+		//		node defined in 'args' object from it's current height to
+		//		it's natural height (with no scrollbar).
+		//		Node must have no margin/border/padding.
+		//
+		// args: Object
+		//		A hash-map of standard `dojo.Animation` constructor properties
+		//		(such as easing: node: duration: and so on)
+		//
+		// example:
+		//	|	dojo.fx.wipeIn({
+		//	|		node:"someId"
+		//	|	}).play()
+		var node = args.node = d.byId(args.node), s = node.style, o;
+
+		var anim = d.animateProperty(d.mixin({
+			properties: {
+				height: {
+					// wrapped in functions so we wait till the last second to query (in case value has changed)
+					start: function(){
+						// start at current [computed] height, but use 1px rather than 0
+						// because 0 causes IE to display the whole panel
+						o = s.overflow;
+						s.overflow = "hidden";
+						if(s.visibility == "hidden" || s.display == "none"){
+							s.height = "1px";
+							s.display = "";
+							s.visibility = "";
+							return 1;
+						}else{
+							var height = d.style(node, "height");
+							return Math.max(height, 1);
+						}
+					},
+					end: function(){
+						return node.scrollHeight;
+					}
+				}
+			}
+		}, args));
+
+		d.connect(anim, "onEnd", function(){
+			s.height = "auto";
+			s.overflow = o;
+		});
+
+		return anim; // dojo.Animation
+	};
+
+	dojo.fx.wipeOut = function(/*Object*/ args){
+		// summary:
+		//		Shrink a node to nothing and hide it.
+		//
+		// description:
+		//		Returns an animation that will shrink node defined in "args"
+		//		from it's current height to 1px, and then hide it.
+		//
+		// args: Object
+		//		A hash-map of standard `dojo.Animation` constructor properties
+		//		(such as easing: node: duration: and so on)
+		//
+		// example:
+		//	|	dojo.fx.wipeOut({ node:"someId" }).play()
+		
+		var node = args.node = d.byId(args.node), s = node.style, o;
+		
+		var anim = d.animateProperty(d.mixin({
+			properties: {
+				height: {
+					end: 1 // 0 causes IE to display the whole panel
+				}
+			}
+		}, args));
+
+		d.connect(anim, "beforeBegin", function(){
+			o = s.overflow;
+			s.overflow = "hidden";
+			s.display = "";
+		});
+		d.connect(anim, "onEnd", function(){
+			s.overflow = o;
+			s.height = "auto";
+			s.display = "none";
+		});
+
+		return anim; // dojo.Animation
+	};
+
+	dojo.fx.slideTo = function(/*Object*/ args){
+		// summary:
+		//		Slide a node to a new top/left position
+		//
+		// description:
+		//		Returns an animation that will slide "node"
+		//		defined in args Object from its current position to
+		//		the position defined by (args.left, args.top).
+		//
+		// args: Object
+		//		A hash-map of standard `dojo.Animation` constructor properties
+		//		(such as easing: node: duration: and so on). Special args members
+		//		are `top` and `left`, which indicate the new position to slide to.
+		//
+		// example:
+		//	|	dojo.fx.slideTo({ node: node, left:"40", top:"50", units:"px" }).play()
+
+		var node = args.node = d.byId(args.node),
+			top = null, left = null;
+
+		var init = (function(n){
+			return function(){
+				var cs = d.getComputedStyle(n);
+				var pos = cs.position;
+				top = (pos == 'absolute' ? n.offsetTop : parseInt(cs.top) || 0);
+				left = (pos == 'absolute' ? n.offsetLeft : parseInt(cs.left) || 0);
+				if(pos != 'absolute' && pos != 'relative'){
+					var ret = d.position(n, true);
+					top = ret.y;
+					left = ret.x;
+					n.style.position="absolute";
+					n.style.top=top+"px";
+					n.style.left=left+"px";
+				}
+			};
+		})(node);
+		init();
+
+		var anim = d.animateProperty(d.mixin({
+			properties: {
+				top: args.top || 0,
+				left: args.left || 0
+			}
+		}, args));
+		d.connect(anim, "beforeBegin", anim, init);
+
+		return anim; // dojo.Animation
+	};
+
+})();
+
+}
+
+if(!dojo._hasResource["dojox.fx._core"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.fx._core"] = true;
+dojo.provide("dojox.fx._core");
+
+dojox.fx._Line = function(start, end){
+	// summary: a custom _Line to accomodate multi-dimensional values
+	//
+	// description:
+	//	a normal dojo._Line is the curve, and does Line(start,end)
+	//	for propertyAnimation. as we make more complicatied animations, we realize
+	//	some properties can have 2, or 4 values relevant (x,y) or (t,l,r,b) for example
+	//
+	// 	this function provides support for those Lines, and is ported directly from 0.4
+	//	this is a lot of extra code for something so seldom used, so we'll put it here as
+	//	and optional core addition. you can create a new line, and use it during onAnimate
+	//	as you see fit.
+	//
+	// start: Integer|Array
+	//	An Integer (or an Array of integers) to use as a starting point
+	// end: Integer|Array
+	//	An Integer (or an Array of integers) to use as an ending point
+	//
+	// example: see dojox.fx.smoothScroll
+	//
+	// example:
+	// |	// this is 10 .. 100 and 50 .. 500
+	// |	var curve = new dojox.fx._Line([10,50],[100,500]);
+	// |	// dojo.Animation.onAnimate is called at every step of the animation
+	// |	// to define current values. this _Line returns an array
+	// | 	// at each step. arguments[0] and [1] in this example.
+	//
+	this.start = start;
+	this.end = end;
+	
+	var isArray = dojo.isArray(start),
+		d = (isArray ? [] : end - start);
+	
+	if(isArray){
+		// multi-dimensional branch
+		dojo.forEach(this.start, function(s, i){
+			d[i] = this.end[i] - s;
+		}, this);
+		
+		this.getValue = function(/*float*/ n){
+			var res = [];
+			dojo.forEach(this.start, function(s, i){
+				res[i] = (d[i] * n) + s;
+			}, this);
+			return res; // Array
+		}
+	}else{
+		// single value branch, document here for both branches:
+		this.getValue = function(/*float*/ n){
+			// summary: Returns the point on the line, or an array of points
+			// n: a floating point number greater than 0 and less than 1
+			// returns: Mixed
+			return (d * n) + this.start; // Decimal
+		}
+	}
+};
+
+}
+
+if(!dojo._hasResource["dojox.fx.scroll"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojox.fx.scroll"] = true;
+dojo.provide("dojox.fx.scroll");
+dojo.experimental("dojox.fx.scroll");
+
+
+
+dojox.fx.smoothScroll = function(/* Object */args){
+	// summary: Returns an animation that will smooth-scroll to a node
+	// description: This implementation support either horizontal or vertical scroll, as well as
+	// both. In addition, element in iframe can be scrolled to correctly.
+	// offset: {x: int, y: int} this will be added to the target position
+	// duration: Duration of the animation in milliseconds.
+	// win: a node or window object to scroll
+
+	if(!args.target){ args.target = dojo.position(args.node); }
+
+	var isWindow = dojo[(dojo.isIE ? "isObject" : "isFunction")](args["win"].scrollTo),
+		delta = { x: args.target.x, y: args.target.y }
+	;
+	if(!isWindow){
+		var winPos = dojo.position(args.win);
+		delta.x -= winPos.x;
+		delta.y -= winPos.y;
+	}
+  if(args.offset) {
+    delta.x += args.offset.x;
+    delta.y += args.offset.y;
+  }
+	var _anim = (isWindow) ?
+		(function(val){
+			args.win.scrollTo(val[0],val[1]);
+		}) :
+		(function(val){
+			args.win.scrollLeft = val[0];
+			args.win.scrollTop = val[1];
+		});
+	var anim = new dojo.Animation(dojo.mixin({
+		beforeBegin: function(){
+			if(this.curve){ delete this.curve; }
+			var current = isWindow ? dojo._docScroll() : {x: args.win.scrollLeft, y: args.win.scrollTop};
+			anim.curve = new dojox.fx._Line([current.x,current.y],[current.x + delta.x, current.y + delta.y]);
+		},
+		onAnimate: _anim
+	},args));
+	return anim; // dojo.Animation
+};
+
+}
+
+if(!dojo._hasResource["dojo.fx.easing"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["dojo.fx.easing"] = true;
+dojo.provide("dojo.fx.easing");
+
+dojo.getObject("fx.easing", true, dojo);
+
+dojo.fx.easing = {
+	// summary:
+	//		Collection of easing functions to use beyond the default
+	//		`dojo._defaultEasing` function.
+	//
+	// description:
+	//
+	//		Easing functions are used to manipulate the iteration through
+	//		an `dojo.Animation`s _Line. _Line being the properties of an Animation,
+	//		and the easing function progresses through that Line determing
+	//		how quickly (or slowly) it should go. Or more accurately: modify
+	//		the value of the _Line based on the percentage of animation completed.
+	//
+	//		All functions follow a simple naming convention of "ease type" + "when".
+	//		If the name of the function ends in Out, the easing described appears
+	//		towards the end of the animation. "In" means during the beginning,
+	//		and InOut means both ranges of the Animation will applied, both
+	//		beginning and end.
+	//
+	//		One does not call the easing function directly, it must be passed to
+	//		the `easing` property of an animation.
+	//
+	//	example:
+	//	|	
+	//	|	var anim = dojo.fadeOut({
+	//	|		node: 'node',
+	//	|		duration: 2000,
+	//	|		//	note there is no ()
+	//	|		easing: dojo.fx.easing.quadIn
+	//	|	}).play();
+	//
+	
+	linear: function(/* Decimal? */n){
+		// summary: A linear easing function
+		return n;
+	},
+
+	quadIn: function(/* Decimal? */n){
+		return Math.pow(n, 2);
+	},
+
+	quadOut: function(/* Decimal? */n){
+		return n * (n - 2) * -1;
+	},
+
+	quadInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 2) / 2; }
+		return -1 * ((--n) * (n - 2) - 1) / 2;
+	},
+
+	cubicIn: function(/* Decimal? */n){
+		return Math.pow(n, 3);
+	},
+
+	cubicOut: function(/* Decimal? */n){
+		return Math.pow(n - 1, 3) + 1;
+	},
+
+	cubicInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 3) / 2; }
+		n -= 2;
+		return (Math.pow(n, 3) + 2) / 2;
+	},
+
+	quartIn: function(/* Decimal? */n){
+		return Math.pow(n, 4);
+	},
+
+	quartOut: function(/* Decimal? */n){
+		return -1 * (Math.pow(n - 1, 4) - 1);
+	},
+
+	quartInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 4) / 2; }
+		n -= 2;
+		return -1 / 2 * (Math.pow(n, 4) - 2);
+	},
+
+	quintIn: function(/* Decimal? */n){
+		return Math.pow(n, 5);
+	},
+
+	quintOut: function(/* Decimal? */n){
+		return Math.pow(n - 1, 5) + 1;
+	},
+
+	quintInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return Math.pow(n, 5) / 2; };
+		n -= 2;
+		return (Math.pow(n, 5) + 2) / 2;
+	},
+
+	sineIn: function(/* Decimal? */n){
+		return -1 * Math.cos(n * (Math.PI / 2)) + 1;
+	},
+
+	sineOut: function(/* Decimal? */n){
+		return Math.sin(n * (Math.PI / 2));
+	},
+
+	sineInOut: function(/* Decimal? */n){
+		return -1 * (Math.cos(Math.PI * n) - 1) / 2;
+	},
+
+	expoIn: function(/* Decimal? */n){
+		return (n == 0) ? 0 : Math.pow(2, 10 * (n - 1));
+	},
+
+	expoOut: function(/* Decimal? */n){
+		return (n == 1) ? 1 : (-1 * Math.pow(2, -10 * n) + 1);
+	},
+
+	expoInOut: function(/* Decimal? */n){
+		if(n == 0){ return 0; }
+		if(n == 1){ return 1; }
+		n = n * 2;
+		if(n < 1){ return Math.pow(2, 10 * (n - 1)) / 2; }
+		--n;
+		return (-1 * Math.pow(2, -10 * n) + 2) / 2;
+	},
+
+	circIn: function(/* Decimal? */n){
+		return -1 * (Math.sqrt(1 - Math.pow(n, 2)) - 1);
+	},
+
+	circOut: function(/* Decimal? */n){
+		n = n - 1;
+		return Math.sqrt(1 - Math.pow(n, 2));
+	},
+
+	circInOut: function(/* Decimal? */n){
+		n = n * 2;
+		if(n < 1){ return -1 / 2 * (Math.sqrt(1 - Math.pow(n, 2)) - 1); }
+		n -= 2;
+		return 1 / 2 * (Math.sqrt(1 - Math.pow(n, 2)) + 1);
+	},
+
+	backIn: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that starts away from the target,
+		//		and quickly accelerates towards the end value.
+		//
+		//		Use caution when the easing will cause values to become
+		//		negative as some properties cannot be set to negative values.
+		var s = 1.70158;
+		return Math.pow(n, 2) * ((s + 1) * n - s);
+	},
+
+	backOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that pops past the range briefly, and slowly comes back.
+		//
+		// description:
+		//		An easing function that pops past the range briefly, and slowly comes back.
+		//
+		//		Use caution when the easing will cause values to become negative as some
+		//		properties cannot be set to negative values.
+		
+		n = n - 1;
+		var s = 1.70158;
+		return Math.pow(n, 2) * ((s + 1) * n + s) + 1;
+	},
+
+	backInOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function combining the effects of `backIn` and `backOut`
+		//
+		// description:
+		//		An easing function combining the effects of `backIn` and `backOut`.
+		//		Use caution when the easing will cause values to become negative
+		//		as some properties cannot be set to negative values.
+		var s = 1.70158 * 1.525;
+		n = n * 2;
+		if(n < 1){ return (Math.pow(n, 2) * ((s + 1) * n - s)) / 2; }
+		n-=2;
+		return (Math.pow(n, 2) * ((s + 1) * n + s) + 2) / 2;
+	},
+
+	elasticIn: function(/* Decimal? */n){
+		// summary:
+		//		An easing function the elastically snaps from the start value
+		//
+		// description:
+		//		An easing function the elastically snaps from the start value
+		//
+		//		Use caution when the elasticity will cause values to become negative
+		//		as some properties cannot be set to negative values.
+		if(n == 0 || n == 1){ return n; }
+		var p = .3;
+		var s = p / 4;
+		n = n - 1;
+		return -1 * Math.pow(2, 10 * n) * Math.sin((n - s) * (2 * Math.PI) / p);
+	},
+
+	elasticOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that elasticly snaps around the target value,
+		//		near the end of the Animation
+		//
+		// description:
+		//		An easing function that elasticly snaps around the target value,
+		//		near the end of the Animation
+		//
+		//		Use caution when the elasticity will cause values to become
+		//		negative as some properties cannot be set to negative values.
+		if(n==0 || n == 1){ return n; }
+		var p = .3;
+		var s = p / 4;
+		return Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p) + 1;
+	},
+
+	elasticInOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that elasticly snaps around the value, near
+		//		the beginning and end of the Animation.
+		//
+		// description:
+		//		An easing function that elasticly snaps around the value, near
+		//		the beginning and end of the Animation.
+		//
+		//		Use caution when the elasticity will cause values to become
+		//		negative as some properties cannot be set to negative values.
+		if(n == 0) return 0;
+		n = n * 2;
+		if(n == 2) return 1;
+		var p = .3 * 1.5;
+		var s = p / 4;
+		if(n < 1){
+			n -= 1;
+			return -.5 * (Math.pow(2, 10 * n) * Math.sin((n - s) * (2 * Math.PI) / p));
+		}
+		n -= 1;
+		return .5 * (Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p)) + 1;
+	},
+
+	bounceIn: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that 'bounces' near the beginning of an Animation
+		return (1 - dojo.fx.easing.bounceOut(1 - n)); // Decimal
+	},
+
+	bounceOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that 'bounces' near the end of an Animation
+		var s = 7.5625;
+		var p = 2.75;
+		var l;
+		if(n < (1 / p)){
+			l = s * Math.pow(n, 2);
+		}else if(n < (2 / p)){
+			n -= (1.5 / p);
+			l = s * Math.pow(n, 2) + .75;
+		}else if(n < (2.5 / p)){
+			n -= (2.25 / p);
+			l = s * Math.pow(n, 2) + .9375;
+		}else{
+			n -= (2.625 / p);
+			l = s * Math.pow(n, 2) + .984375;
+		}
+		return l;
+	},
+
+	bounceInOut: function(/* Decimal? */n){
+		// summary:
+		//		An easing function that 'bounces' at the beginning and end of the Animation
+		if(n < 0.5){ return dojo.fx.easing.bounceIn(n * 2) / 2; }
+		return (dojo.fx.easing.bounceOut(n * 2 - 1) / 2) + 0.5; // Decimal
+	}
+};
+
+}
+
+if(!dojo._hasResource["scorll.util"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
+dojo._hasResource["scorll.util"] = true;
+dojo.provide("scorll.util");
+
+
+
+
+
+
+scorll.util.slideIntoView = function (domNode) {
+  setTimeout(function () {
+    var windowH = dojo.window.getBox().h;
+    var wrapperY = dojo.position(domNode).y;
+    var wrapperH = dojo.position(domNode).h + 10;
+    var notInView = wrapperY < 0 || (wrapperY + wrapperH) > windowH;
+    if (wrapperH < windowH && notInView) {
+      var offsetY = 0;
+      if (wrapperY > 0) {
+        offsetY = windowH - wrapperH;
+      }
+      else {
+        offsetY += 30;
+      }
+      dojox.fx.smoothScroll({
+        win: window,
+        node: domNode,
+        easing: dojo.fx.easing.quintIn,
+        duration: 300,
+        offset: {
+          y: -offsetY
+        }
+      }).play();
+    }
+  });
+}
+
+}
+
 if(!dojo._hasResource["dijit.Tooltip"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
 dojo._hasResource["dijit.Tooltip"] = true;
 dojo.provide("dijit.Tooltip");
@@ -12517,503 +13452,6 @@ dojo.declare("scorll.asset.AssetManager", null, {
       item: item
     });
   }
-});
-
-}
-
-if(!dojo._hasResource["dojox.fx._core"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dojox.fx._core"] = true;
-dojo.provide("dojox.fx._core");
-
-dojox.fx._Line = function(start, end){
-	// summary: a custom _Line to accomodate multi-dimensional values
-	//
-	// description:
-	//	a normal dojo._Line is the curve, and does Line(start,end)
-	//	for propertyAnimation. as we make more complicatied animations, we realize
-	//	some properties can have 2, or 4 values relevant (x,y) or (t,l,r,b) for example
-	//
-	// 	this function provides support for those Lines, and is ported directly from 0.4
-	//	this is a lot of extra code for something so seldom used, so we'll put it here as
-	//	and optional core addition. you can create a new line, and use it during onAnimate
-	//	as you see fit.
-	//
-	// start: Integer|Array
-	//	An Integer (or an Array of integers) to use as a starting point
-	// end: Integer|Array
-	//	An Integer (or an Array of integers) to use as an ending point
-	//
-	// example: see dojox.fx.smoothScroll
-	//
-	// example:
-	// |	// this is 10 .. 100 and 50 .. 500
-	// |	var curve = new dojox.fx._Line([10,50],[100,500]);
-	// |	// dojo.Animation.onAnimate is called at every step of the animation
-	// |	// to define current values. this _Line returns an array
-	// | 	// at each step. arguments[0] and [1] in this example.
-	//
-	this.start = start;
-	this.end = end;
-	
-	var isArray = dojo.isArray(start),
-		d = (isArray ? [] : end - start);
-	
-	if(isArray){
-		// multi-dimensional branch
-		dojo.forEach(this.start, function(s, i){
-			d[i] = this.end[i] - s;
-		}, this);
-		
-		this.getValue = function(/*float*/ n){
-			var res = [];
-			dojo.forEach(this.start, function(s, i){
-				res[i] = (d[i] * n) + s;
-			}, this);
-			return res; // Array
-		}
-	}else{
-		// single value branch, document here for both branches:
-		this.getValue = function(/*float*/ n){
-			// summary: Returns the point on the line, or an array of points
-			// n: a floating point number greater than 0 and less than 1
-			// returns: Mixed
-			return (d * n) + this.start; // Decimal
-		}
-	}
-};
-
-}
-
-if(!dojo._hasResource["dojox.fx.scroll"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dojox.fx.scroll"] = true;
-dojo.provide("dojox.fx.scroll");
-dojo.experimental("dojox.fx.scroll");
-
-
-
-dojox.fx.smoothScroll = function(/* Object */args){
-	// summary: Returns an animation that will smooth-scroll to a node
-	// description: This implementation support either horizontal or vertical scroll, as well as
-	// both. In addition, element in iframe can be scrolled to correctly.
-	// offset: {x: int, y: int} this will be added to the target position
-	// duration: Duration of the animation in milliseconds.
-	// win: a node or window object to scroll
-
-	if(!args.target){ args.target = dojo.position(args.node); }
-
-	var isWindow = dojo[(dojo.isIE ? "isObject" : "isFunction")](args["win"].scrollTo),
-		delta = { x: args.target.x, y: args.target.y }
-	;
-	if(!isWindow){
-		var winPos = dojo.position(args.win);
-		delta.x -= winPos.x;
-		delta.y -= winPos.y;
-	}
-  if(args.offset) {
-    delta.x += args.offset.x;
-    delta.y += args.offset.y;
-  }
-	var _anim = (isWindow) ?
-		(function(val){
-			args.win.scrollTo(val[0],val[1]);
-		}) :
-		(function(val){
-			args.win.scrollLeft = val[0];
-			args.win.scrollTop = val[1];
-		});
-	var anim = new dojo.Animation(dojo.mixin({
-		beforeBegin: function(){
-			if(this.curve){ delete this.curve; }
-			var current = isWindow ? dojo._docScroll() : {x: args.win.scrollLeft, y: args.win.scrollTop};
-			anim.curve = new dojox.fx._Line([current.x,current.y],[current.x + delta.x, current.y + delta.y]);
-		},
-		onAnimate: _anim
-	},args));
-	return anim; // dojo.Animation
-};
-
-}
-
-if(!dojo._hasResource["dojo.fx.easing"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dojo.fx.easing"] = true;
-dojo.provide("dojo.fx.easing");
-
-dojo.getObject("fx.easing", true, dojo);
-
-dojo.fx.easing = {
-	// summary:
-	//		Collection of easing functions to use beyond the default
-	//		`dojo._defaultEasing` function.
-	//
-	// description:
-	//
-	//		Easing functions are used to manipulate the iteration through
-	//		an `dojo.Animation`s _Line. _Line being the properties of an Animation,
-	//		and the easing function progresses through that Line determing
-	//		how quickly (or slowly) it should go. Or more accurately: modify
-	//		the value of the _Line based on the percentage of animation completed.
-	//
-	//		All functions follow a simple naming convention of "ease type" + "when".
-	//		If the name of the function ends in Out, the easing described appears
-	//		towards the end of the animation. "In" means during the beginning,
-	//		and InOut means both ranges of the Animation will applied, both
-	//		beginning and end.
-	//
-	//		One does not call the easing function directly, it must be passed to
-	//		the `easing` property of an animation.
-	//
-	//	example:
-	//	|	
-	//	|	var anim = dojo.fadeOut({
-	//	|		node: 'node',
-	//	|		duration: 2000,
-	//	|		//	note there is no ()
-	//	|		easing: dojo.fx.easing.quadIn
-	//	|	}).play();
-	//
-	
-	linear: function(/* Decimal? */n){
-		// summary: A linear easing function
-		return n;
-	},
-
-	quadIn: function(/* Decimal? */n){
-		return Math.pow(n, 2);
-	},
-
-	quadOut: function(/* Decimal? */n){
-		return n * (n - 2) * -1;
-	},
-
-	quadInOut: function(/* Decimal? */n){
-		n = n * 2;
-		if(n < 1){ return Math.pow(n, 2) / 2; }
-		return -1 * ((--n) * (n - 2) - 1) / 2;
-	},
-
-	cubicIn: function(/* Decimal? */n){
-		return Math.pow(n, 3);
-	},
-
-	cubicOut: function(/* Decimal? */n){
-		return Math.pow(n - 1, 3) + 1;
-	},
-
-	cubicInOut: function(/* Decimal? */n){
-		n = n * 2;
-		if(n < 1){ return Math.pow(n, 3) / 2; }
-		n -= 2;
-		return (Math.pow(n, 3) + 2) / 2;
-	},
-
-	quartIn: function(/* Decimal? */n){
-		return Math.pow(n, 4);
-	},
-
-	quartOut: function(/* Decimal? */n){
-		return -1 * (Math.pow(n - 1, 4) - 1);
-	},
-
-	quartInOut: function(/* Decimal? */n){
-		n = n * 2;
-		if(n < 1){ return Math.pow(n, 4) / 2; }
-		n -= 2;
-		return -1 / 2 * (Math.pow(n, 4) - 2);
-	},
-
-	quintIn: function(/* Decimal? */n){
-		return Math.pow(n, 5);
-	},
-
-	quintOut: function(/* Decimal? */n){
-		return Math.pow(n - 1, 5) + 1;
-	},
-
-	quintInOut: function(/* Decimal? */n){
-		n = n * 2;
-		if(n < 1){ return Math.pow(n, 5) / 2; };
-		n -= 2;
-		return (Math.pow(n, 5) + 2) / 2;
-	},
-
-	sineIn: function(/* Decimal? */n){
-		return -1 * Math.cos(n * (Math.PI / 2)) + 1;
-	},
-
-	sineOut: function(/* Decimal? */n){
-		return Math.sin(n * (Math.PI / 2));
-	},
-
-	sineInOut: function(/* Decimal? */n){
-		return -1 * (Math.cos(Math.PI * n) - 1) / 2;
-	},
-
-	expoIn: function(/* Decimal? */n){
-		return (n == 0) ? 0 : Math.pow(2, 10 * (n - 1));
-	},
-
-	expoOut: function(/* Decimal? */n){
-		return (n == 1) ? 1 : (-1 * Math.pow(2, -10 * n) + 1);
-	},
-
-	expoInOut: function(/* Decimal? */n){
-		if(n == 0){ return 0; }
-		if(n == 1){ return 1; }
-		n = n * 2;
-		if(n < 1){ return Math.pow(2, 10 * (n - 1)) / 2; }
-		--n;
-		return (-1 * Math.pow(2, -10 * n) + 2) / 2;
-	},
-
-	circIn: function(/* Decimal? */n){
-		return -1 * (Math.sqrt(1 - Math.pow(n, 2)) - 1);
-	},
-
-	circOut: function(/* Decimal? */n){
-		n = n - 1;
-		return Math.sqrt(1 - Math.pow(n, 2));
-	},
-
-	circInOut: function(/* Decimal? */n){
-		n = n * 2;
-		if(n < 1){ return -1 / 2 * (Math.sqrt(1 - Math.pow(n, 2)) - 1); }
-		n -= 2;
-		return 1 / 2 * (Math.sqrt(1 - Math.pow(n, 2)) + 1);
-	},
-
-	backIn: function(/* Decimal? */n){
-		// summary:
-		//		An easing function that starts away from the target,
-		//		and quickly accelerates towards the end value.
-		//
-		//		Use caution when the easing will cause values to become
-		//		negative as some properties cannot be set to negative values.
-		var s = 1.70158;
-		return Math.pow(n, 2) * ((s + 1) * n - s);
-	},
-
-	backOut: function(/* Decimal? */n){
-		// summary:
-		//		An easing function that pops past the range briefly, and slowly comes back.
-		//
-		// description:
-		//		An easing function that pops past the range briefly, and slowly comes back.
-		//
-		//		Use caution when the easing will cause values to become negative as some
-		//		properties cannot be set to negative values.
-		
-		n = n - 1;
-		var s = 1.70158;
-		return Math.pow(n, 2) * ((s + 1) * n + s) + 1;
-	},
-
-	backInOut: function(/* Decimal? */n){
-		// summary:
-		//		An easing function combining the effects of `backIn` and `backOut`
-		//
-		// description:
-		//		An easing function combining the effects of `backIn` and `backOut`.
-		//		Use caution when the easing will cause values to become negative
-		//		as some properties cannot be set to negative values.
-		var s = 1.70158 * 1.525;
-		n = n * 2;
-		if(n < 1){ return (Math.pow(n, 2) * ((s + 1) * n - s)) / 2; }
-		n-=2;
-		return (Math.pow(n, 2) * ((s + 1) * n + s) + 2) / 2;
-	},
-
-	elasticIn: function(/* Decimal? */n){
-		// summary:
-		//		An easing function the elastically snaps from the start value
-		//
-		// description:
-		//		An easing function the elastically snaps from the start value
-		//
-		//		Use caution when the elasticity will cause values to become negative
-		//		as some properties cannot be set to negative values.
-		if(n == 0 || n == 1){ return n; }
-		var p = .3;
-		var s = p / 4;
-		n = n - 1;
-		return -1 * Math.pow(2, 10 * n) * Math.sin((n - s) * (2 * Math.PI) / p);
-	},
-
-	elasticOut: function(/* Decimal? */n){
-		// summary:
-		//		An easing function that elasticly snaps around the target value,
-		//		near the end of the Animation
-		//
-		// description:
-		//		An easing function that elasticly snaps around the target value,
-		//		near the end of the Animation
-		//
-		//		Use caution when the elasticity will cause values to become
-		//		negative as some properties cannot be set to negative values.
-		if(n==0 || n == 1){ return n; }
-		var p = .3;
-		var s = p / 4;
-		return Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p) + 1;
-	},
-
-	elasticInOut: function(/* Decimal? */n){
-		// summary:
-		//		An easing function that elasticly snaps around the value, near
-		//		the beginning and end of the Animation.
-		//
-		// description:
-		//		An easing function that elasticly snaps around the value, near
-		//		the beginning and end of the Animation.
-		//
-		//		Use caution when the elasticity will cause values to become
-		//		negative as some properties cannot be set to negative values.
-		if(n == 0) return 0;
-		n = n * 2;
-		if(n == 2) return 1;
-		var p = .3 * 1.5;
-		var s = p / 4;
-		if(n < 1){
-			n -= 1;
-			return -.5 * (Math.pow(2, 10 * n) * Math.sin((n - s) * (2 * Math.PI) / p));
-		}
-		n -= 1;
-		return .5 * (Math.pow(2, -10 * n) * Math.sin((n - s) * (2 * Math.PI) / p)) + 1;
-	},
-
-	bounceIn: function(/* Decimal? */n){
-		// summary:
-		//		An easing function that 'bounces' near the beginning of an Animation
-		return (1 - dojo.fx.easing.bounceOut(1 - n)); // Decimal
-	},
-
-	bounceOut: function(/* Decimal? */n){
-		// summary:
-		//		An easing function that 'bounces' near the end of an Animation
-		var s = 7.5625;
-		var p = 2.75;
-		var l;
-		if(n < (1 / p)){
-			l = s * Math.pow(n, 2);
-		}else if(n < (2 / p)){
-			n -= (1.5 / p);
-			l = s * Math.pow(n, 2) + .75;
-		}else if(n < (2.5 / p)){
-			n -= (2.25 / p);
-			l = s * Math.pow(n, 2) + .9375;
-		}else{
-			n -= (2.625 / p);
-			l = s * Math.pow(n, 2) + .984375;
-		}
-		return l;
-	},
-
-	bounceInOut: function(/* Decimal? */n){
-		// summary:
-		//		An easing function that 'bounces' at the beginning and end of the Animation
-		if(n < 0.5){ return dojo.fx.easing.bounceIn(n * 2) / 2; }
-		return (dojo.fx.easing.bounceOut(n * 2 - 1) / 2) + 0.5; // Decimal
-	}
-};
-
-}
-
-if(!dojo._hasResource["dojo.fx.Toggler"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dojo.fx.Toggler"] = true;
-dojo.provide("dojo.fx.Toggler");
-
-
-dojo.declare("dojo.fx.Toggler", null, {
-	// summary:
-	//		A simple `dojo.Animation` toggler API.
-	//
-	// description:
-	//		class constructor for an animation toggler. It accepts a packed
-	//		set of arguments about what type of animation to use in each
-	//		direction, duration, etc. All available members are mixed into
-	//		these animations from the constructor (for example, `node`,
-	//		`showDuration`, `hideDuration`).
-	//
-	// example:
-	//	|	var t = new dojo.fx.Toggler({
-	//	|		node: "nodeId",
-	//	|		showDuration: 500,
-	//	|		// hideDuration will default to "200"
-	//	|		showFunc: dojo.fx.wipeIn,
-	//	|		// hideFunc will default to "fadeOut"
-	//	|	});
-	//	|	t.show(100); // delay showing for 100ms
-	//	|	// ...time passes...
-	//	|	t.hide();
-
-	// node: DomNode
-	//		the node to target for the showing and hiding animations
-	node: null,
-
-	// showFunc: Function
-	//		The function that returns the `dojo.Animation` to show the node
-	showFunc: dojo.fadeIn,
-
-	// hideFunc: Function
-	//		The function that returns the `dojo.Animation` to hide the node
-	hideFunc: dojo.fadeOut,
-
-	// showDuration:
-	//		Time in milliseconds to run the show Animation
-	showDuration: 200,
-
-	// hideDuration:
-	//		Time in milliseconds to run the hide Animation
-	hideDuration: 200,
-
-	// FIXME: need a policy for where the toggler should "be" the next
-	// time show/hide are called if we're stopped somewhere in the
-	// middle.
-	// FIXME: also would be nice to specify individual showArgs/hideArgs mixed into
-	// each animation individually.
-	// FIXME: also would be nice to have events from the animations exposed/bridged
-
-	/*=====
-	_showArgs: null,
-	_showAnim: null,
-
-	_hideArgs: null,
-	_hideAnim: null,
-
-	_isShowing: false,
-	_isHiding: false,
-	=====*/
-
-	constructor: function(args){
-		var _t = this;
-
-		dojo.mixin(_t, args);
-		_t.node = args.node;
-		_t._showArgs = dojo.mixin({}, args);
-		_t._showArgs.node = _t.node;
-		_t._showArgs.duration = _t.showDuration;
-		_t.showAnim = _t.showFunc(_t._showArgs);
-
-		_t._hideArgs = dojo.mixin({}, args);
-		_t._hideArgs.node = _t.node;
-		_t._hideArgs.duration = _t.hideDuration;
-		_t.hideAnim = _t.hideFunc(_t._hideArgs);
-
-		dojo.connect(_t.showAnim, "beforeBegin", dojo.hitch(_t.hideAnim, "stop", true));
-		dojo.connect(_t.hideAnim, "beforeBegin", dojo.hitch(_t.showAnim, "stop", true));
-	},
-
-	show: function(delay){
-		// summary: Toggle the node to showing
-		// delay: Integer?
-		//		Ammount of time to stall playing the show animation
-		return this.showAnim.play(delay || 0);
-	},
-
-	hide: function(delay){
-		// summary: Toggle the node to hidden
-		// delay: Integer?
-		//		Ammount of time to stall playing the hide animation
-		return this.hideAnim.play(delay || 0);
-	}
 });
 
 }
@@ -23796,8 +24234,6 @@ dojo.provide("scorll.asset.AssetWrapper");
 
 
 
-
-
 dojo.declare("scorll.asset.AssetWrapper", [
   dijit._Widget, dijit._Templated
   ], {
@@ -23926,30 +24362,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         widget.domNode.style.display = "block";
         menu.domNode.style.display = "block";
       });
-      setTimeout(function () {
-        var windowH = dojo.window.getBox().h;
-        var wrapperY = dojo.position(container.domNode).y;
-        var wrapperH = dojo.position(container.domNode).h + 10;
-        var notInView = wrapperY < 0 || (wrapperY + wrapperH) > windowH;
-        if (wrapperH < windowH && notInView) {
-          var offsetY = 0;
-          if (wrapperY > 0) {
-            offsetY = windowH - wrapperH;
-          }
-          else {
-            offsetY += 30;
-          }
-          dojox.fx.smoothScroll({
-            win: window,
-            node: wrapper.domNode,
-            easing: dojo.fx.easing.quintIn,
-            duration: 300,
-            offset: {
-              y: -offsetY
-            }
-          }).play();
-        }
-      });
+      scorll.util.slideIntoView(container.domNode); 
     });
     dojo.connect(menu, "onDelete", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
@@ -23960,16 +24373,26 @@ dojo.declare("scorll.asset.AssetWrapper", [
       var confirmW = new scorll.asset.AssetDeleteConfirm();
       confirmW.domNode.style.width = dojo.position(wrapper.domNode).w - 60;
       confirmW.domNode.style.height = dojo.position(wrapper.domNode).h - 80;
-      menu.domNode.style.display = "none";
-      widget.domNode.style.display = "none";
-      confirmW.placeAt(wrapper.domNode);
+      dojo.fadeOut({node: widget.domNode, onEnd: function() {
+        menu.domNode.style.display = "none";
+        widget.domNode.style.display = "none";
+        confirmW.placeAt(wrapper.domNode);
+        dojo.fadeIn({node: confirmW.domNode}).play();
+      }}).play();
       dojo.connect(confirmW, "onConfirm", function () {
         stage.content.remove(widget.item);
       });
       dojo.connect(confirmW, "onCancel", function () {
-        confirmW.destroyRecursive();
-        menu.domNode.style.display = "block";
-        widget.domNode.style.display = "block";
+        dojo.fadeOut({node: confirmW.domNode, onEnd: function() {
+          confirmW.destroyRecursive();
+          menu.domNode.style.display = "block";
+          widget.domNode.style.display = "block";
+          dojo.fadeIn({node: widget.domNode, onEnd: function() {
+            if (stage.cutObject == wrapper) {
+              wrapper.widget.domNode.style['opacity'] = .3;
+            }
+          }}).play();
+        }}).play();
       });
     });
     dojo.connect(menu, "onCut", function () {
@@ -24352,406 +24775,6 @@ dojo.declare("dojo.dnd.__TimedMoveableArgs", [dojo.dnd.__MoveableArgs], {
 			}
 		}
 	});
-})();
-
-}
-
-if(!dojo._hasResource["dojo.fx"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
-dojo._hasResource["dojo.fx"] = true;
-dojo.provide("dojo.fx");
-
-
-
-/*=====
-dojo.fx = {
-	// summary: Effects library on top of Base animations
-};
-=====*/
-(function(){
-	
-	var d = dojo,
-		_baseObj = {
-			_fire: function(evt, args){
-				if(this[evt]){
-					this[evt].apply(this, args||[]);
-				}
-				return this;
-			}
-		};
-
-	var _chain = function(animations){
-		this._index = -1;
-		this._animations = animations||[];
-		this._current = this._onAnimateCtx = this._onEndCtx = null;
-
-		this.duration = 0;
-		d.forEach(this._animations, function(a){
-			this.duration += a.duration;
-			if(a.delay){ this.duration += a.delay; }
-		}, this);
-	};
-	d.extend(_chain, {
-		_onAnimate: function(){
-			this._fire("onAnimate", arguments);
-		},
-		_onEnd: function(){
-			d.disconnect(this._onAnimateCtx);
-			d.disconnect(this._onEndCtx);
-			this._onAnimateCtx = this._onEndCtx = null;
-			if(this._index + 1 == this._animations.length){
-				this._fire("onEnd");
-			}else{
-				// switch animations
-				this._current = this._animations[++this._index];
-				this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
-				this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
-				this._current.play(0, true);
-			}
-		},
-		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
-			if(!this._current){ this._current = this._animations[this._index = 0]; }
-			if(!gotoStart && this._current.status() == "playing"){ return this; }
-			var beforeBegin = d.connect(this._current, "beforeBegin", this, function(){
-					this._fire("beforeBegin");
-				}),
-				onBegin = d.connect(this._current, "onBegin", this, function(arg){
-					this._fire("onBegin", arguments);
-				}),
-				onPlay = d.connect(this._current, "onPlay", this, function(arg){
-					this._fire("onPlay", arguments);
-					d.disconnect(beforeBegin);
-					d.disconnect(onBegin);
-					d.disconnect(onPlay);
-				});
-			if(this._onAnimateCtx){
-				d.disconnect(this._onAnimateCtx);
-			}
-			this._onAnimateCtx = d.connect(this._current, "onAnimate", this, "_onAnimate");
-			if(this._onEndCtx){
-				d.disconnect(this._onEndCtx);
-			}
-			this._onEndCtx = d.connect(this._current, "onEnd", this, "_onEnd");
-			this._current.play.apply(this._current, arguments);
-			return this;
-		},
-		pause: function(){
-			if(this._current){
-				var e = d.connect(this._current, "onPause", this, function(arg){
-						this._fire("onPause", arguments);
-						d.disconnect(e);
-					});
-				this._current.pause();
-			}
-			return this;
-		},
-		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
-			this.pause();
-			var offset = this.duration * percent;
-			this._current = null;
-			d.some(this._animations, function(a){
-				if(a.duration <= offset){
-					this._current = a;
-					return true;
-				}
-				offset -= a.duration;
-				return false;
-			});
-			if(this._current){
-				this._current.gotoPercent(offset / this._current.duration, andPlay);
-			}
-			return this;
-		},
-		stop: function(/*boolean?*/ gotoEnd){
-			if(this._current){
-				if(gotoEnd){
-					for(; this._index + 1 < this._animations.length; ++this._index){
-						this._animations[this._index].stop(true);
-					}
-					this._current = this._animations[this._index];
-				}
-				var e = d.connect(this._current, "onStop", this, function(arg){
-						this._fire("onStop", arguments);
-						d.disconnect(e);
-					});
-				this._current.stop();
-			}
-			return this;
-		},
-		status: function(){
-			return this._current ? this._current.status() : "stopped";
-		},
-		destroy: function(){
-			if(this._onAnimateCtx){ d.disconnect(this._onAnimateCtx); }
-			if(this._onEndCtx){ d.disconnect(this._onEndCtx); }
-		}
-	});
-	d.extend(_chain, _baseObj);
-
-	dojo.fx.chain = function(/*dojo.Animation[]*/ animations){
-		// summary:
-		//		Chain a list of `dojo.Animation`s to run in sequence
-		//
-		// description:
-		//		Return a `dojo.Animation` which will play all passed
-		//		`dojo.Animation` instances in sequence, firing its own
-		//		synthesized events simulating a single animation. (eg:
-		//		onEnd of this animation means the end of the chain,
-		//		not the individual animations within)
-		//
-		// example:
-		//	Once `node` is faded out, fade in `otherNode`
-		//	|	dojo.fx.chain([
-		//	|		dojo.fadeIn({ node:node }),
-		//	|		dojo.fadeOut({ node:otherNode })
-		//	|	]).play();
-		//
-		return new _chain(animations) // dojo.Animation
-	};
-
-	var _combine = function(animations){
-		this._animations = animations||[];
-		this._connects = [];
-		this._finished = 0;
-
-		this.duration = 0;
-		d.forEach(animations, function(a){
-			var duration = a.duration;
-			if(a.delay){ duration += a.delay; }
-			if(this.duration < duration){ this.duration = duration; }
-			this._connects.push(d.connect(a, "onEnd", this, "_onEnd"));
-		}, this);
-		
-		this._pseudoAnimation = new d.Animation({curve: [0, 1], duration: this.duration});
-		var self = this;
-		d.forEach(["beforeBegin", "onBegin", "onPlay", "onAnimate", "onPause", "onStop", "onEnd"],
-			function(evt){
-				self._connects.push(d.connect(self._pseudoAnimation, evt,
-					function(){ self._fire(evt, arguments); }
-				));
-			}
-		);
-	};
-	d.extend(_combine, {
-		_doAction: function(action, args){
-			d.forEach(this._animations, function(a){
-				a[action].apply(a, args);
-			});
-			return this;
-		},
-		_onEnd: function(){
-			if(++this._finished > this._animations.length){
-				this._fire("onEnd");
-			}
-		},
-		_call: function(action, args){
-			var t = this._pseudoAnimation;
-			t[action].apply(t, args);
-		},
-		play: function(/*int?*/ delay, /*Boolean?*/ gotoStart){
-			this._finished = 0;
-			this._doAction("play", arguments);
-			this._call("play", arguments);
-			return this;
-		},
-		pause: function(){
-			this._doAction("pause", arguments);
-			this._call("pause", arguments);
-			return this;
-		},
-		gotoPercent: function(/*Decimal*/percent, /*Boolean?*/ andPlay){
-			var ms = this.duration * percent;
-			d.forEach(this._animations, function(a){
-				a.gotoPercent(a.duration < ms ? 1 : (ms / a.duration), andPlay);
-			});
-			this._call("gotoPercent", arguments);
-			return this;
-		},
-		stop: function(/*boolean?*/ gotoEnd){
-			this._doAction("stop", arguments);
-			this._call("stop", arguments);
-			return this;
-		},
-		status: function(){
-			return this._pseudoAnimation.status();
-		},
-		destroy: function(){
-			d.forEach(this._connects, dojo.disconnect);
-		}
-	});
-	d.extend(_combine, _baseObj);
-
-	dojo.fx.combine = function(/*dojo.Animation[]*/ animations){
-		// summary:
-		//		Combine a list of `dojo.Animation`s to run in parallel
-		//
-		// description:
-		//		Combine an array of `dojo.Animation`s to run in parallel,
-		//		providing a new `dojo.Animation` instance encompasing each
-		//		animation, firing standard animation events.
-		//
-		// example:
-		//	Fade out `node` while fading in `otherNode` simultaneously
-		//	|	dojo.fx.combine([
-		//	|		dojo.fadeIn({ node:node }),
-		//	|		dojo.fadeOut({ node:otherNode })
-		//	|	]).play();
-		//
-		// example:
-		//	When the longest animation ends, execute a function:
-		//	|	var anim = dojo.fx.combine([
-		//	|		dojo.fadeIn({ node: n, duration:700 }),
-		//	|		dojo.fadeOut({ node: otherNode, duration: 300 })
-		//	|	]);
-		//	|	dojo.connect(anim, "onEnd", function(){
-		//	|		// overall animation is done.
-		//	|	});
-		//	|	anim.play(); // play the animation
-		//
-		return new _combine(animations); // dojo.Animation
-	};
-
-	dojo.fx.wipeIn = function(/*Object*/ args){
-		// summary:
-		//		Expand a node to it's natural height.
-		//
-		// description:
-		//		Returns an animation that will expand the
-		//		node defined in 'args' object from it's current height to
-		//		it's natural height (with no scrollbar).
-		//		Node must have no margin/border/padding.
-		//
-		// args: Object
-		//		A hash-map of standard `dojo.Animation` constructor properties
-		//		(such as easing: node: duration: and so on)
-		//
-		// example:
-		//	|	dojo.fx.wipeIn({
-		//	|		node:"someId"
-		//	|	}).play()
-		var node = args.node = d.byId(args.node), s = node.style, o;
-
-		var anim = d.animateProperty(d.mixin({
-			properties: {
-				height: {
-					// wrapped in functions so we wait till the last second to query (in case value has changed)
-					start: function(){
-						// start at current [computed] height, but use 1px rather than 0
-						// because 0 causes IE to display the whole panel
-						o = s.overflow;
-						s.overflow = "hidden";
-						if(s.visibility == "hidden" || s.display == "none"){
-							s.height = "1px";
-							s.display = "";
-							s.visibility = "";
-							return 1;
-						}else{
-							var height = d.style(node, "height");
-							return Math.max(height, 1);
-						}
-					},
-					end: function(){
-						return node.scrollHeight;
-					}
-				}
-			}
-		}, args));
-
-		d.connect(anim, "onEnd", function(){
-			s.height = "auto";
-			s.overflow = o;
-		});
-
-		return anim; // dojo.Animation
-	};
-
-	dojo.fx.wipeOut = function(/*Object*/ args){
-		// summary:
-		//		Shrink a node to nothing and hide it.
-		//
-		// description:
-		//		Returns an animation that will shrink node defined in "args"
-		//		from it's current height to 1px, and then hide it.
-		//
-		// args: Object
-		//		A hash-map of standard `dojo.Animation` constructor properties
-		//		(such as easing: node: duration: and so on)
-		//
-		// example:
-		//	|	dojo.fx.wipeOut({ node:"someId" }).play()
-		
-		var node = args.node = d.byId(args.node), s = node.style, o;
-		
-		var anim = d.animateProperty(d.mixin({
-			properties: {
-				height: {
-					end: 1 // 0 causes IE to display the whole panel
-				}
-			}
-		}, args));
-
-		d.connect(anim, "beforeBegin", function(){
-			o = s.overflow;
-			s.overflow = "hidden";
-			s.display = "";
-		});
-		d.connect(anim, "onEnd", function(){
-			s.overflow = o;
-			s.height = "auto";
-			s.display = "none";
-		});
-
-		return anim; // dojo.Animation
-	};
-
-	dojo.fx.slideTo = function(/*Object*/ args){
-		// summary:
-		//		Slide a node to a new top/left position
-		//
-		// description:
-		//		Returns an animation that will slide "node"
-		//		defined in args Object from its current position to
-		//		the position defined by (args.left, args.top).
-		//
-		// args: Object
-		//		A hash-map of standard `dojo.Animation` constructor properties
-		//		(such as easing: node: duration: and so on). Special args members
-		//		are `top` and `left`, which indicate the new position to slide to.
-		//
-		// example:
-		//	|	dojo.fx.slideTo({ node: node, left:"40", top:"50", units:"px" }).play()
-
-		var node = args.node = d.byId(args.node),
-			top = null, left = null;
-
-		var init = (function(n){
-			return function(){
-				var cs = d.getComputedStyle(n);
-				var pos = cs.position;
-				top = (pos == 'absolute' ? n.offsetTop : parseInt(cs.top) || 0);
-				left = (pos == 'absolute' ? n.offsetLeft : parseInt(cs.left) || 0);
-				if(pos != 'absolute' && pos != 'relative'){
-					var ret = d.position(n, true);
-					top = ret.y;
-					left = ret.x;
-					n.style.position="absolute";
-					n.style.top=top+"px";
-					n.style.left=left+"px";
-				}
-			};
-		})(node);
-		init();
-
-		var anim = d.animateProperty(d.mixin({
-			properties: {
-				top: args.top || 0,
-				left: args.left || 0
-			}
-		}, args));
-		d.connect(anim, "beforeBegin", anim, init);
-
-		return anim; // dojo.Animation
-	};
-
 })();
 
 }
@@ -27355,6 +27378,8 @@ dojo.provide("scorll.stage.Stage");
 
 
 
+
+
 dojo.declare("scorll.stage.Stage", null, {
   user: null,
   client: null,
@@ -27432,6 +27457,12 @@ dojo.declare("scorll.stage.Stage", null, {
       else {
         dojo.place(assetWrapper.domNode, "stage");
       }
+      if(stage.content.loaded) {
+        assetWrapper.domNode.style.display = "none";
+        setTimeout(function() {
+          dojo.fx.wipeIn({node: assetWrapper.domNode}).play();
+        });
+      }
       dojo.connect(assetWrapper, "onAdd", function () {
         var index = dojo.query("#stage").children().indexOf(assetWrapper.domNode);
         var form = new scorll.asset.NewAssetForm({
@@ -27443,7 +27474,12 @@ dojo.declare("scorll.stage.Stage", null, {
           form.destroyRecursive();
         });
         dojo.connect(form, "onCancel", function () {
-          form.destroyRecursive();
+          dojo.fx.wipeOut({
+            node: form.domNode,
+            onEnd: function () {
+              form.destroyRecursive();
+            }
+          }).play()
         });
       });
       dojo.connect(assetWrapper, "onCut", function () {
@@ -27471,7 +27507,9 @@ dojo.declare("scorll.stage.Stage", null, {
     dojo.connect(stage.content, "onRemove", function (id) {
       var assetWrapper = dijit.byId("asset-wrapper-" + id);
       if (assetWrapper) {
-        assetWrapper.destroyRecursive();
+        dojo.fx.wipeOut({node: assetWrapper.domNode, onEnd: function() {
+          assetWrapper.destroyRecursive();
+        }}).play();
       }
     });
     dojo.connect(stage.content, "onMove", function (id, position) {
@@ -27481,13 +27519,19 @@ dojo.declare("scorll.stage.Stage", null, {
       }
       var sibling = dojo.query("#stage > div");
       sibling = sibling[position];
-      dojo.byId("stage").removeChild(assetWrapper.domNode);
-      if (sibling) {
-        dojo.place(assetWrapper.domNode, sibling, "before");
-      }
-      else {
-        dojo.place(assetWrapper.domNode, "stage");
-      }
+      dojo.fx.wipeOut({node: assetWrapper.domNode, onEnd: function() {
+        dojo.byId("stage").removeChild(assetWrapper.domNode);
+        if (sibling) {
+          dojo.place(assetWrapper.domNode, sibling, "before");
+        }
+        else {
+          dojo.place(assetWrapper.domNode, "stage");
+        }
+        assetWrapper.domNode.style.display = "none";
+        setTimeout(function() {
+          dojo.fx.wipeIn({node: assetWrapper.domNode}).play();
+        });
+      }}).play();
     });
   },
   paste: function (position) {
@@ -28775,7 +28819,7 @@ dojo.declare("scorll.asset.MultipleChoice", [
   postCreate: function () {
     var asset = this;
     asset.responses = [];
-    asset.inputs = {};
+    asset.inputs = [];
     var data = this.item.data;
     if (data.answers) {
       for (var i in data.answers) {
@@ -28816,6 +28860,12 @@ dojo.declare("scorll.asset.MultipleChoice", [
     asset.updateLearnerResponse();
     dojo.connect(asset.user, "onLogin", function () {
       asset.updateLearnerResponse();
+    });
+    dojo.connect(asset.user, "onLogout", function () {
+      asset.inputs.forEach(function (input) {
+        input.checked = "";
+      });
+      asset.responses = [];
     });
   },
   updateLearnerResponse: function () {
@@ -29931,6 +29981,9 @@ dojo.declare("scorll.asset.PollForm", [
       question: question,
       options: options
     };
+    this.item.interaction = {
+      type: "other",
+    }
     this.onSubmit(this.item);
   },
   cancel: function () {
@@ -30001,7 +30054,7 @@ dojo.provide("scorll.asset.PieChartForm");
 dojo.declare("scorll.asset.PieChartForm", [
   scorll.asset.AssetForm
   ], {
-  templateString:"<div>\n\t<div style=\"width: 100%;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" orientation=\"vert\" labelWidth=\"120\">\n      <div dojoType=\"dijit.form.TextBox\"\n        dojoAttachPoint=\"titleBox\"\n              title=\"Title\"\n        style=\"width: 100%;\" ></div>\n      <div dojoType=\"dijit.form.Textarea\"\n        dojoAttachPoint=\"valuesBox\"\n              title=\"Data\"\n        style=\"width: 100%; min-height: 200px;\" ></div>\n    </div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+  templateString:"<div>\n\t<div style=\"width: 100%;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" orientation=\"vert\" labelWidth=\"120\">\n      <div dojoType=\"dijit.form.TextBox\"\n        dojoAttachPoint=\"titleBox\"\n              title=\"Title\"\n        style=\"width: 100%;\" ></div>\n      <div dojoType=\"dijit.form.Textarea\"\n        dojoAttachPoint=\"valuesBox\"\n              title=\"Data\"\n        style=\"width: 100%; min-height: 100px;\" ></div>\n    </div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\"\n\t\t\t\tdojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
   postCreate: function () {
     this.formContainer.startup();
     if (!this.item.data) {
