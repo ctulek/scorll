@@ -14,7 +14,7 @@ dojo.declare("scorll.asset.MultipleChoice", [
   postCreate: function () {
     var asset = this;
     asset.responses = [];
-    asset.inputs = {};
+    asset.inputs = [];
     var data = this.item.data;
     if (data.answers) {
       for (var i in data.answers) {
@@ -55,6 +55,12 @@ dojo.declare("scorll.asset.MultipleChoice", [
     asset.updateLearnerResponse();
     dojo.connect(asset.user, "onLogin", function () {
       asset.updateLearnerResponse();
+    });
+    dojo.connect(asset.user, "onLogout", function () {
+      asset.inputs.forEach(function(input) {
+        input.checked = "";
+      });
+      asset.responses = [];
     });
   },
   updateLearnerResponse: function () {
