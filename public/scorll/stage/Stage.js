@@ -91,10 +91,12 @@ dojo.declare("scorll.stage.Stage", null, {
       else {
         dojo.place(assetWrapper.domNode, "stage");
       }
-      assetWrapper.domNode.style.display = "none";
-      setTimeout(function() {
-        dojo.fx.wipeIn({node: assetWrapper.domNode}).play();
-      });
+      if(stage.content.loaded) {
+        assetWrapper.domNode.style.display = "none";
+        setTimeout(function() {
+          dojo.fx.wipeIn({node: assetWrapper.domNode}).play();
+        });
+      }
       dojo.connect(assetWrapper, "onAdd", function () {
         var index = dojo.query("#stage").children().indexOf(assetWrapper.domNode);
         var form = new scorll.asset.NewAssetForm({
