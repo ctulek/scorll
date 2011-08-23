@@ -157,7 +157,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
           dojox.fx.smoothScroll({win: window, node: wrapper.domNode, easing:
            dojo.fx.easing.quintIn, duration: 300, offset:{y: -offsetY}}).play();
         }
-      }, 1);
+      });
     });
     dojo.connect(menu, "onDelete", function () {
       if (!wrapper.stage.user.hasRole("teacher")) {
