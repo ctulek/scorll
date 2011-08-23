@@ -100,7 +100,12 @@ dojo.declare("scorll.stage.Stage", null, {
           form.destroyRecursive();
         });
         dojo.connect(form, "onCancel", function () {
-          form.destroyRecursive();
+          dojo.fx.wipeOut({
+            node: form.domNode,
+            onEnd: function () {
+              form.destroyRecursive();
+            }
+          }).play()
         });
       });
       dojo.connect(assetWrapper, "onCut", function () {

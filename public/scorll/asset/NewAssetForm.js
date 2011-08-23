@@ -2,6 +2,11 @@ dojo.provide("scorll.asset.NewAssetForm");
 
 dojo.require("dijit.TitlePane");
 dojo.require("dijit.form.Button");
+dojo.require("dojo.fx");
+dojo.require("dojox.fx.scroll");
+dojo.require("dojo.fx.easing");
+
+dojo.require("scorll.util");
 dojo.require("scorll.asset.AssetManager");
 
 dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
@@ -26,7 +31,27 @@ dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
         var form = assetManager.getAssetForm({
           type: this.widgetType
         });
-        dojo.place(form.domNode, container.containerNode, "only");
+        form.domNode.style.display = "none";
+        dojo.fadeOut({
+          node: assetList,
+          duration: 200,
+          onEnd: function () {
+            dojo.place(form.domNode, container.containerNode, "only");
+            setTimeout(function () {
+              dojo.fx.combine([
+                dojo.fadeIn({
+                node: form.domNode
+              }),
+                dojo.fx.wipeIn({
+                node: form.domNode,
+                onEnd: function () {
+                  scorll.util.slideIntoView(container.domNode);
+                }
+              })
+                ]).play();
+            });
+          }
+        }).play();
         dojo.connect(form, "onSubmit", function (item) {
           stage.content.add(item, newAssetForm.position);
           newAssetForm.onSubmit();
@@ -36,8 +61,15 @@ dojo.declare("scorll.asset.NewAssetForm", [dijit._Widget, dijit._Templated], {
         });
       });
       button.placeAt(assetList);
-      container.containerNode.scrollIntoView()
     }
+    setTimeout(function () {
+      dojo.fx.wipeIn({
+        node: newAssetForm.domNode,
+        onEnd: function () {
+          scorll.util.slideIntoView(container.domNode);
+        }
+      }).play();
+    });
   },
   onSubmit: function () {},
   onCancel: function () {},
