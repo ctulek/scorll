@@ -5,6 +5,9 @@ var Asset = function (args) {
     for (var k in args) {
       this[k] = args[k];
     }
+    if (this.po && !this.po.interaction) {
+      this.po.interaction = {};
+    }
   }
 
 Asset.prototype.getId = function () {
@@ -80,7 +83,7 @@ Asset.prototype.track = function (client, params, callback) {
   var user = client.user;
   var type = params.type;
   var timestamp = params.timestamp || new Date();
-  var correctResponses = asset.po.interaction.correctResponses || [];
+  var correctResponses = asset.getCorrectResponses();
   var learnerResponse = params.response;
   var result = params.result || null;
   if (!result && correctResponses && typeof asset.responsePattern[type] == 'function') {
@@ -128,6 +131,15 @@ Asset.prototype.track = function (client, params, callback) {
       client.broadcast(asset.getId(), 'collect', tracking);
     });
   });
+}
+
+Asset.prototype.getCorrectResponses = function () {
+  if (this.po && this.po.interaction && this.po.interaction.correctResponses) {
+    return this.po.interaction.correctResponses;
+  }
+  else {
+    return [];
+  }
 }
 
 Asset.prototype.getTrackingResults = function (client, params, callback) {

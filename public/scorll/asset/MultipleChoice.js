@@ -57,7 +57,7 @@ dojo.declare("scorll.asset.MultipleChoice", [
       asset.updateLearnerResponse();
     });
     dojo.connect(asset.user, "onLogout", function () {
-      asset.inputs.forEach(function(input) {
+      asset.inputs.forEach(function (input) {
         input.checked = "";
       });
       asset.responses = [];
