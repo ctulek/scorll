@@ -125,7 +125,9 @@ html
               dojo.connect(form, "onCancel", function() {
                 dojo.fadeIn({node: newAssetButton.domNode}).play();
                 dojo.fadeIn({node: pasteAssetButton.domNode}).play();
-                form.destroyRecursive();
+                dojo.fx.wipeOut({node: form.domNode, onEnd: function() {
+                  form.destroyRecursive();
+                }}).play();
               });
             });
             dojo.connect(pasteAssetButton, "onClick", function() {

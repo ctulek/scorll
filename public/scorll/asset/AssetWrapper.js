@@ -150,16 +150,26 @@ dojo.declare("scorll.asset.AssetWrapper", [
       var confirmW = new scorll.asset.AssetDeleteConfirm();
       confirmW.domNode.style.width = dojo.position(wrapper.domNode).w - 60;
       confirmW.domNode.style.height = dojo.position(wrapper.domNode).h - 80;
-      menu.domNode.style.display = "none";
-      widget.domNode.style.display = "none";
-      confirmW.placeAt(wrapper.domNode);
+      dojo.fadeOut({node: widget.domNode, onEnd: function() {
+        menu.domNode.style.display = "none";
+        widget.domNode.style.display = "none";
+        confirmW.placeAt(wrapper.domNode);
+        dojo.fadeIn({node: confirmW.domNode}).play();
+      }}).play();
       dojo.connect(confirmW, "onConfirm", function () {
         stage.content.remove(widget.item);
       });
       dojo.connect(confirmW, "onCancel", function () {
-        confirmW.destroyRecursive();
-        menu.domNode.style.display = "block";
-        widget.domNode.style.display = "block";
+        dojo.fadeOut({node: confirmW.domNode, onEnd: function() {
+          confirmW.destroyRecursive();
+          menu.domNode.style.display = "block";
+          widget.domNode.style.display = "block";
+          dojo.fadeIn({node: widget.domNode, onEnd: function() {
+            if (stage.cutObject == wrapper) {
+              wrapper.widget.domNode.style['opacity'] = .3;
+            }
+          }}).play();
+        }}).play();
       });
     });
     dojo.connect(menu, "onCut", function () {
