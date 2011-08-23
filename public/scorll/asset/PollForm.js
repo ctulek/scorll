@@ -30,6 +30,9 @@ dojo.declare("scorll.asset.PollForm", [
       question: question,
       options: options
     };
+    this.item.interaction = {
+      type: "other",
+    }
     this.onSubmit(this.item);
   },
   cancel: function () {
