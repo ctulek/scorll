@@ -3,7 +3,7 @@ dojo.provide("scorll.stage.Stage");
 dojo.require("dojo.NodeList-traverse");
 
 dojo.require("dijit.InlineEditBox");
-dojo.require("dijit.form.TextBox");
+dojo.require("dijit.form.Textarea");
 
 dojo.require("scorll.stage.Login");
 dojo.require("scorll.stage.Register");
@@ -54,16 +54,16 @@ dojo.declare("scorll.stage.Stage", null, {
     stage.observe();
     dojo.connect(content, "onTitleChange", function (title) {
       contentTitleBox.set("value", title);
-      dojo.byId("mini-title").innerHTML = title;
+      document.title = "Scorll - " + title;
     });
     // CONTENT TITLE
     var contentTitleBox = new dijit.InlineEditBox({
-      editor: "dijit.form.TextBox",
+      editor: "dijit.form.Textarea",
       disabled: true
     }, "title");
     dojo.connect(contentTitleBox, "onChange", function (value) {
       content.setTitle(value);
-      dojo.byId("mini-title").innerHTML = value;
+      document.title = "Scorll - " + value;
     });
     // ASSET MANAGER
     var assetManager = stage.assetManager = new scorll.asset.AssetManager();
