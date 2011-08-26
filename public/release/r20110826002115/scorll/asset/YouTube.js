@@ -14,7 +14,7 @@ dojo.require("scorll.asset.Asset");
 dojo.declare("scorll.asset.YouTube", [
   scorll.asset.Asset
   ], {
-  templateString:"<div style=\"text-align: center\">\n\t<iframe title=\"YouTube video player\" width=\"640\" height=\"510\" src=\"http://www.youtube.com/embed/${item.data.video}?rel=0&wmode=transparent\" frameborder=\"0\" allowfullscreen></iframe>\n</div>\n"
+  templateString:"<div style=\"text-align: center\">\n\t<iframe title=\"YouTube video player\" width=\"640\" height=\"510\"\n  src=\"http://www.youtube.com/embed/${item.data.video}?rel=0&wmode=transparent&modestbranding=1\" frameborder=\"0\" allowfullscreen></iframe>\n</div>\n"
 });
 
 }

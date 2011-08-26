@@ -1,0 +1,16 @@
+<div title="YouTube Video">
+  <div style="width: 100%;">
+    <div dojoType="dojox.layout.TableContainer" dojoAttachPoint="formContainer" cols="1" labelWidth="120">
+      <div dojoType="dijit.form.ValidationTextBox"
+        dojoAttachPoint="videoUrl"
+        required="true"
+        title="Video Url" style="width: 100%"></div>
+    </div>
+    <div title="Preview" style="text-align: center; margin: 10px;">
+      <img dojoAttachPoint="previewImg" width="480" height="360"/>
+    </div>
+    <div style="text-align: right;">
+      <div dojoType="dijit.form.Button" dojoAttachEvent="onClick:submit">Submit</div>
+      <div dojoType="dijit.form.Button" dojoAttachEvent="onClick:cancel">Cancel</div>
+    </div>
+  </div>

@@ -49,6 +49,8 @@ dojo.declare("scorll.asset.Text", [
     text = text.replace(/\[\[(http:\/\/[^ ]+?)\]\]/gm, '<a href="$1" target="_blank">$1</a>');
     // Link with Label
     text = text.replace(/\[\[(http:\/\/[^ ]+?)( .+?)\]\]/gm, '<a href="$1" target="_blank">$2</a>');
+    // Email
+    text = text.replace(/\[\[mailto:([^ ]+?)\]\]/gm, '<a href="mailto:$1">$1</a>');
     // List Item
     text = text.replace(/^\* (.+?)$/gm, "<li>$1</li>");
     // New Line

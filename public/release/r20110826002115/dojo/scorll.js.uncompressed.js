@@ -28661,6 +28661,8 @@ dojo.declare("scorll.asset.Text", [
     text = text.replace(/\[\[(http:\/\/[^ ]+?)\]\]/gm, '<a href="$1" target="_blank">$1</a>');
     // Link with Label
     text = text.replace(/\[\[(http:\/\/[^ ]+?)( .+?)\]\]/gm, '<a href="$1" target="_blank">$2</a>');
+    // Email
+    text = text.replace(/\[\[mailto:([^ ]+?)\]\]/gm, '<a href="mailto:$1">$1</a>');
     // List Item
     text = text.replace(/^\* (.+?)$/gm, "<li>$1</li>");
     // New Line
@@ -28709,21 +28711,27 @@ dojo.declare("scorll.asset.TextForm", [
   scorll.asset.AssetForm
   ], {
   widgetsInTemplate: true,
-  templateString:"<div>\n\t<div style=\"width: 100%;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" orientation=\"vert\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"titleText\" title=\"Title (Optional)\" style=\"width:100%\"></div>\n\t\t\t<div dojoType=\"dijit.form.Textarea\" dojoAttachPoint=\"bodyText\" title=\"Text\" style=\"min-height: 100px;\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+  templateString:"<div>\n\t<div style=\"width: 100%;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" orientation=\"vert\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"titleText\" title=\"Title (Optional)\" style=\"width:100%\"></div>\n\t\t\t<div dojoType=\"dijit.form.Textarea\" dojoAttachPoint=\"bodyText\" title=\"Text\" style=\"min-height: 100px;\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right; margin-top: 5px;\">\n\t\t\t<div dojoType=\"dijit.form.Button\"\n                dojoAttachPoint=\"submitButton\"\n                dojoAttachEvent=\"onClick:submit\"\n                >Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
   postCreate: function () {
-    this.formContainer.startup();
-    if (!this.item.data) {
-      this.item.data = {};
-      this.item.data.text = this.getHelpText();
-    }
-    var data = this.item.data;
-    if (data.title) {
-      this.titleText.attr('value', data.title);
-    }
-    this.bodyText.attr('value', data.text + "\n");
     var asset = this;
+    asset.formContainer.startup();
+    if (!asset.item.data) {
+      asset.item.data = {};
+      asset.item.data.text = asset.getHelpText();
+    }
+    var data = asset.item.data;
+    if (data.title) {
+      asset.titleText.attr('value', data.title);
+    }
+    asset.bodyText.attr('value', data.text + "\n");
     setTimeout(function () {
       asset.bodyText.focus();
+    });
+    dojo.connect(asset.bodyText, "onKeyPress", function() {
+      setTimeout(function() {
+        var disabled = asset.bodyText.attr('value').trim().length == 0;
+        asset.submitButton.attr("disabled", disabled);
+      });
     });
   },
   submit: function () {
@@ -28732,6 +28740,9 @@ dojo.declare("scorll.asset.TextForm", [
       title = this.titleText.attr('value').trim();
     }
     var text = this.bodyText.attr('value').trim();
+    if(text == "") {
+      return;
+    }
     var data = {};
     if (title) {
       data.title = title;
@@ -28744,7 +28755,15 @@ dojo.declare("scorll.asset.TextForm", [
     this.onCancel();
   },
   getHelpText: function () {
-    return "This text will appear when you press 'Submit' button.\nEach new line becomes a paragraph.\nBasic Formatting:\n__underline__\n//italic//\n**bold**\n* list item\nLink: [[http://google.com]]\nLink with label: [[http://google.com Google]]";
+    var help = "\
+This text will appear when you press 'Submit' button.\n\
+Each new line becomes a paragraph.\n\
+Formatting: __underline__ //italic// **bold**\n \
+* list item\n\
+Link: [[http://google.com]]\n\
+Link with label: [[http://google.com Google]]\n\
+Mail: [[mailto:info@scorll.com]]\n";
+    return help.trim();
   }
 });
 
@@ -28964,7 +28983,7 @@ dojo.provide("scorll.asset.YouTube");
 dojo.declare("scorll.asset.YouTube", [
   scorll.asset.Asset
   ], {
-  templateString:"<div style=\"text-align: center\">\n\t<iframe title=\"YouTube video player\" width=\"640\" height=\"510\" src=\"http://www.youtube.com/embed/${item.data.video}?rel=0&wmode=transparent\" frameborder=\"0\" allowfullscreen></iframe>\n</div>\n"
+  templateString:"<div style=\"text-align: center\">\n\t<iframe title=\"YouTube video player\" width=\"640\" height=\"510\"\n  src=\"http://www.youtube.com/embed/${item.data.video}?rel=0&wmode=transparent&modestbranding=1\" frameborder=\"0\" allowfullscreen></iframe>\n</div>\n"
 });
 
 }
@@ -28982,9 +29001,26 @@ dojo.declare("scorll.asset.YouTubeForm", [
   scorll.asset.AssetForm
   ], {
   widgetsInTemplate: true,
-  templateString:"<div title=\"YouTube Video\">\n\t<div style=\"width: 100%;\">\n\t\t<div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" labelWidth=\"120\">\n\t\t\t<div dojoType=\"dijit.form.TextBox\" dojoAttachPoint=\"videoUrl\" title=\"Video Url\" style=\"width: 100%\"></div>\n\t\t</div>\n\t\t<div style=\"text-align: right;\">\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n\t\t\t<div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n\t\t</div>\n\t</div>\n",
+  templateString:"<div title=\"YouTube Video\">\n  <div style=\"width: 100%;\">\n    <div dojoType=\"dojox.layout.TableContainer\" dojoAttachPoint=\"formContainer\" cols=\"1\" labelWidth=\"120\">\n      <div dojoType=\"dijit.form.ValidationTextBox\"\n        dojoAttachPoint=\"videoUrl\"\n        required=\"true\"\n        title=\"Video Url\" style=\"width: 100%\"></div>\n    </div>\n    <div title=\"Preview\" style=\"text-align: center; margin: 10px;\">\n      <img dojoAttachPoint=\"previewImg\" width=\"480\" height=\"360\"/>\n    </div>\n    <div style=\"text-align: right;\">\n      <div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:submit\">Submit</div>\n      <div dojoType=\"dijit.form.Button\" dojoAttachEvent=\"onClick:cancel\">Cancel</div>\n    </div>\n  </div>\n",
+  youtubeRegex:
+  "(http://)?(www.)?(youtube\\.com/watch\\?v=|youtu\\.be/)([^&]+).*",
   postCreate: function () {
+    var asset = this;
     this.formContainer.startup();
+    this.videoUrl.regExpGen = function() {
+        return asset.youtubeRegex;
+    };
+    dojo.connect(this.videoUrl,"onChange",function() {
+      if(true || this.isValid()) {
+        var regex = new
+        RegExp(asset.youtubeRegex);
+        var match = regex.exec(asset.videoUrl.attr('value').trim());
+        var video = match.pop();
+        console.log(match);
+        var url = "http://img.youtube.com/vi/" + video + "/0.jpg";
+        asset.previewImg.src = url;
+      }
+    });
     if (!this.item.data) {
       return;
     }
@@ -28995,13 +29031,21 @@ dojo.declare("scorll.asset.YouTubeForm", [
     }
   },
   submit: function () {
-    var regex = new RegExp("v=([^&]+)");
-    var match = regex.exec(this.videoUrl.attr('value').trim());
-    var video = match[1];
+    var asset = this;
+    if(!asset.videoUrl.isValid()) {
+      return;
+    }
+    var regex = new
+    RegExp(asset.youtubeRegex);
+    var match = regex.exec(asset.videoUrl.attr('value').trim());
+    if(!match) {
+      return;
+    }
+    var video = match.pop();
     var data = {};
     data.video = video;
-    this.item.data = data;
-    this.onSubmit(this.item);
+    asset.item.data = data;
+    asset.onSubmit(asset.item);
   },
   cancel: function () {
     this.onCancel();
