@@ -1,6 +1,6 @@
 dojo.provide("scorll.asset.YouTubeForm");
 
-dojo.require("dijit.form.TextBox");
+dojo.require("dijit.form.ValidationTextBox");
 dojo.require("dojox.layout.TableContainer");
 
 dojo.require("scorll.asset.AssetForm");
@@ -10,8 +10,25 @@ dojo.declare("scorll.asset.YouTubeForm", [
   ], {
   widgetsInTemplate: true,
   templatePath: dojo.moduleUrl("scorll.asset", "YouTubeForm.html"),
+  youtubeRegex:
+  "(http://)?(www.)?(youtube\\.com/watch\\?v=|youtu\\.be/)([^&]+).*",
   postCreate: function () {
+    var asset = this;
     this.formContainer.startup();
+    this.videoUrl.regExpGen = function() {
+        return asset.youtubeRegex;
+    };
+    dojo.connect(this.videoUrl,"onChange",function() {
+      if(true || this.isValid()) {
+        var regex = new
+        RegExp(asset.youtubeRegex);
+        var match = regex.exec(asset.videoUrl.attr('value').trim());
+        var video = match.pop();
+        console.log(match);
+        var url = "http://img.youtube.com/vi/" + video + "/0.jpg";
+        asset.previewImg.src = url;
+      }
+    });
     if (!this.item.data) {
       return;
     }
@@ -22,13 +39,21 @@ dojo.declare("scorll.asset.YouTubeForm", [
     }
   },
   submit: function () {
-    var regex = new RegExp("v=([^&]+)");
-    var match = regex.exec(this.videoUrl.attr('value').trim());
-    var video = match[1];
+    var asset = this;
+    if(!asset.videoUrl.isValid()) {
+      return;
+    }
+    var regex = new
+    RegExp(asset.youtubeRegex);
+    var match = regex.exec(asset.videoUrl.attr('value').trim());
+    if(!match) {
+      return;
+    }
+    var video = match.pop();
     var data = {};
     data.video = video;
-    this.item.data = data;
-    this.onSubmit(this.item);
+    asset.item.data = data;
+    asset.onSubmit(asset.item);
   },
   cancel: function () {
     this.onCancel();
