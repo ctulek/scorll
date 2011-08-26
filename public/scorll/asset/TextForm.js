@@ -11,19 +11,25 @@ dojo.declare("scorll.asset.TextForm", [
   widgetsInTemplate: true,
   templatePath: dojo.moduleUrl("scorll.asset", "TextForm.html"),
   postCreate: function () {
-    this.formContainer.startup();
-    if (!this.item.data) {
-      this.item.data = {};
-      this.item.data.text = this.getHelpText();
-    }
-    var data = this.item.data;
-    if (data.title) {
-      this.titleText.attr('value', data.title);
-    }
-    this.bodyText.attr('value', data.text + "\n");
     var asset = this;
+    asset.formContainer.startup();
+    if (!asset.item.data) {
+      asset.item.data = {};
+      asset.item.data.text = asset.getHelpText();
+    }
+    var data = asset.item.data;
+    if (data.title) {
+      asset.titleText.attr('value', data.title);
+    }
+    asset.bodyText.attr('value', data.text + "\n");
     setTimeout(function () {
       asset.bodyText.focus();
+    });
+    dojo.connect(asset.bodyText, "onKeyPress", function() {
+      setTimeout(function() {
+        var disabled = asset.bodyText.attr('value').trim().length == 0;
+        asset.submitButton.attr("disabled", disabled);
+      });
     });
   },
   submit: function () {
@@ -32,6 +38,9 @@ dojo.declare("scorll.asset.TextForm", [
       title = this.titleText.attr('value').trim();
     }
     var text = this.bodyText.attr('value').trim();
+    if(text == "") {
+      return;
+    }
     var data = {};
     if (title) {
       data.title = title;
@@ -44,6 +53,14 @@ dojo.declare("scorll.asset.TextForm", [
     this.onCancel();
   },
   getHelpText: function () {
-    return "This text will appear when you press 'Submit' button.\nEach new line becomes a paragraph.\nBasic Formatting:\n__underline__\n//italic//\n**bold**\n* list item\nLink: [[http://google.com]]\nLink with label: [[http://google.com Google]]";
+    var help = "\
+This text will appear when you press 'Submit' button.\n\
+Each new line becomes a paragraph.\n\
+Formatting: __underline__ //italic// **bold**\n \
+* list item\n\
+Link: [[http://google.com]]\n\
+Link with label: [[http://google.com Google]]\n\
+Mail: [[mailto:info@scorll.com]]\n";
+    return help.trim();
   }
 });
