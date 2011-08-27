@@ -39,6 +39,9 @@ html
           style="width: 400px;")
           div#stageRegistrationForm(
             dojoType="scorll.stage.Register")
+      div#myContentsButton(
+        dojoType="dijit.form.Button",
+        style="display: none;") My Scorlls
       div#createNewContentButton(
         dojoType="dijit.form.Button",
         style="display: none;") New Scorll
@@ -86,7 +89,7 @@ html
             client: new scorll.net.Client(clientArgs),
             user: user,
             content: new scorll.content.Content(contentArgs),
-            requireLogin: false,
+            requireLogin: false
           };
           var stage = new scorll.stage.Stage(args);
           var newAssetButton = dijit.byId("newAssetButton");
@@ -94,14 +97,16 @@ html
           dojo.connect(user, "onLogin", function() {
             dijit.byId("loginButton").domNode.style.display = "none";
             dijit.byId("registerButton").domNode.style.display = "none";
-            dijit.byId("logoutButton").domNode.style.display = "inline-block";
+            dijit.byId("myContentsButton").domNode.style.display = "inline-block";
             dijit.byId("createNewContentButton").domNode.style.display = "inline-block";
+            dijit.byId("logoutButton").domNode.style.display = "inline-block";
           });
           dojo.connect(user, "onLogout", function() {
             dijit.byId("loginButton").domNode.style.display = "inline-block";
             dijit.byId("registerButton").domNode.style.display = "inline-block";
-            dijit.byId("logoutButton").domNode.style.display = "none";
+            dijit.byId("myContentsButton").domNode.style.display = "none";
             dijit.byId("createNewContentButton").domNode.style.display = "none";
+            dijit.byId("logoutButton").domNode.style.display = "none";
           });
           dojo.connect(user, "onRolesChange", function() {
             if (!user.hasRole("teacher")) {
@@ -190,6 +195,10 @@ html
             dijit.byId("registerTooltipDialog").onCancel();
           });
 
+          var myContentsButton = dijit.byId("myContentsButton");
+          dojo.connect(myContentsButton, "onClick", function() {
+            window.location = "/list";
+          });
           var createNewContentButton = dijit.byId("createNewContentButton");
           dojo.connect(createNewContentButton, "onClick", function() {
             window.location = "/new";

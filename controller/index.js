@@ -13,7 +13,6 @@ var app;
 module.exports = function(appObj) {
     app = appObj;
     app.get('/new(.html)?', newContent);
-    app.get('/list(.html)?', listContents);
     app.get(/^\/([a-z0-9]{5})$/, showContentAlias);
     app.get('/:contentId.html', showContent);
     app.get('/(index.html)?', defaultIndex, showContent);

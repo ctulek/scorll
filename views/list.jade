@@ -1,3 +1,33 @@
-- each content in contents
-    p
-        a(href="/#{content.url}") #{content.title}
+html
+  head
+    title Scorll
+    if release
+      link(rel="stylesheet", rel="stylesheet", href="/release/#{revision}/dijit/themes/claro/claro.css")
+    else
+      link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
+    link(type="text/css", rel="stylesheet", href="/css/stage.css?#{revision}") 
+    script(type="text/javascript", language="javascript")
+      // <![CDATA[
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-24385457-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+      // ]]>
+
+  body.claro
+    if createdContents.length
+      h2 Scorlls by Me
+      each content in createdContents
+        p
+          a(href="/#{content.url}") #{content.title}
+
+    if enrolledContents.length
+      h2 Scorlls for Me
+      each content in enrolledContents
+        p
+          a(href="/#{content.url}") #{content.title}
