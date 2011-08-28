@@ -10,6 +10,7 @@ dojo.declare("scorll.asset.MultipleChoiceForm", [
   postCreate: function () {
     this.formContainer.startup();
     if (!this.item.data) {
+      this.answersBox.attr('value', this.getHelpText());
       return;
     }
     var data = this.item.data;
@@ -49,5 +50,12 @@ dojo.declare("scorll.asset.MultipleChoiceForm", [
   },
   cancel: function () {
     this.onCancel();
+  },
+  getHelpText: function() {
+    return "\
+Each line becomes an answer\n\
+* Line starting with an asteriks and space is the correct answer\n\
+Another answer\n\
+Another answer".trim();
   }
 });
