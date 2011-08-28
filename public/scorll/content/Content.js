@@ -32,12 +32,9 @@ dojo.declare("scorll.content.Content", [
       }
       content._setTitle(data.title);
       if (data.assets) {
-        for (var i in data.assets) {
-          var asset = data.assets[i];
-          if (asset) {
-            content._add(asset);
-          }
-        }
+        data.assets.forEach(function(asset) {
+          content._add(asset);
+        });
       }
       content.loaded = true;
       content.onLoad();

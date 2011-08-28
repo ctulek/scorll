@@ -9,5 +9,5 @@ dojo.declare("scorll.asset.Persistent", null, {
   },
   del: function (objects, callback) {
     this.client.call(this, 'delete', conditions, callback);
-  },
+  }
 });

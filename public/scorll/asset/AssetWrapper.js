@@ -318,5 +318,5 @@ dojo.declare("scorll.asset.AssetWrapper", [
         wrapper.showLogin(callback);
       }
     });
-  },
+  }
 });

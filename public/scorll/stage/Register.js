@@ -41,5 +41,5 @@ dojo.declare("scorll.stage.Register", [
     this.errorMessage.innerHTML = err;
     this.errorMessage.style.display = "block";
     console.error(err);
-  },
+  }
 });
