@@ -47,7 +47,7 @@ app.assetSet = assetSet;
 app.groupSet = groupSet;
 app.userSet = userSet;
 app.clientComponentSet = clientComponentSet;
-require('controller/login.js')(app);
+require('controller/list.js')(app);
 require('controller/index.js')(app);
 
 app.listen(app.set("port"));
