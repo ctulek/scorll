@@ -20,16 +20,16 @@ body {
 }
 
 div#top-menu {
-  left: 0px;
-  right: 0px;
-  padding: 5px 5px;
   position: absolute;
+  right: 5px;
   text-align: right;
+  top: 5px;
+  width: 100%;
   z-index: 5;
 }
 
 div#stage-container {
-    font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
+  font-family: Beteckna, Georgia, 'Verdana', 'Helvetica Neue', Helvetica, Arial, default;
 	margin-left: 20px;
 	padding-bottom: 100px;
 	position: absolute;
@@ -38,6 +38,7 @@ div#stage-container {
 h1#title {
 	margin-left: 10px;
   margin-bottom: 0px;
+  margin-top: 20px;
   font-weight: bold;
   max-width: 720px;
 }
