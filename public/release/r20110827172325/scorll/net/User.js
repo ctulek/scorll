@@ -25,7 +25,7 @@ dojo.declare("scorll.net.User", null, {
     var userComponent = this;
     userComponent.client.call(null, "authN", params, function (err, user) {
       if (err) {
-        console.log(err);
+        console.error(err);
         dojo.cookie("scorll.user.cookie", null, {
           expires: -1
         });
@@ -46,7 +46,7 @@ dojo.declare("scorll.net.User", null, {
         }
         userComponent.client.call(null, "authZ", params, function (err, roles) {
           if (err) {
-            console.log(err);
+            console.error(err);
             return;
           }
           userComponent.addRoles(roles);
@@ -105,6 +105,7 @@ dojo.declare("scorll.net.User", null, {
     this.onRolesChange();
   },
   hasRole: function (role) {
+    var result = this.roles.indexOf(role);
     return this.roles.indexOf(role) > -1;
   },
   addRoles: function (roles) {

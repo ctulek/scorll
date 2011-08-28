@@ -16,27 +16,25 @@ dojo.declare("scorll.asset.Text", [
   scorll.asset.Asset,
   scorll.asset.Shared
   ], {
-  templateString:"<div>\n\t<h2 style=\"margin-top: 0px;\" dojoAttachPoint=\"titleText\"></h2>\n\t<p style=\"margin-bottom: 0px;\" dojoAttachPoint=\"bodyText\"></p>\n",
+  templateString:"<div>\n\t<p style=\"margin-bottom: 0px;\" dojoAttachPoint=\"bodyText\"></p>\n",
   postCreate: function () {
     var data = this.item.data;
     if (data.text) {
-      this.bodyText.innerHTML = this.parseText(data.text);
+      var text = this.parseText(data.text);
+      dojo.place(text, this.bodyText, "only");
     }
     if (data.title) {
-      this.titleText.innerHTML = data.title;
-    }
-    else {
-      dojo.destroy(this.titleText);
+      var title = '<h2 style="margin-top: 0px;">' + data.title.trim() + '</h2>';
+      dojo.place(title, this.bodyText, "before");
     }
     var userid = this.user ? this.user.id : "unknown";
     this.call("test", "Test Message From User " + userid);
   },
   test: function (message) {
-    console.log("Message to Test: " + message);
   },
   parseText: function (text) {
     // Clear Empty chars
-    text = text.trim(text);
+    text = text.trim();
     // Clean HTML
     text = text.replace(/<\/?([^>])*>/gm, "");
     // Italic

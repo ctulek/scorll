@@ -62,12 +62,9 @@ dojo.declare("scorll.content.Content", [
       }
       content._setTitle(data.title);
       if (data.assets) {
-        for (var i in data.assets) {
-          var asset = data.assets[i];
-          if (asset) {
-            content._add(asset);
-          }
-        }
+        data.assets.forEach(function(asset) {
+          content._add(asset);
+        });
       }
       content.loaded = true;
       content.onLoad();
@@ -418,7 +415,7 @@ dojo.declare("scorll.net.User", null, {
     var userComponent = this;
     userComponent.client.call(null, "authN", params, function (err, user) {
       if (err) {
-        console.log(err);
+        console.error(err);
         dojo.cookie("scorll.user.cookie", null, {
           expires: -1
         });
@@ -439,7 +436,7 @@ dojo.declare("scorll.net.User", null, {
         }
         userComponent.client.call(null, "authZ", params, function (err, roles) {
           if (err) {
-            console.log(err);
+            console.error(err);
             return;
           }
           userComponent.addRoles(roles);
@@ -498,6 +495,7 @@ dojo.declare("scorll.net.User", null, {
     this.onRolesChange();
   },
   hasRole: function (role) {
+    var result = this.roles.indexOf(role);
     return this.roles.indexOf(role) > -1;
   },
   addRoles: function (roles) {
@@ -10266,6 +10264,26 @@ scorll.util.slideIntoView = function (domNode) {
   });
 }
 
+if (typeof String.prototype.trim !== 'function') {
+  String.prototype.trim = function () {
+    return dojo.trim(this);
+  }
+}
+
+
+if (typeof Array.prototype.indexOf !== 'function') {
+  Array.prototype.indexOf = function (searchElement, fromIndex) {
+    return dojo.indexOf(this, searchElement, fromIndex);
+  }
+}
+
+
+if (typeof Array.prototype.forEach !== 'function') {
+  Array.prototype.forEach = function (callback) {
+    return dojo.forEach(this, callback);
+  }
+}
+
 }
 
 if(!dojo._hasResource["dijit.Tooltip"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
@@ -13353,7 +13371,7 @@ dojo.declare("scorll.stage.Register", [
     this.errorMessage.innerHTML = err;
     this.errorMessage.style.display = "block";
     console.error(err);
-  },
+  }
 });
 
 }
@@ -24541,7 +24559,7 @@ dojo.declare("scorll.asset.AssetWrapper", [
         wrapper.showLogin(callback);
       }
     });
-  },
+  }
 });
 
 }
@@ -27400,9 +27418,9 @@ dojo.declare("scorll.stage.Stage", null, {
     client.connect();
     dojo.connect(client, "onConnect", function () {
       user.authNWithCookie(function (err) {
-        err && console.log(err);
+        err && console.error(err);
         if (stage.requireLogin && err) {
-          console.log(err);
+          console.error(err);
           stage.userLogin();
         }
         else {
@@ -28577,7 +28595,7 @@ dojo.declare("scorll.asset.Persistent", null, {
   },
   del: function (objects, callback) {
     this.client.call(this, 'delete', conditions, callback);
-  },
+  }
 });
 
 }
@@ -28628,27 +28646,25 @@ dojo.declare("scorll.asset.Text", [
   scorll.asset.Asset,
   scorll.asset.Shared
   ], {
-  templateString:"<div>\n\t<h2 style=\"margin-top: 0px;\" dojoAttachPoint=\"titleText\"></h2>\n\t<p style=\"margin-bottom: 0px;\" dojoAttachPoint=\"bodyText\"></p>\n",
+  templateString:"<div>\n\t<p style=\"margin-bottom: 0px;\" dojoAttachPoint=\"bodyText\"></p>\n",
   postCreate: function () {
     var data = this.item.data;
     if (data.text) {
-      this.bodyText.innerHTML = this.parseText(data.text);
+      var text = this.parseText(data.text);
+      dojo.place(text, this.bodyText, "only");
     }
     if (data.title) {
-      this.titleText.innerHTML = data.title;
-    }
-    else {
-      dojo.destroy(this.titleText);
+      var title = '<h2 style="margin-top: 0px;">' + data.title.trim() + '</h2>';
+      dojo.place(title, this.bodyText, "before");
     }
     var userid = this.user ? this.user.id : "unknown";
     this.call("test", "Test Message From User " + userid);
   },
   test: function (message) {
-    console.log("Message to Test: " + message);
   },
   parseText: function (text) {
     // Clear Empty chars
-    text = text.trim(text);
+    text = text.trim();
     // Clean HTML
     text = text.replace(/<\/?([^>])*>/gm, "");
     // Italic

@@ -41,4 +41,24 @@ scorll.util.slideIntoView = function (domNode) {
   });
 }
 
+if (typeof String.prototype.trim !== 'function') {
+  String.prototype.trim = function () {
+    return dojo.trim(this);
+  }
+}
+
+
+if (typeof Array.prototype.indexOf !== 'function') {
+  Array.prototype.indexOf = function (searchElement, fromIndex) {
+    return dojo.indexOf(this, searchElement, fromIndex);
+  }
+}
+
+
+if (typeof Array.prototype.forEach !== 'function') {
+  Array.prototype.forEach = function (callback) {
+    return dojo.forEach(this, callback);
+  }
+}
+
 }
