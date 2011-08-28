@@ -12,6 +12,7 @@ dojo.require("scorll.stage.Register");
 dojo.require("scorll.asset.AssetManager");
 dojo.require("scorll.asset.AssetWrapper");
 dojo.require("scorll.asset.Dialog");
+dojo.require("scorll.asset.NewAssetForm");
 
 
 dojo.declare("scorll.stage.Stage", null, {
