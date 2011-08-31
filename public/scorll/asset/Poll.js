@@ -99,7 +99,7 @@ dojo.declare("scorll.asset.Poll", [
           };
           asset.track(params, function (err) {
             // TODO: You can add feedback here
-            err && console.log(err);
+            err && console.error(err);
           });
         });
       });

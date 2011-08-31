@@ -13,23 +13,27 @@ var ClientSet = function (args) {
 
 ClientSet.prototype.add = function (client, callback) {
   if (this.clients[client.getId()]) {
-    callback && callback("Already in the set");
+    var err = new Error("Already in set");
+    console.error(err);
+    callback && callback(err);
     return;
   }
   this.clientCount++;
-  console.log('Client connected. ' + this.clientCount + " client(s) in total.");
+  console.info('Client connected. ' + this.clientCount + " client(s) in total.");
   this.clients[client.getId()] = client;
   var clientSet = this;
   client.on('disconnect', function () {
     clientSet.delete(this);
-    console.log('Client disconnected. ' + clientSet.clientCount + " client(s) in total.");
+    console.info('Client disconnected. ' + clientSet.clientCount + " client(s) in total.");
   });
   callback && callback(null);
 }
 
 ClientSet.prototype.delete = function (client, callback) {
   if (!this.clients[client.getId()]) {
-    callback && callback("Not in the set");
+    var err = new Error("Not in set");
+    console.error(err);
+    callback && callback(err);
     return;
   }
   this.clientCount--;

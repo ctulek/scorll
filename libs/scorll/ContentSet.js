@@ -13,12 +13,13 @@ ContentSet.prototype.add = function add(content, callback) {
   var contentSet = this;
   content.save(function (err) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
     contentSet.contents[content.getId()] = content;
     contentSet.contentCount++;
-    console.log('Content added. ' + contentSet.contentCount + " content(s) in total.");
+    console.info('Content added. ' + contentSet.contentCount + " content(s) in total.");
     callback && callback(null);
   });
 }
@@ -27,13 +28,14 @@ ContentSet.prototype.delete = function _delete(content, callback) {
   var contentSet = this;
   content.delete(function (err) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
     if (contentSet.contents[content.getId()]) {
       delete contentSet.contents[content.getId()];
       contentSet.contentCount--;
-      console.log('Content removed. ' + contentSet.contentCount + " content(s) in total.");
+      console.info('Content removed. ' + contentSet.contentCount + " content(s) in total.");
     }
     callback && callback();
   });
@@ -48,10 +50,10 @@ ContentSet.prototype.findById = function findById(id, callback) {
   }
   ContentPO.findById(id, function (err, contentPO) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
-    console.log(contentPO);
     var args = {
       po: contentPO,
       assetSet: contentSet.assetSet,
@@ -60,7 +62,7 @@ ContentSet.prototype.findById = function findById(id, callback) {
     var content = new Content(args);
     contentSet.contents[content.getId()] = content;
     contentSet.contentCount++;
-    console.log('Content added from database. ' + contentSet.contentCount + " content(s) in total.");
+    console.info('Content added from database. ' + contentSet.contentCount + " content(s) in total.");
     callback && callback(err, content);
   });
 }

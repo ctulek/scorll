@@ -7,18 +7,22 @@ var GroupSet = function () {
 
 GroupSet.prototype.add = function (group, callback) {
   if (this.groups[group.getId()]) {
-    callback && callback("Already in the set");
+    var err = new Error("Already in set");
+    console.error(err);
+    callback && callback(err);
     return;
   }
   this.groupCount++;
-  console.log('Group added. ' + this.groupCount + " group(s) in total.");
+  console.info('Group added. ' + this.groupCount + " group(s) in total.");
   this.groups[group.getId()] = group;
   callback && callback(null);
 }
 
 GroupSet.prototype.delete = function (group, callback) {
   if (!this.groups[group.getId()]) {
-    callback && callback("Not in the set");
+    var err = new Error("Not in set");
+    console.error(err);
+    callback && callback(err);
     return;
   }
   this.groupCount--;
@@ -29,14 +33,14 @@ GroupSet.prototype.delete = function (group, callback) {
 GroupSet.prototype.findById = function (id, callback) {
   var group = this.groups[id];
   if (!group) {
-    console.log("Adding new group");
+    console.info("Adding new group");
     var args = {
       id: id
     };
     var group = new Group(args);
     this.add(group, function (err) {
       if (err) {
-        console.log(err);
+        console.error(err);
         callback && callback(err);
         return;
       }

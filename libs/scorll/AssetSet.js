@@ -10,13 +10,14 @@ AssetSet.prototype.add = function (asset, callback) {
   var assetSet = this;
   asset.save(function (err) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
     assetSet.assets[asset.getId()] = asset;
     assetSet.assetCount++;
-    console.log('Asset added. ' + assetSet.assetCount + " asset(s) in total.");
-    callback && callback(null);
+    console.info('Asset added. ' + assetSet.assetCount + " asset(s) in total.");
+    callback && callback();
   });
 }
 
@@ -24,13 +25,14 @@ AssetSet.prototype.delete = function (asset, callback) {
   var assetSet = this;
   asset.remove(function (err) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
     if (assetSet.assets[asset.getId()]) {
       delete assetSet.assets[asset.getId()];
       assetSet.assetCount--;
-      console.log('Asset removed. ' + assetSet.assetCount + " asset(s) in total.");
+      console.info('Asset removed. ' + assetSet.assetCount + " asset(s) in total.");
     }
     callback && callback();
   });
@@ -45,6 +47,7 @@ AssetSet.prototype.findById = function (id, callback) {
   }
   AssetPO.findById(id, function (err, assetPO) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
@@ -54,8 +57,8 @@ AssetSet.prototype.findById = function (id, callback) {
     var asset = new Asset(args);
     assetSet.assets[asset.getId()] = asset;
     assetSet.assetCount++;
-    console.log('Asset added. ' + assetSet.assetCount + " asset(s) in total.");
-    callback && callback(err, asset);
+    console.info('Asset added. ' + assetSet.assetCount + " asset(s) in total.");
+    callback && callback(null, asset);
   });
 }
 

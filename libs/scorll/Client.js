@@ -83,7 +83,7 @@ Client.prototype.register = function (params, callback) {
     var auth = new Authentication(params);
     auth.link(user.getId(), function (err) {
       if (err) {
-        console.log(err);
+        console.error(err);
         client.userSet.delete(user);
         client.user = null;
         callback && callback(err);
@@ -170,7 +170,7 @@ Client.prototype.rememberme = function (callback) {
   var auth = new Authentication(params)
   auth.link(user.getId(), function (err) {
     if (err) {
-      console.log(err);
+      console.error(err);
       callback && callback(err);
     }
     else {
@@ -268,7 +268,6 @@ Client.prototype.handleComponentMessage = function (message) {
         method.apply(component, params);
       }
       else {
-        console.log(params);
         var err = "Argument count is not equal to argument count expected by the" + " function " + message.componentId + "/" + message.method;
         callback(err);
         console.error(err);

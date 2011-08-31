@@ -13,12 +13,13 @@ UserSet.prototype.add = function (user, callback) {
   var userSet = this;
   user.save(function (err) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
     userSet.users[user.getId()] = user;
     userSet.userCount++;
-    console.log('User added. ' + userSet.userCount + " user(s) in total.");
+    console.info('User added. ' + userSet.userCount + " user(s) in total.");
     callback && callback(null);
   });
 }
@@ -27,13 +28,14 @@ UserSet.prototype.delete = function (user, callback) {
   var userSet = this;
   user.delete(function (err) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
     if (userSet.users[user.getId()]) {
       delete userSet.users[user.getId()];
       userSet.userCount--;
-      console.log('User removed. ' + userSet.userCount + " user(s) in total.");
+      console.info('User removed. ' + userSet.userCount + " user(s) in total.");
     }
     callback && callback();
   });
@@ -48,6 +50,7 @@ UserSet.prototype.findById = function (id, callback) {
   }
   UserPO.findById(id, function (err, userPO) {
     if (err) {
+      console.error(err);
       callback && callback(err);
       return;
     }
@@ -58,7 +61,7 @@ UserSet.prototype.findById = function (id, callback) {
     var user = new User(args);
     userSet.users[user.getId()] = user;
     userSet.userCount++;
-    console.log('User added from database. ' + userSet.userCount + " user(s) in total.");
+    console.info('User added from database. ' + userSet.userCount + " user(s) in total.");
     callback && callback(err, user);
   });
 }

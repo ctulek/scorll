@@ -29,7 +29,6 @@ dojo.declare("scorll.asset.SlideShareForm", [
       preventCache: true,
       checkString: false,
       load: function (data) {
-        console.log(data);
         var data = {};
         data.url = url;
         data.html = data.html
