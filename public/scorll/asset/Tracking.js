@@ -16,16 +16,15 @@ dojo.declare("scorll.asset.Tracking", null, {
     if (!asset.user.authenticated) {
       asset.onLoginRequired(function (err) {
         if (err) {
-          callback(err);
+          console.error(err);
+          callback && callback(err);
+          return;
         }
-        else {
-          asset.client.call(asset, "track", params, callback);
-        }
+        asset.client.call(asset, "track", params, callback);
       });
+      return;
     }
-    else {
-      asset.client.call(asset, "track", params, callback);
-    }
+    asset.client.call(asset, "track", params, callback);
   },
   getTrackingResult: function (callback) {
     var asset = this;
@@ -45,8 +44,12 @@ dojo.declare("scorll.asset.Tracking", null, {
       userId: null
     };
     asset.client.call(asset, "getTrackingResults", params, function (err, results) {
-      for (var i in results) {
-        var r = results[i];
+      if(err) {
+        console.error(err);
+        callback && callback(err);
+        return;
+      }
+      results && results.forEach(function (r) {
         var response = r.responses[r.responses.length - 1];
         asset.userTrackingData.put({
           id: r.ownerId,
@@ -54,7 +57,7 @@ dojo.declare("scorll.asset.Tracking", null, {
           response: response.response,
           result: response.result
         });
-      }
+      });
       asset.statsForm && asset.statsForm.resultsGrid._refresh();
       callback && callback(err, results);
     });
