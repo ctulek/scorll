@@ -19,12 +19,10 @@ dojo.declare("scorll.asset.YouTubeForm", [
         return asset.youtubeRegex;
     };
     dojo.connect(this.videoUrl,"onChange",function() {
-      if(true || this.isValid()) {
-        var regex = new
-        RegExp(asset.youtubeRegex);
+      if(this.isValid()) {
+        var regex = new RegExp(asset.youtubeRegex);
         var match = regex.exec(asset.videoUrl.attr('value').trim());
         var video = match.pop();
-        console.log(match);
         var url = "http://img.youtube.com/vi/" + video + "/0.jpg";
         asset.previewImg.src = url;
       }
