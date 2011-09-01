@@ -24,6 +24,12 @@ dojo.declare("scorll.content.Content", [
   onLoad: function () {},
   load: function (callback) {
     var content = this;
+    if(content.loaded) {
+      var err = new Error("Content is already loaded");
+      console.error(err + "");
+      callback && callback(err);
+      return;
+    }
     content.client.call(this, "load", function (err, data) {
       if (err) {
         console.error(err);
