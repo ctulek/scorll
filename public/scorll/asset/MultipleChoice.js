@@ -1,7 +1,5 @@
 dojo.provide("scorll.asset.MultipleChoice");
 
-dojo.require("dojo.string");
-
 dojo.require("scorll.asset.Asset");
 
 dojo.declare("scorll.asset.MultipleChoice", [
@@ -46,6 +44,9 @@ dojo.declare("scorll.asset.MultipleChoice", [
             response: response
           };
           asset.track(params, function (err) {
+            if(err) {
+              console.error(err);
+            }
             // TODO: You can add feedback here
           });
         });
