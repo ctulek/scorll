@@ -20,14 +20,15 @@ html
       // ]]>
 
   body.claro
-    if createdContents.length
-      h2 Scorlls by Me
-      each content in createdContents
-        p
-          a(href="/#{content.url}") #{content.title}
+    div(style="margin: 10px;")
+      if createdContents.length
+        h2 Scorlls by Me
+        each content in createdContents
+          p
+            a(href="/#{content.url}") #{content.title}
 
-    if enrolledContents.length
-      h2 Scorlls for Me
-      each content in enrolledContents
-        p
-          a(href="/#{content.url}") #{content.title}
+      if enrolledContents.length
+        h2 Scorlls for Me
+        each content in enrolledContents
+          p
+            a(href="/#{content.url}") #{content.title}
