@@ -1,10 +1,8 @@
 html
   head
     title Scorll
-    - if (release)
-      link(rel="stylesheet", rel="stylesheet", href="/release/#{revision}/dijit/themes/claro/claro.css")
-    - else
-      link(rel="stylesheet", rel="stylesheet", href="/dijit/themes/claro/claro.css")
+    link(rel="stylesheet", rel="stylesheet",
+      href="http://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dijit/themes/claro/claro.css")
     link(type="text/css", rel="stylesheet", href="/css/stage.css?#{revision}") 
     script(type="text/javascript", language="javascript")
       // <![CDATA[
@@ -57,11 +55,11 @@ html
           style="display: none;") Add Asset
         div#pasteAssetButton(dojoType="dijit.form.Button",
           style="display: none;") Paste
+    script(src="http://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js",
+      type="text/javascript",
+      data-dojo-config="parseOnLoad: true, baseUrl:'/release/#{revision}/dojo/', isDebug: false")
     - if (release)
-      script(src="/release/#{revision}/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
-      script(src="/release/#{revision}/dojo/scorll.js", type="text/javascript", djConfig="parseOnLoad: true")
-    - else
-      script(src="/dojo/dojo.js", type="text/javascript", djConfig="parseOnLoad: true")
+      script(src="/release/#{revision}/scorll/scorll.js", type="text/javascript")
     script(src="/socket.io/socket.io.js?#{revision}")
     script(type="text/javascript", src="https://www.google.com/jsapi")
     script(type="text/javascript", language="javascript")
@@ -78,6 +76,7 @@ html
       dojo.require("scorll.asset.NewAssetForm");
       dojo.addOnLoad(
         function() {
+          console.info("Loaded");
           var user = new scorll.net.User();
           var clientArgs = {
             groupId: '#{contentId}'
