@@ -1,6 +1,6 @@
 # Scorll Makefile
 VERSION := $(shell date +%Y%m%d%H%M%S)
-RELEASE_NAME := "r$(VERSION)"
+RELEASE_NAME := r$(VERSION)
 
 RELEASEPATH = public/release
 LIBSPATH = libs
