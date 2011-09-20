@@ -60,13 +60,6 @@ io.configure(function(){
   io.enable('browser client etag');
   io.set('log level', 1);
 
-  io.set('transports', [
-    'websocket'
-  , 'flashsocket'
-  , 'htmlfile'
-  , 'xhr-polling'
-  , 'jsonp-polling'
-  ]);
 });
 
 io.sockets.on('connection', function (ioClient) {
